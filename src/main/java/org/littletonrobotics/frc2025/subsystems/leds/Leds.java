@@ -39,6 +39,7 @@ public class Leds extends VirtualSubsystem {
   public boolean superstructureCoast = false;
   public boolean superstructureEstopped = false;
   public boolean lowBatteryAlert = false;
+  public boolean characterizationMode = false;
   public boolean visionDisconnected = false;
   public Optional<ReefLevel> firstPriorityLevel = Optional.empty();
   public Optional<ReefLevel> secondPriorityLevel = Optional.empty();
@@ -200,8 +201,11 @@ public class Leds extends VirtualSubsystem {
       }
 
     } else if (DriverStation.isAutonomous()) {
-      wave(fullSection, Color.kGold, Color.kDarkBlue, waveFastCycleLength, waveFastDuration);
-
+      if (characterizationMode) {
+        strobe(fullSection, Color.kGold, Color.kBlack, 0.5);
+      } else {
+        wave(fullSection, Color.kGold, Color.kDarkBlue, waveFastCycleLength, waveFastDuration);
+      }
     } else {
       solid(topSection, hexColor);
       solid(bottomSection, secondaryHexColor);

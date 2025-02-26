@@ -160,6 +160,7 @@ public class ModuleIOComp implements ModuleIO {
 
     // Register signals for refresh
     PhoenixUtil.registerSignals(
+        true,
         drivePosition,
         driveVelocity,
         driveAppliedVolts,

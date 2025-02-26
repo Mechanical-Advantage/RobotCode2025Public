@@ -21,7 +21,6 @@ import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.ParentDevice;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
@@ -31,7 +30,7 @@ import edu.wpi.first.units.measure.*;
 import org.littletonrobotics.frc2025.util.PhoenixUtil;
 
 public class DispenserIOTalonFX implements DispenserIO {
-  public static final double reduction = 3.0;
+  public static final double reduction = (72.0 / 12.0) * (44.0 / 19.0) * (74.0 / 24.0);
   private static final Rotation2d offset = new Rotation2d();
   private static final int encoderId = 45;
 
@@ -63,28 +62,28 @@ public class DispenserIOTalonFX implements DispenserIO {
   private final Debouncer encoderConnectedDebouncer = new Debouncer(0.5);
 
   public DispenserIOTalonFX() {
-    talon = new TalonFX(0, "*");
-    encoder = new CANcoder(encoderId, "*");
+    talon = new TalonFX(5);
+    encoder = new CANcoder(encoderId);
 
     // Configure  motor
     Config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
     Config.Slot0 = new Slot0Configs().withKP(0).withKI(0).withKD(0);
-    Config.Feedback.RotorToSensorRatio = reduction;
+    //    Config.Feedback.RotorToSensorRatio = reduction;
     Config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
-    Config.Feedback.FeedbackRemoteSensorID = encoderId;
-    Config.Feedback.FeedbackSensorSource = FeedbackSensorSourceValue.FusedCANcoder;
-    Config.Feedback.SensorToMechanismRatio = 1.0;
+    //    Config.Feedback.FeedbackRemoteSensorID = encoderId;
+    //    Config.Feedback.FeedbackSensorSource = FeedbackSensorSourceValue.FusedCANcoder;
+    Config.Feedback.SensorToMechanismRatio = reduction;
     Config.TorqueCurrent.PeakForwardTorqueCurrent = 40.0;
     Config.TorqueCurrent.PeakReverseTorqueCurrent = -40.0;
     Config.CurrentLimits.StatorCurrentLimit = 40.0;
     Config.CurrentLimits.StatorCurrentLimitEnable = true;
-    Config.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
+    Config.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
     tryUntilOk(5, () -> talon.getConfigurator().apply(Config, 0.25));
 
     // Configure encoder
     var cancoderConfig = new CANcoderConfiguration();
     cancoderConfig.MagnetSensor.MagnetOffset = offset.getRotations();
-    cancoderConfig.MagnetSensor.SensorDirection = SensorDirectionValue.CounterClockwise_Positive;
+    cancoderConfig.MagnetSensor.SensorDirection = SensorDirectionValue.Clockwise_Positive;
     tryUntilOk(5, () -> encoder.getConfigurator().apply(cancoderConfig));
 
     // Get and set status signals
@@ -111,6 +110,7 @@ public class DispenserIOTalonFX implements DispenserIO {
 
     // Register signals for refresh
     PhoenixUtil.registerSignals(
+        false,
         internalPosition,
         internalVelocity,
         appliedVolts,
@@ -119,6 +119,9 @@ public class DispenserIOTalonFX implements DispenserIO {
         temp,
         encoderAbsolutePosition,
         encoderRelativePosition);
+
+    // Reset to zero (fallback until CANcoder is available)
+    tryUntilOk(5, () -> talon.setPosition(0.0));
   }
 
   @Override

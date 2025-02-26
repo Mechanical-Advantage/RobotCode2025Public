@@ -155,6 +155,7 @@ public class ModuleIODev implements ModuleIO {
 
     // Register signals for refresh
     PhoenixUtil.registerSignals(
+        true,
         drivePosition,
         driveVelocity,
         driveAppliedVolts,

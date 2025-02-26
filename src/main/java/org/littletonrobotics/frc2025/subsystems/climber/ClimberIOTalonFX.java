@@ -20,11 +20,13 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.filter.Debouncer;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
 import edu.wpi.first.units.measure.Temperature;
 import edu.wpi.first.units.measure.Voltage;
+import org.littletonrobotics.frc2025.util.PhoenixUtil;
 
 public class ClimberIOTalonFX implements ClimberIO {
   public static final double reduction = 120.0;
@@ -64,6 +66,10 @@ public class ClimberIOTalonFX implements ClimberIO {
     config.CurrentLimits.StatorCurrentLimit = 120.0;
     config.CurrentLimits.StatorCurrentLimitEnable = true;
     config.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
+    config.SoftwareLimitSwitch.ForwardSoftLimitThreshold =
+        Units.degreesToRotations(Climber.climbStopAngle.get());
+    config.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
+
     tryUntilOk(5, () -> talon.getConfigurator().apply(config, 0.25));
     tryUntilOk(5, () -> talon.setPosition(0.0));
 
@@ -91,6 +97,19 @@ public class ClimberIOTalonFX implements ClimberIO {
         followerSupplyCurrent,
         followerTemp);
     ParentDevice.optimizeBusUtilizationForAll(talon, followerTalon);
+
+    PhoenixUtil.registerSignals(
+        false,
+        position,
+        velocity,
+        appliedVolts,
+        supplyCurrentAmps,
+        torqueCurrentAmps,
+        temp,
+        followerAppliedVolts,
+        followerTorqueCurrent,
+        followerSupplyCurrent,
+        followerTemp);
   }
 
   @Override

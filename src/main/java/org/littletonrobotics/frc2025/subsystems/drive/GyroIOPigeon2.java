@@ -37,7 +37,7 @@ public class GyroIOPigeon2 implements GyroIO {
     pigeon.optimizeBusUtilization();
     yawTimestampQueue = PhoenixOdometryThread.getInstance().makeTimestampQueue();
     yawPositionQueue = PhoenixOdometryThread.getInstance().registerSignal(pigeon.getYaw());
-    PhoenixUtil.registerSignals(yaw, yawVelocity);
+    PhoenixUtil.registerSignals(true, yaw, yawVelocity);
     tryUntilOk(5, () -> pigeon.setYaw(0.0, 0.25));
   }
 

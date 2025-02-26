@@ -67,8 +67,8 @@ public class ElevatorIOTalonFX implements ElevatorIO {
     config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
     config.Slot0 = new Slot0Configs().withKP(0).withKI(0).withKD(0);
     config.Feedback.SensorToMechanismRatio = reduction;
-    config.TorqueCurrent.PeakForwardTorqueCurrent = 80.0;
-    config.TorqueCurrent.PeakReverseTorqueCurrent = -80.0;
+    config.TorqueCurrent.PeakForwardTorqueCurrent = 120.0;
+    config.TorqueCurrent.PeakReverseTorqueCurrent = -120.0;
     config.CurrentLimits.StatorCurrentLimit = 80.0;
     config.CurrentLimits.StatorCurrentLimitEnable = true;
     config.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
@@ -101,6 +101,7 @@ public class ElevatorIOTalonFX implements ElevatorIO {
 
     // Register signals for refresh
     PhoenixUtil.registerSignals(
+        true,
         position,
         velocity,
         appliedVolts,

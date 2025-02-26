@@ -19,8 +19,13 @@ import org.littletonrobotics.frc2025.subsystems.superstructure.dispenser.Dispens
 @RequiredArgsConstructor
 public enum SuperstructureState {
   START(SuperstructureStateData.builder().height(Height.BOTTOM).build()),
+  CHARACTERIZATION(SuperstructureStateData.builder().build()),
   STOW(SuperstructureStateData.builder().pose(Preset.STOW.getPose()).height(Height.BOTTOM).build()),
-  INTAKE(SuperstructureStateData.builder().tunnelVolts(Dispenser.tunnelIntakeVolts).build()),
+  INTAKE(
+      SuperstructureStateData.builder()
+          .pose(Preset.INTAKE.getPose())
+          .tunnelVolts(Dispenser.tunnelIntakeVolts)
+          .build()),
   L1_CORAL(SuperstructureStateData.builder().pose(Preset.L1.getPose()).build()),
   L2_CORAL(
       SuperstructureStateData.builder()
@@ -87,17 +92,10 @@ public enum SuperstructureState {
                   Preset.ALGAE_STOW.getPose().elevatorHeight(), () -> Rotation2d.fromDegrees(30.0)))
           .gripperCurrent(Dispenser.gripperIntakeCurrent)
           .build()),
+  ALGAE_STOW_INTAKE(SuperstructureState.ALGAE_STOW.getValue().toBuilder().build()),
   TOSS(
       SuperstructureState.PRE_TOSS.getValue().toBuilder()
           .gripperCurrent(Dispenser.gripperDispenseCurrent)
-          .build()),
-  PRE_PROCESSOR(
-      SuperstructureStateData.builder()
-          .pose(
-              new SuperstructurePose(
-                  Preset.ALGAE_STOW.getPose().elevatorHeight(),
-                  Preset.POST_PRE_PROCESSOR.getPose().pivotAngle()))
-          .gripperCurrent(Dispenser.gripperIntakeCurrent)
           .build()),
   POST_PRE_PROCESSOR(
       SuperstructureStateData.builder()

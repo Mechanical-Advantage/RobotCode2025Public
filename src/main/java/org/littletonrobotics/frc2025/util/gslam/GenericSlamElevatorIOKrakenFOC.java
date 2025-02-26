@@ -11,6 +11,7 @@ import static edu.wpi.first.units.Units.*;
 import static org.littletonrobotics.frc2025.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.NeutralOut;
@@ -63,7 +64,13 @@ public class GenericSlamElevatorIOKrakenFOC implements GenericSlamElevatorIO {
 
     // Register signals for refresh
     PhoenixUtil.registerSignals(
-        position, velocity, appliedVoltage, supplyCurrent, torqueCurrent, temp);
+        new CANBus(bus).isNetworkFD(),
+        position,
+        velocity,
+        appliedVoltage,
+        supplyCurrent,
+        torqueCurrent,
+        temp);
   }
 
   @Override

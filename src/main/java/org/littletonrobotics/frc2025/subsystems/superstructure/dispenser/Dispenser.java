@@ -36,7 +36,7 @@ import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
 public class Dispenser {
-  public static final Rotation2d minAngle = Rotation2d.fromDegrees(-220.0);
+  public static final Rotation2d minAngle = Rotation2d.fromDegrees(-55.0);
   public static final Rotation2d maxAngle = Rotation2d.fromDegrees(20.0);
 
   // Tunable numbers
@@ -45,13 +45,15 @@ public class Dispenser {
   private static final LoggedTunableNumber kS = new LoggedTunableNumber("Dispenser/kS");
   private static final LoggedTunableNumber kG = new LoggedTunableNumber("Dispenser/kG");
   private static final LoggedTunableNumber maxVelocityDegPerSec =
-      new LoggedTunableNumber("Dispenser/MaxVelocityDegreesPerSec", 500);
+      new LoggedTunableNumber("Dispenser/MaxVelocityDegreesPerSec", 2000.0);
   private static final LoggedTunableNumber maxAccelerationDegPerSec2 =
-      new LoggedTunableNumber("Dispenser/MaxAccelerationDegreesPerSec2", 2000);
+      new LoggedTunableNumber("Dispenser/MaxAccelerationDegreesPerSec2", 8000.0);
   private static final LoggedTunableNumber staticCharacterizationVelocityThresh =
       new LoggedTunableNumber("Dispenser/StaticCharacterizationVelocityThresh", 0.1);
-  private static final LoggedTunableNumber algaeIntakeCurrentThresh =
-      new LoggedTunableNumber("Dispenser/AlgaeIntakeCurrentThreshold", 40.0);
+  private static final LoggedTunableNumber staticCharacterizationRampRate =
+      new LoggedTunableNumber("Dispenser/StaticCharacterizationRampRate", 0.2);
+  private static final LoggedTunableNumber algaeIntakeVelocityThresh =
+      new LoggedTunableNumber("Dispenser/AlgaeIntakeVelocityThreshold", 1.0);
   public static final LoggedTunableNumber gripperIntakeCurrent =
       new LoggedTunableNumber("Dispenser/AlgaeIntakeCurrent", 30.0);
   public static final LoggedTunableNumber gripperDispenseCurrent =
@@ -59,7 +61,7 @@ public class Dispenser {
   public static final LoggedTunableNumber tunnelDispenseVolts =
       new LoggedTunableNumber("Dispenser/TunnelDispenseVolts", 6.0);
   public static final LoggedTunableNumber tunnelIntakeVolts =
-      new LoggedTunableNumber("Dispenser/TunnelIntakeVolts", 6.0);
+      new LoggedTunableNumber("Dispenser/TunnelIntakeVolts", 3.0);
   public static final LoggedTunableNumber tolerance =
       new LoggedTunableNumber("Dispenser/Tolerance", .1);
 
@@ -72,8 +74,8 @@ public class Dispenser {
         kG.initDefault(0.0);
       }
       default -> {
-        kP.initDefault(0);
-        kD.initDefault(0);
+        kP.initDefault(12000.0);
+        kD.initDefault(120.0);
         kS.initDefault(0);
         kG.initDefault(0);
       }
@@ -110,8 +112,8 @@ public class Dispenser {
   @Setter private double tunnelVolts = 0.0;
   @Setter private double gripperCurrent = 0.0;
 
-  @AutoLogOutput private boolean hasCoral = false;
-  @AutoLogOutput private boolean hasAlgae = false;
+  private boolean hasCoral = false;
+  private boolean hasAlgae = false;
 
   private Debouncer coralDebouncer = new Debouncer(0.1);
   private Debouncer algaeDebouncer = new Debouncer(0.1);
@@ -192,10 +194,7 @@ public class Dispenser {
     // Check if out of tolerance
     boolean outOfTolerance =
         Math.abs(getPivotAngle().getRadians() - setpoint.position) > tolerance.get();
-    shouldEStop =
-        toleranceDebouncer.calculate(outOfTolerance && shouldRunProfile)
-            || getPivotAngle().getRadians() < minAngle.getRadians()
-            || getPivotAngle().getRadians() > maxAngle.getRadians();
+    shouldEStop = toleranceDebouncer.calculate(outOfTolerance && shouldRunProfile);
     if (shouldRunProfile) {
       // Clamp goal
       var goalState =
@@ -238,9 +237,14 @@ public class Dispenser {
 
     // Check algae
     if (Constants.getRobot() != Constants.RobotType.SIMBOT) {
-      hasAlgae =
-          algaeDebouncer.calculate(
-              Math.abs(gripperInputs.data.supplyCurrentAmps()) >= algaeIntakeCurrentThresh.get());
+      if (Math.abs(gripperInputs.data.torqueCurrentAmps()) >= 5.0) {
+        hasAlgae =
+            algaeDebouncer.calculate(
+                Math.abs(gripperInputs.data.velocityRadsPerSec())
+                    >= algaeIntakeVelocityThresh.get());
+      } else {
+        algaeDebouncer.calculate(hasAlgae);
+      }
       if (Math.abs(tunnelInputs.data.torqueCurrentAmps()) >= 5.0) {
         hasCoral =
             coralDebouncer.calculate(Math.abs(tunnelInputs.data.velocityRadsPerSec()) <= 3.0);
@@ -267,10 +271,12 @@ public class Dispenser {
     return goal.getAsDouble();
   }
 
+  @AutoLogOutput
   public boolean hasAlgae() {
     return hasAlgae && !disableGamePieceDetectionOverride.getAsBoolean();
   }
 
+  @AutoLogOutput
   public boolean hasCoral() {
     return hasCoral || disableGamePieceDetectionOverride.getAsBoolean();
   }
@@ -294,7 +300,7 @@ public class Dispenser {
     pivotIO.setBrakeMode(enabled);
   }
 
-  public Command staticCharacterization(double outputRampRate) {
+  public Command staticCharacterization() {
     final StaticCharacterizationState state = new StaticCharacterizationState();
     Timer timer = new Timer();
     return Commands.startRun(
@@ -303,7 +309,7 @@ public class Dispenser {
               timer.restart();
             },
             () -> {
-              state.characterizationOutput = outputRampRate * timer.get();
+              state.characterizationOutput = staticCharacterizationRampRate.get() * timer.get();
               pivotIO.runOpenLoop(state.characterizationOutput);
               Logger.recordOutput(
                   "Dispenser/StaticCharacterizationOutput", state.characterizationOutput);
@@ -311,6 +317,8 @@ public class Dispenser {
         .until(
             () ->
                 pivotInputs.data.velocityRadPerSec() >= staticCharacterizationVelocityThresh.get())
+        .andThen(pivotIO::stop)
+        .andThen(Commands.idle())
         .finallyDo(
             () -> {
               stopProfile = false;

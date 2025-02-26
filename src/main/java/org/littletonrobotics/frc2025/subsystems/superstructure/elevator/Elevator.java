@@ -33,6 +33,14 @@ import org.littletonrobotics.junction.Logger;
 
 public class Elevator {
   public static final double drumRadius = Units.inchesToMeters(1.0);
+  private static final LoggedTunableNumber characterizationRampRate =
+      new LoggedTunableNumber("Elevator/CharacterizationRampRate", 0.5);
+  private static final LoggedTunableNumber characterizationUpVelocityThresh =
+      new LoggedTunableNumber("Elevator/CharacterizationUpVelocityThresh", 0.1);
+  private static final LoggedTunableNumber characterizationDownStartAmps =
+      new LoggedTunableNumber("Elevator/CharacterizationDownStartAmps", 0.0);
+  private static final LoggedTunableNumber characterizationDownVelocityThresh =
+      new LoggedTunableNumber("Elevator/CharacterizationDownVelocityThresh", -0.1);
 
   // Tunable numbers
   private static final LoggedTunableNumber kP = new LoggedTunableNumber("Elevator/kP");
@@ -62,19 +70,17 @@ public class Elevator {
       new LoggedTunableNumber("Elevator/HomingTimeSecs", 0.25);
   private static final LoggedTunableNumber homingVelocityThresh =
       new LoggedTunableNumber("Elevator/HomingVelocityThresh", 5.0);
-  private static final LoggedTunableNumber staticCharacterizationVelocityThresh =
-      new LoggedTunableNumber("Elevator/StaticCharacterizationVelocityThresh", 0.1);
   private static final LoggedTunableNumber tolerance =
-      new LoggedTunableNumber("Elevator/Tolerance", 0.2);
+      new LoggedTunableNumber("Elevator/Tolerance", 0.4);
 
   static {
     switch (Constants.getRobot()) {
       case COMPBOT, DEVBOT -> {
-        kP.initDefault(1200);
-        kD.initDefault(30);
+        kP.initDefault(800);
+        kD.initDefault(0);
         for (int stage = 0; stage < 3; stage++) {
           kS[stage].initDefault(0);
-          kG[stage].initDefault(5);
+          kG[stage].initDefault(0);
           kA[stage].initDefault(0);
         }
       }
@@ -195,11 +201,6 @@ public class Elevator {
           EqualsUtil.epsilonEquals(setpoint.position, goalState.position)
               && EqualsUtil.epsilonEquals(setpoint.velocity, goalState.velocity);
 
-      // Stop running elevator down when in stow
-      if (stowed && atGoal) {
-        io.stop();
-      }
-
       // Log state
       Logger.recordOutput("Elevator/Profile/SetpointPositionMeters", setpoint.position);
       Logger.recordOutput("Elevator/Profile/SetpointVelocityMetersPerSec", setpoint.velocity);
@@ -215,6 +216,7 @@ public class Elevator {
       Logger.recordOutput("Elevator/Profile/GoalPositionMeters", 0.0);
       Logger.recordOutput("Elevator/Profile/GoalVelocityMetersPerSec", 0.0);
     }
+
     if (isEStopped) {
       io.stop();
     }
@@ -249,7 +251,7 @@ public class Elevator {
     io.setBrakeMode(brakeModeEnabled);
   }
 
-  public Command staticCharacterization(double outputRampRate) {
+  public Command upStaticCharacterization() {
     final StaticCharacterizationState state = new StaticCharacterizationState();
     Timer timer = new Timer();
     return Commands.startRun(
@@ -258,17 +260,49 @@ public class Elevator {
               timer.restart();
             },
             () -> {
-              state.characterizationOutput = outputRampRate * timer.get();
+              stopProfile = true;
+              state.characterizationOutput = characterizationRampRate.get() * timer.get();
               io.runOpenLoop(state.characterizationOutput);
               Logger.recordOutput(
-                  "Elevator/StaticCharacterizationOutput", state.characterizationOutput);
+                  "Elevator/CharacterizationOutputUp", state.characterizationOutput);
             })
-        .until(() -> inputs.data.velocityRadPerSec() >= staticCharacterizationVelocityThresh.get())
+        .until(() -> inputs.data.velocityRadPerSec() >= characterizationUpVelocityThresh.get())
+        .andThen(io::stop)
+        .andThen(Commands.idle())
         .finallyDo(
             () -> {
               stopProfile = false;
               timer.stop();
-              Logger.recordOutput("Elevator/CharacterizationOutput", state.characterizationOutput);
+              Logger.recordOutput(
+                  "Elevator/CharacterizationOutputUp", state.characterizationOutput);
+            });
+  }
+
+  public Command downStaticCharacterization() {
+    final StaticCharacterizationState state = new StaticCharacterizationState();
+    Timer timer = new Timer();
+    return Commands.startRun(
+            () -> {
+              stopProfile = true;
+              timer.restart();
+            },
+            () -> {
+              state.characterizationOutput =
+                  characterizationDownStartAmps.get()
+                      - characterizationRampRate.get() * timer.get();
+              io.runOpenLoop(state.characterizationOutput);
+              Logger.recordOutput(
+                  "Elevator/CharacterizationOutputDown", state.characterizationOutput);
+            })
+        .until(() -> inputs.data.velocityRadPerSec() <= characterizationDownVelocityThresh.get())
+        .andThen(io::stop)
+        .andThen(Commands.idle())
+        .finallyDo(
+            () -> {
+              stopProfile = false;
+              timer.stop();
+              Logger.recordOutput(
+                  "Elevator/CharacterizationOutputDown", state.characterizationOutput);
             });
   }
 

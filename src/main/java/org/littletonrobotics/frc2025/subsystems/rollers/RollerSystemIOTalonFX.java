@@ -10,6 +10,7 @@ package org.littletonrobotics.frc2025.subsystems.rollers;
 import static org.littletonrobotics.frc2025.util.PhoenixUtil.tryUntilOk;
 
 import com.ctre.phoenix6.BaseStatusSignal;
+import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.NeutralOut;
@@ -82,7 +83,13 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
 
     // Register signals for refresh
     PhoenixUtil.registerSignals(
-        position, velocity, appliedVoltage, supplyCurrent, torqueCurrent, tempCelsius);
+        new CANBus(bus).isNetworkFD(),
+        position,
+        velocity,
+        appliedVoltage,
+        supplyCurrent,
+        torqueCurrent,
+        tempCelsius);
   }
 
   @Override

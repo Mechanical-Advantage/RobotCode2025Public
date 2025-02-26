@@ -26,6 +26,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.DoubleSupplier;
 import java.util.function.Function;
@@ -44,16 +45,10 @@ import org.littletonrobotics.frc2025.subsystems.leds.Leds;
 import org.littletonrobotics.frc2025.subsystems.objectivetracker.ObjectiveTracker;
 import org.littletonrobotics.frc2025.subsystems.objectivetracker.ReefControlsIO;
 import org.littletonrobotics.frc2025.subsystems.objectivetracker.ReefControlsIOServer;
-import org.littletonrobotics.frc2025.subsystems.rollers.RollerSystem;
-import org.littletonrobotics.frc2025.subsystems.rollers.RollerSystemIO;
-import org.littletonrobotics.frc2025.subsystems.rollers.RollerSystemIOSim;
-import org.littletonrobotics.frc2025.subsystems.rollers.RollerSystemIOSpark;
+import org.littletonrobotics.frc2025.subsystems.rollers.*;
 import org.littletonrobotics.frc2025.subsystems.superstructure.Superstructure;
 import org.littletonrobotics.frc2025.subsystems.superstructure.SuperstructureConstants;
 import org.littletonrobotics.frc2025.subsystems.superstructure.SuperstructureState;
-import org.littletonrobotics.frc2025.subsystems.superstructure.chariot.Chariot;
-import org.littletonrobotics.frc2025.subsystems.superstructure.chariot.ChariotIO;
-import org.littletonrobotics.frc2025.subsystems.superstructure.chariot.ChariotIOSim;
 import org.littletonrobotics.frc2025.subsystems.superstructure.dispenser.*;
 import org.littletonrobotics.frc2025.subsystems.superstructure.elevator.Elevator;
 import org.littletonrobotics.frc2025.subsystems.superstructure.elevator.ElevatorIO;
@@ -119,7 +114,6 @@ public class RobotContainer {
   public RobotContainer() {
     Elevator elevator = null;
     Dispenser dispenser = null;
-    Chariot chariot = null;
 
     if (Constants.getMode() != Constants.Mode.REPLAY) {
       switch (Constants.getRobot()) {
@@ -138,19 +132,18 @@ public class RobotContainer {
           //         new VisionIONorthstar(this::getSelectedAprilTagLayout, 1),
           //         new VisionIONorthstar(this::getSelectedAprilTagLayout, 2),
           //         new VisionIONorthstar(this::getSelectedAprilTagLayout, 3));
-          // elevator = new Elevator(new ElevatorIOTalonFX());
-          // dispenser =
-          //     new Dispenser(
-          //         new DispenserIOTalonFX(),
-          //         new RollerSystemIOTalonFX(0, "*", 0, false, false, 1.0),
-          //         new RollerSystemIOTalonFX(0, "*", 0, false, false, 1.0));
+          elevator = new Elevator(new ElevatorIOTalonFX());
+          dispenser =
+              new Dispenser(
+                  new DispenserIOTalonFX(),
+                  new RollerSystemIOTalonFX(6, "", 40, false, false, 3.0),
+                  new RollerSystemIOTalonFX(7, "", 40, false, false, 2.0));
           // chariot =
           //     new Chariot(
           //         new ChariotIOTalonFX(), new RollerSystemIOTalonFX(12, "*", 0, false, false,
           // 1.0));
-          // funnel =
-          //     new RollerSystem("Funnel", new RollerSystemIOTalonFX(2, "", 30, false, false,
-          // 1.0));
+          funnel =
+              new RollerSystem("Funnel", new RollerSystemIOTalonFX(2, "", 30, true, false, 1.0));
           climber = new Climber(new ClimberIOTalonFX());
         }
         case DEVBOT -> {
@@ -186,9 +179,6 @@ public class RobotContainer {
                   new RollerSystemIOSim(DCMotor.getKrakenX60Foc(1), 1.0, 0.2),
                   new RollerSystemIOSim(DCMotor.getKrakenX60Foc(1), 1.0, 0.2));
           climber = new Climber(new ClimberIOSim());
-          chariot =
-              new Chariot(
-                  new ChariotIOSim(), new RollerSystemIOSim(DCMotor.getKrakenX60Foc(1), 1.0, 0.02));
           funnel =
               new RollerSystem(
                   "Funnel", new RollerSystemIOSim(DCMotor.getKrakenX60Foc(1), 1.0, 0.02));
@@ -227,9 +217,6 @@ public class RobotContainer {
       dispenser =
           new Dispenser(new DispenserIO() {}, new RollerSystemIO() {}, new RollerSystemIO() {});
     }
-    if (chariot == null) {
-      chariot = new Chariot(new ChariotIO() {}, new RollerSystemIO() {});
-    }
     if (funnel == null) {
       funnel = new RollerSystem("Funnel", new RollerSystemIO() {});
     }
@@ -241,7 +228,7 @@ public class RobotContainer {
             Constants.getMode() == Mode.REPLAY
                 ? new ReefControlsIO() {}
                 : new ReefControlsIOServer());
-    superstructure = new Superstructure(elevator, dispenser, chariot);
+    superstructure = new Superstructure(elevator, dispenser);
 
     // Set up auto routines
     autoChooser = new LoggedDashboardChooser<>("Auto Choices");
@@ -259,8 +246,15 @@ public class RobotContainer {
                     RobotState.getInstance()
                         .resetPose(AllianceFlipUtil.apply(testTrajectory.getStartPose())))
             .andThen(new DriveTrajectory(drive, testTrajectory)));
-    autoChooser.addOption("Elevator static", elevator.staticCharacterization(2.0));
-    autoChooser.addOption("Pivot static", dispenser.staticCharacterization(2.0));
+    autoChooser.addOption(
+        "Elevator Static Up",
+        superstructure.setCharacterizationMode().andThen(elevator.upStaticCharacterization()));
+    autoChooser.addOption(
+        "Elevator Static Down",
+        superstructure.setCharacterizationMode().andThen(elevator.downStaticCharacterization()));
+    autoChooser.addOption(
+        "Pivot static",
+        superstructure.setCharacterizationMode().andThen(dispenser.staticCharacterization()));
 
     // Set up overrides
     superstructure.setOverrides(superstructureDisable, disableAutoCoralStationIntake);
@@ -269,7 +263,6 @@ public class RobotContainer {
         () -> superstructureCoastOverride,
         superstructureDisable,
         disableDispenserGamePieceDetection);
-    chariot.setCoastOverride(() -> superstructureCoastOverride);
     climber.setCoastOverride(() -> superstructureCoastOverride);
 
     // Configure the button bindings
@@ -295,61 +288,41 @@ public class RobotContainer {
 
     // ***** DRIVER CONTROLLER *****
 
+    // Auto score coral
+    BiConsumer<Trigger, Boolean> bindAutoScore =
+        (trigger, firstPriority) -> {
+          Container<ReefLevel> lockedReefLevel = new Container<>();
+          Supplier<Optional<ReefLevel>> levelSupplier =
+              firstPriority ? objectiveTracker::getFirstLevel : objectiveTracker::getSecondLevel;
+          trigger
+              .and(
+                  () ->
+                      levelSupplier
+                          .get()
+                          .filter(
+                              reefLevel ->
+                                  objectiveTracker.getCoralObjective(reefLevel).isPresent())
+                          .isPresent())
+              .onTrue(Commands.runOnce(() -> lockedReefLevel.value = levelSupplier.get().get()))
+              .whileTrue(
+                  AutoScore.getAutoScoreCommand(
+                          drive,
+                          superstructure,
+                          funnel,
+                          objectiveTracker::requestScored,
+                          () -> lockedReefLevel.value,
+                          () -> objectiveTracker.getCoralObjective(lockedReefLevel.value),
+                          driverX,
+                          driverY,
+                          driverOmega,
+                          joystickDriveCommandFactory.get(),
+                          disableReefAutoAlign)
+                      .withName("Auto Score Priority #" + (firstPriority ? 1 : 2)));
+        };
     // Score coral #1
-    Container<ReefLevel> firstPriorityReefLevel = new Container<>();
-    driver
-        .rightTrigger()
-        .and(
-            () ->
-                objectiveTracker
-                    .getFirstLevel()
-                    .filter(reefLevel -> objectiveTracker.getCoralObjective(reefLevel).isPresent())
-                    .isPresent())
-        .onTrue(
-            Commands.runOnce(
-                () -> firstPriorityReefLevel.value = objectiveTracker.getFirstLevel().get()))
-        .whileTrue(
-            AutoScore.getAutoScoreCommand(
-                    drive,
-                    superstructure,
-                    funnel,
-                    objectiveTracker::requestScored,
-                    () -> firstPriorityReefLevel.value,
-                    () -> objectiveTracker.getCoralObjective(firstPriorityReefLevel.value),
-                    driverX,
-                    driverY,
-                    driverOmega,
-                    joystickDriveCommandFactory.get(),
-                    disableReefAutoAlign)
-                .withName("Auto Score Priority #1"));
-
+    bindAutoScore.accept(driver.rightTrigger(), true);
     // Score coral #2
-    Container<ReefLevel> secondPriorityReefLevel = new Container<>();
-    driver
-        .rightBumper()
-        .and(
-            () ->
-                objectiveTracker
-                    .getSecondLevel()
-                    .filter(reefLevel -> objectiveTracker.getCoralObjective(reefLevel).isPresent())
-                    .isPresent())
-        .onTrue(
-            Commands.runOnce(
-                () -> secondPriorityReefLevel.value = objectiveTracker.getSecondLevel().get()))
-        .whileTrue(
-            AutoScore.getAutoScoreCommand(
-                    drive,
-                    superstructure,
-                    funnel,
-                    objectiveTracker::requestScored,
-                    () -> secondPriorityReefLevel.value,
-                    () -> objectiveTracker.getCoralObjective(secondPriorityReefLevel.value),
-                    driverX,
-                    driverY,
-                    driverOmega,
-                    joystickDriveCommandFactory.get(),
-                    disableReefAutoAlign)
-                .withName("Auto Score Priority #2"));
+    bindAutoScore.accept(driver.rightBumper(), false);
 
     // Climbing controls
     driver
@@ -524,18 +497,15 @@ public class RobotContainer {
     // Force processor
     driver.povRight().whileTrue(superstructure.runGoal(SuperstructureState.PROCESSED));
 
-    // Force coral intake
-    driver.rightStick().whileTrue(IntakeCommands.intake(superstructure, funnel));
-
     // ***** OPERATOR CONTROLLER *****
 
-    // Algae ground intake
+    // Algae stow intake
     operator
         .leftTrigger()
         .whileTrue(
             superstructure
-                .runGoal(SuperstructureState.ALGAE_FLOOR_INTAKE)
-                .withName("Algae Floor Intake"));
+                .runGoal(SuperstructureState.ALGAE_STOW_INTAKE)
+                .withName("Algae Stow Intake"));
 
     // Coral intake
     operator.rightBumper().whileTrue(IntakeCommands.intake(superstructure, funnel));
@@ -565,11 +535,7 @@ public class RobotContainer {
               superstructure
                   .runGoal(
                       () ->
-                          Superstructure.getScoringState(
-                              height,
-                              superstructure.hasAlgae()
-                                  || disableDispenserGamePieceDetection.getAsBoolean(),
-                              false))
+                          Superstructure.getScoringState(height, superstructure.hasAlgae(), false))
                   .withName("Operator Score on " + height));
           faceButton
               .and(operator.rightTrigger())
@@ -578,10 +544,7 @@ public class RobotContainer {
                       .runGoal(
                           () ->
                               Superstructure.getScoringState(
-                                  height,
-                                  superstructure.hasAlgae()
-                                      || disableDispenserGamePieceDetection.getAsBoolean(),
-                                  true))
+                                  height, superstructure.hasAlgae(), true))
                       .withName("Operator Score & Eject On " + height));
         };
     bindOperatorCoralScore.accept(operator.a(), ReefLevel.L1);

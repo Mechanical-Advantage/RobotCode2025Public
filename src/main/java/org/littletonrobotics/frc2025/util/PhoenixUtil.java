@@ -21,20 +21,32 @@ public class PhoenixUtil {
   }
 
   /** Signals for synchronized refresh. */
-  private static BaseStatusSignal[] allSignals = new BaseStatusSignal[0];
+  private static BaseStatusSignal[] canivoreSignals = new BaseStatusSignal[0];
+
+  private static BaseStatusSignal[] rioSignals = new BaseStatusSignal[0];
 
   /** Registers a set of signals for synchronized refresh. */
-  public static void registerSignals(BaseStatusSignal... signals) {
-    BaseStatusSignal[] newSignals = new BaseStatusSignal[allSignals.length + signals.length];
-    System.arraycopy(allSignals, 0, newSignals, 0, allSignals.length);
-    System.arraycopy(signals, 0, newSignals, allSignals.length, signals.length);
-    allSignals = newSignals;
+  public static void registerSignals(boolean canivore, BaseStatusSignal... signals) {
+    if (canivore) {
+      BaseStatusSignal[] newSignals = new BaseStatusSignal[canivoreSignals.length + signals.length];
+      System.arraycopy(canivoreSignals, 0, newSignals, 0, canivoreSignals.length);
+      System.arraycopy(signals, 0, newSignals, canivoreSignals.length, signals.length);
+      canivoreSignals = newSignals;
+    } else {
+      BaseStatusSignal[] newSignals = new BaseStatusSignal[rioSignals.length + signals.length];
+      System.arraycopy(rioSignals, 0, newSignals, 0, rioSignals.length);
+      System.arraycopy(signals, 0, newSignals, rioSignals.length, signals.length);
+      rioSignals = newSignals;
+    }
   }
 
-  /** Refresh all regisstered signals. */
+  /** Refresh all registered signals. */
   public static void refreshAll() {
-    if (allSignals.length > 0) {
-      BaseStatusSignal.refreshAll(allSignals);
+    if (canivoreSignals.length > 0) {
+      BaseStatusSignal.refreshAll(canivoreSignals);
+    }
+    if (rioSignals.length > 0) {
+      BaseStatusSignal.refreshAll(rioSignals);
     }
   }
 }

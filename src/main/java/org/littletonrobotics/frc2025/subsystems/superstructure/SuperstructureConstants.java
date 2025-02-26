@@ -40,12 +40,7 @@ public class SuperstructureConstants {
   // Height from superstructure origin to bottom face of first stage at maxed height
   // minus the difference from superstructure origin to dispenser origin and from the topped out
   // position to the dispenser
-  public static final double elevatorMaxTravel =
-      firstStageHeight
-          + 2 * (stageHeight - stageToStage)
-          + 4 * (stageThickness)
-          - dispenserToTop
-          - bottomToDispenser;
+  public static final double elevatorMaxTravel = 1.72;
 
   public static final double algaeMinPassThroughHeight =
       stageHeight

@@ -48,7 +48,7 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
           ReefLevel.L3,
           Pair.of(-35.0, -30.0),
           ReefLevel.L4,
-          Pair.of(-45.0, -35.0));
+          Pair.of(-50.0, -35.0));
 
   @Getter
   @RequiredArgsConstructor
@@ -153,7 +153,8 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
   @RequiredArgsConstructor
   @Getter
   enum Preset {
-    STOW("Stow", 0.0, 10.0),
+    STOW("Stow", 0.01, 10.0),
+    INTAKE("Intake", 0.03, -30.0),
     L1("L1", 0.15, DispenserPose.L1.getDispenserAngleDeg()),
     L2(ReefLevel.L2, false),
     L3(ReefLevel.L3, false),
@@ -163,11 +164,8 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
     ALGAE_L3_INTAKE("AlgaeL3Intake", DispenserPose.L3_ALGAE_INTAKE),
     PRE_THROW("PreThrow", elevatorMaxTravel - 0.6, -40.0),
     THROW("Throw", elevatorMaxTravel, 20.0),
-    POST_PRE_PROCESSOR("Processing", 0.28, -15.0),
-    ALGAE_STOW(
-        "AlgaeStow",
-        Units.inchesToMeters(33.0) - dispenserToTop - bottomToDispenser,
-        pivotSafeAngle.getDegrees()),
+    POST_PRE_PROCESSOR("Processing", 0.3, -15.0),
+    ALGAE_STOW("AlgaeStow", 0.3, 0.0),
     L1_CORAL_REVERSED(ReefLevel.L1, true),
     L2_CORAL_REVERSED(ReefLevel.L2, true),
     L3_CORAL_REVERSED(ReefLevel.L3, true),
