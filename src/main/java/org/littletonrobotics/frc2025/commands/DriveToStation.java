@@ -11,10 +11,12 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.util.Units;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.DoubleSupplier;
+import java.util.function.Supplier;
 import org.littletonrobotics.frc2025.FieldConstants;
 import org.littletonrobotics.frc2025.RobotState;
 import org.littletonrobotics.frc2025.subsystems.drive.Drive;
@@ -43,6 +45,22 @@ public class DriveToStation extends DriveToPose {
       DoubleSupplier driverY,
       DoubleSupplier driverOmega,
       boolean sideIntaking) {
+    this(
+        drive,
+        () ->
+            DriveCommands.getLinearVelocityFromJoysticks(
+                    driverX.getAsDouble(), driverY.getAsDouble())
+                .times(AllianceFlipUtil.shouldFlip() ? -1.0 : 1.0),
+        () ->
+            Math.copySign(
+                Math.pow(
+                    MathUtil.applyDeadband(driverOmega.getAsDouble(), DriveCommands.DEADBAND), 2.0),
+                driverOmega.getAsDouble()),
+        sideIntaking);
+  }
+
+  public DriveToStation(
+      Drive drive, Supplier<Translation2d> linearFF, DoubleSupplier theta, boolean sideIntaking) {
     super(
         drive,
         () -> {
@@ -83,10 +101,7 @@ public class DriveToStation extends DriveToPose {
           return AllianceFlipUtil.apply(curPose.nearest(finalPoses));
         },
         RobotState.getInstance()::getEstimatedPose,
-        () ->
-            DriveCommands.getLinearVelocityFromJoysticks(
-                    driverX.getAsDouble(), driverY.getAsDouble())
-                .times(AllianceFlipUtil.shouldFlip() ? -1.0 : 1.0),
-        () -> DriveCommands.getOmegaFromJoysticks(driverOmega.getAsDouble()));
+        linearFF,
+        theta);
   }
 }

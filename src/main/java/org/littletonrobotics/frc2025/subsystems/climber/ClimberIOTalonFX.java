@@ -13,9 +13,7 @@ import static org.littletonrobotics.frc2025.util.PhoenixUtil.tryUntilOk;
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.TorqueCurrentFOC;
-import com.ctre.phoenix6.hardware.ParentDevice;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
@@ -33,7 +31,6 @@ public class ClimberIOTalonFX implements ClimberIO {
 
   // Hardware
   private final TalonFX talon;
-  private final TalonFX followerTalon;
 
   // Status Signals
   private final StatusSignal<Angle> position;
@@ -42,10 +39,6 @@ public class ClimberIOTalonFX implements ClimberIO {
   private final StatusSignal<Current> supplyCurrentAmps;
   private final StatusSignal<Current> torqueCurrentAmps;
   private final StatusSignal<Temperature> temp;
-  private final StatusSignal<Voltage> followerAppliedVolts;
-  private final StatusSignal<Current> followerTorqueCurrent;
-  private final StatusSignal<Current> followerSupplyCurrent;
-  private final StatusSignal<Temperature> followerTemp;
 
   // Control Requests
   private final TorqueCurrentFOC torqueCurrentRequest =
@@ -56,8 +49,6 @@ public class ClimberIOTalonFX implements ClimberIO {
 
   public ClimberIOTalonFX() {
     talon = new TalonFX(1);
-    followerTalon = new TalonFX(3);
-    followerTalon.setControl(new Follower(talon.getDeviceID(), true));
 
     var config = new TalonFXConfiguration();
     config.Feedback.SensorToMechanismRatio = reduction;
@@ -79,37 +70,13 @@ public class ClimberIOTalonFX implements ClimberIO {
     supplyCurrentAmps = talon.getSupplyCurrent();
     torqueCurrentAmps = talon.getTorqueCurrent();
     temp = talon.getDeviceTemp();
-    followerAppliedVolts = followerTalon.getMotorVoltage();
-    followerTorqueCurrent = followerTalon.getTorqueCurrent();
-    followerSupplyCurrent = followerTalon.getSupplyCurrent();
-    followerTemp = followerTalon.getDeviceTemp();
 
     BaseStatusSignal.setUpdateFrequencyForAll(
-        50.0,
-        position,
-        velocity,
-        appliedVolts,
-        supplyCurrentAmps,
-        torqueCurrentAmps,
-        temp,
-        followerAppliedVolts,
-        followerTorqueCurrent,
-        followerSupplyCurrent,
-        followerTemp);
-    ParentDevice.optimizeBusUtilizationForAll(talon, followerTalon);
+        50.0, position, velocity, appliedVolts, supplyCurrentAmps, torqueCurrentAmps, temp);
+    talon.optimizeBusUtilization();
 
     PhoenixUtil.registerSignals(
-        false,
-        position,
-        velocity,
-        appliedVolts,
-        supplyCurrentAmps,
-        torqueCurrentAmps,
-        temp,
-        followerAppliedVolts,
-        followerTorqueCurrent,
-        followerSupplyCurrent,
-        followerTemp);
+        false, position, velocity, appliedVolts, supplyCurrentAmps, torqueCurrentAmps, temp);
   }
 
   @Override
@@ -119,22 +86,12 @@ public class ClimberIOTalonFX implements ClimberIO {
             motorConnectedDebouncer.calculate(
                 BaseStatusSignal.isAllGood(
                     position, velocity, appliedVolts, supplyCurrentAmps, temp)),
-            motorConnectedDebouncer.calculate(
-                BaseStatusSignal.isAllGood(
-                    followerAppliedVolts,
-                    followerTorqueCurrent,
-                    followerSupplyCurrent,
-                    followerTemp)),
             position.getValue().in(Radians),
             velocity.getValue().in(RadiansPerSecond),
             appliedVolts.getValueAsDouble(),
             torqueCurrentAmps.getValueAsDouble(),
             supplyCurrentAmps.getValueAsDouble(),
-            temp.getValueAsDouble(),
-            followerAppliedVolts.getValueAsDouble(),
-            followerTorqueCurrent.getValueAsDouble(),
-            followerSupplyCurrent.getValueAsDouble(),
-            followerTemp.getValueAsDouble());
+            temp.getValueAsDouble());
   }
 
   @Override
@@ -155,15 +112,6 @@ public class ClimberIOTalonFX implements ClimberIO {
                   5,
                   () ->
                       talon.setNeutralMode(
-                          enabled ? NeutralModeValue.Brake : NeutralModeValue.Coast, 0.25));
-            })
-        .start();
-    new Thread(
-            () -> {
-              tryUntilOk(
-                  5,
-                  () ->
-                      followerTalon.setNeutralMode(
                           enabled ? NeutralModeValue.Brake : NeutralModeValue.Coast, 0.25));
             })
         .start();

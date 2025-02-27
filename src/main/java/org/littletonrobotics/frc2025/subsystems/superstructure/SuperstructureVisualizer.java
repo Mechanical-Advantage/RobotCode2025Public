@@ -74,7 +74,7 @@ public class SuperstructureVisualizer {
 
     // Max of top of carriage or starting height
     final double heightFromBottom =
-        elevatorHeightMeters + bottomToDispenser + dispenserToTop + stageThickness * 2.0;
+        elevatorHeightMeters + dispenserToBottom + dispenserToTop + stageThickness * 2.0;
     final double firstStageHeight =
         Math.max(
             heightFromBottom - SuperstructureConstants.firstStageHeight - stageThickness,
@@ -123,7 +123,7 @@ public class SuperstructureVisualizer {
                   new Transform3d(
                       pivotToTunnelFront + FieldConstants.algaeDiameter / 2.0,
                       0.0,
-                      -0.08,
+                      0.0,
                       Rotation3d.kZero))
               .getTranslation());
     } else {

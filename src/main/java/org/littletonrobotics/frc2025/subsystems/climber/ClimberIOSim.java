@@ -49,16 +49,11 @@ public class ClimberIOSim implements ClimberIO {
     inputs.data =
         new ClimberIOData(
             true,
-            true,
             simState.get(0),
             simState.get(1),
             appliedVolts,
             Math.copySign(inputTorqueCurrent, appliedVolts),
             Math.copySign(inputTorqueCurrent, appliedVolts),
-            0.0,
-            0.0,
-            0.0,
-            0.0,
             0.0);
   }
 

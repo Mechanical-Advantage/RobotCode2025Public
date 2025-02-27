@@ -95,17 +95,18 @@ public class VisionConstants {
             };
         case COMPBOT ->
             new CameraConfig[] {
+              // Front Left
               CameraConfig.builder()
                   .pose(
                       () ->
                           new Pose3d(
-                              Units.inchesToMeters(8.875),
-                              Units.inchesToMeters(10.5),
-                              Units.inchesToMeters(8.25),
+                              Units.inchesToMeters(10),
+                              Units.inchesToMeters(10),
+                              Units.inchesToMeters(18.5),
                               new Rotation3d(
                                   0.0,
-                                  Units.degreesToRadians(-28.125 + pitchAdjustments[0].get()),
-                                  Units.degreesToRadians(30.0))))
+                                  Units.degreesToRadians(29 + pitchAdjustments[0].get()),
+                                  Units.degreesToRadians(-23.31))))
                   .id("40265450")
                   .width(1600)
                   .height(1200)
@@ -113,17 +114,18 @@ public class VisionConstants {
                   .gain(monoGain)
                   .stdDevFactor(1.0)
                   .build(),
+              // Front Right
               CameraConfig.builder()
                   .pose(
                       () ->
                           new Pose3d(
-                              Units.inchesToMeters(3.25),
-                              Units.inchesToMeters(5.0),
-                              Units.inchesToMeters(6.4),
+                              Units.inchesToMeters(10),
+                              Units.inchesToMeters(-10.0),
+                              Units.inchesToMeters(18.5),
                               new Rotation3d(
                                   0.0,
-                                  Units.degreesToRadians(-16.875 + pitchAdjustments[1].get()),
-                                  Units.degreesToRadians(-4.709))))
+                                  Units.degreesToRadians(29 + pitchAdjustments[1].get()),
+                                  Units.degreesToRadians(23.31))))
                   .id("40270688")
                   .width(1600)
                   .height(1200)
@@ -131,17 +133,18 @@ public class VisionConstants {
                   .gain(monoGain)
                   .stdDevFactor(1.0)
                   .build(),
+              // Back Up
               CameraConfig.builder()
                   .pose(
                       () ->
                           new Pose3d(
-                              Units.inchesToMeters(8.875),
-                              Units.inchesToMeters(-10.5),
-                              Units.inchesToMeters(8.25),
+                              Units.inchesToMeters(3),
+                              Units.inchesToMeters(10),
+                              Units.inchesToMeters(25),
                               new Rotation3d(
                                   0.0,
-                                  Units.degreesToRadians(-28.125 + pitchAdjustments[2].get()),
-                                  Units.degreesToRadians(-30.0))))
+                                  Units.degreesToRadians(-40.0 + pitchAdjustments[2].get()),
+                                  Units.degreesToRadians(198.394))))
                   .id("40270704")
                   .width(1600)
                   .height(1200)
@@ -149,17 +152,18 @@ public class VisionConstants {
                   .gain(monoGain)
                   .stdDevFactor(1.0)
                   .build(),
+              // Front Up Color
               CameraConfig.builder()
                   .pose(
                       () ->
                           new Pose3d(
-                              Units.inchesToMeters(-16.0),
-                              Units.inchesToMeters(-12.0),
-                              Units.inchesToMeters(8.5),
+                              Units.inchesToMeters(9),
+                              Units.inchesToMeters(10),
+                              Units.inchesToMeters(25),
                               new Rotation3d(
                                   0.0,
-                                  Units.degreesToRadians(-33.75 + pitchAdjustments[3].get()),
-                                  Units.degreesToRadians(176.386))))
+                                  Units.degreesToRadians(pitchAdjustments[3].get()),
+                                  Units.degreesToRadians(-15))))
                   .id("24737133")
                   .width(1280)
                   .height(720)

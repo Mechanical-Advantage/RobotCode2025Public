@@ -193,7 +193,19 @@ public class FieldConstants {
 
     AprilTagLayoutType(String name) {
       if (Constants.disableHAL) {
-        layout = null;
+        try {
+          layout =
+              new AprilTagFieldLayout(
+                  Path.of(
+                      "src",
+                      "main",
+                      "deploy",
+                      "apriltags",
+                      fieldType.getJsonFolder(),
+                      "2025-official.json"));
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
       } else {
         try {
           layout =
@@ -207,15 +219,12 @@ public class FieldConstants {
           throw new RuntimeException(e);
         }
       }
-      if (layout == null) {
-        layoutString = "";
-      } else {
-        try {
-          layoutString = new ObjectMapper().writeValueAsString(layout);
-        } catch (JsonProcessingException e) {
-          throw new RuntimeException(
-              "Failed to serialize AprilTag layout JSON " + toString() + "for Northstar");
-        }
+
+      try {
+        layoutString = new ObjectMapper().writeValueAsString(layout);
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException(
+            "Failed to serialize AprilTag layout JSON " + toString() + "for Northstar");
       }
     }
 

@@ -17,9 +17,9 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
@@ -36,8 +36,8 @@ import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
 public class Dispenser {
-  public static final Rotation2d minAngle = Rotation2d.fromDegrees(-55.0);
-  public static final Rotation2d maxAngle = Rotation2d.fromDegrees(20.0);
+  public static final Rotation2d minAngle = Rotation2d.fromDegrees(-90.0);
+  public static final Rotation2d maxAngle = Rotation2d.fromDegrees(20.5);
 
   // Tunable numbers
   private static final LoggedTunableNumber kP = new LoggedTunableNumber("Dispenser/kP");
@@ -52,12 +52,16 @@ public class Dispenser {
       new LoggedTunableNumber("Dispenser/StaticCharacterizationVelocityThresh", 0.1);
   private static final LoggedTunableNumber staticCharacterizationRampRate =
       new LoggedTunableNumber("Dispenser/StaticCharacterizationRampRate", 0.2);
-  private static final LoggedTunableNumber algaeIntakeVelocityThresh =
-      new LoggedTunableNumber("Dispenser/AlgaeIntakeVelocityThreshold", 1.0);
-  public static final LoggedTunableNumber gripperIntakeCurrent =
-      new LoggedTunableNumber("Dispenser/AlgaeIntakeCurrent", 30.0);
-  public static final LoggedTunableNumber gripperDispenseCurrent =
-      new LoggedTunableNumber("Dispenser/AlgaeDispenseCurrent", -30.0);
+  private static final LoggedTunableNumber algaeVelocityThresh =
+      new LoggedTunableNumber("Dispenser/AlgaeVelocityThreshold", 1.0);
+  public static final LoggedTunableNumber gripperHoldVolts =
+      new LoggedTunableNumber("Dispenser/GripperHoldVolts", 2.0);
+  public static final LoggedTunableNumber gripperIntakeVolts =
+      new LoggedTunableNumber("Dispenser/GripperIntakeVolts", 5.0);
+  public static final LoggedTunableNumber gripperEjectVolts =
+      new LoggedTunableNumber("Dispenser/GripperEjectVolts", -8.0);
+  public static final LoggedTunableNumber gripperCurrentLimit =
+      new LoggedTunableNumber("Dispenser/GripperCurrentLimit", 50.0);
   public static final LoggedTunableNumber tunnelDispenseVolts =
       new LoggedTunableNumber("Dispenser/TunnelDispenseVolts", 6.0);
   public static final LoggedTunableNumber tunnelIntakeVolts =
@@ -82,9 +86,15 @@ public class Dispenser {
     }
   }
 
+  public enum GripperGoal {
+    IDLE,
+    GRIP,
+    EJECT
+  }
+
   // Hardware
-  private final DispenserIO pivotIO;
-  private final DispenserIOInputsAutoLogged pivotInputs = new DispenserIOInputsAutoLogged();
+  private final PivotIO pivotIO;
+  private final PivotIOInputsAutoLogged pivotInputs = new PivotIOInputsAutoLogged();
   private final RollerSystemIO tunnelIO;
   private final RollerSystemIOInputsAutoLogged tunnelInputs = new RollerSystemIOInputsAutoLogged();
   private final RollerSystemIO gripperIO;
@@ -110,26 +120,29 @@ public class Dispenser {
   private boolean atGoal = false;
 
   @Setter private double tunnelVolts = 0.0;
-  @Setter private double gripperCurrent = 0.0;
+  @AutoLogOutput @Setter private GripperGoal gripperGoal = GripperGoal.IDLE;
 
-  private boolean hasCoral = false;
+  @Setter private boolean hasCoral = false;
   private boolean hasAlgae = false;
 
   private Debouncer coralDebouncer = new Debouncer(0.1);
   private Debouncer algaeDebouncer = new Debouncer(0.1);
   private Debouncer toleranceDebouncer = new Debouncer(0.25, DebounceType.kRising);
 
+  @Setter @Getter @AutoLogOutput double offset = 0.0;
+
   // Disconnected alerts
   private final Alert pivotMotorDisconnectedAlert =
       new Alert("Dispenser pivot motor disconnected!", Alert.AlertType.kWarning);
-  private final Alert pivotEncoderDisconnectedAlert =
-      new Alert("Dispenser encoder disconnected!", Alert.AlertType.kWarning);
   private final Alert tunnelDisconnectedAlert =
       new Alert("Dispenser tunnel disconnected!", Alert.AlertType.kWarning);
   private final Alert gripperDisconnectedAlert =
       new Alert("Dispenser gripper disconnected!", Alert.AlertType.kWarning);
 
-  public Dispenser(DispenserIO pivotIO, RollerSystemIO tunnelIO, RollerSystemIO gripperIO) {
+  private boolean lastAlgaeButtonPressed = false;
+  private boolean lastCoralButtonPressed = false;
+
+  public Dispenser(PivotIO pivotIO, RollerSystemIO tunnelIO, RollerSystemIO gripperIO) {
     this.pivotIO = pivotIO;
     this.tunnelIO = tunnelIO;
     this.gripperIO = gripperIO;
@@ -139,15 +152,6 @@ public class Dispenser {
             new TrapezoidProfile.Constraints(
                 Units.degreesToRadians(maxVelocityDegPerSec.get()),
                 Units.degreesToRadians(maxAccelerationDegPerSec2.get())));
-
-    if (Constants.getRobot() == Constants.RobotType.SIMBOT) {
-      new Trigger(() -> DriverStation.getStickButtonPressed(2, 1))
-          .onTrue(Commands.runOnce(() -> hasAlgae = !hasAlgae));
-    }
-    if (Constants.getRobot() == Constants.RobotType.SIMBOT) {
-      new Trigger(() -> DriverStation.getStickButtonPressed(2, 2))
-          .onTrue(Commands.runOnce(() -> hasCoral = !hasCoral));
-    }
   }
 
   public void periodic() {
@@ -160,8 +164,6 @@ public class Dispenser {
 
     pivotMotorDisconnectedAlert.set(
         !pivotInputs.data.motorConnected() && Constants.getRobot() == RobotType.COMPBOT);
-    pivotEncoderDisconnectedAlert.set(
-        !pivotInputs.data.encoderConnected() && Constants.getRobot() == RobotType.COMPBOT);
     tunnelDisconnectedAlert.set(!tunnelInputs.data.connected());
     gripperDisconnectedAlert.set(
         !gripperInputs.data.connected() && Constants.getRobot() == RobotType.COMPBOT);
@@ -177,6 +179,9 @@ public class Dispenser {
               new TrapezoidProfile.Constraints(
                   Units.degreesToRadians(maxVelocityDegPerSec.get()),
                   Units.degreesToRadians(maxAccelerationDegPerSec2.get())));
+    }
+    if (gripperCurrentLimit.hasChanged(hashCode())) {
+      gripperIO.setCurrentLimit(gripperCurrentLimit.get());
     }
 
     // Set coast mode
@@ -203,7 +208,8 @@ public class Dispenser {
               0.0);
       setpoint = profile.calculate(Constants.loopPeriodSecs, setpoint, goalState);
       pivotIO.runPosition(
-          Rotation2d.fromRadians(setpoint.position),
+          Rotation2d.fromRadians(
+              setpoint.position - maxAngle.getRadians() + Units.degreesToRadians(offset)),
           kS.get() * Math.signum(setpoint.velocity) // Magnitude irrelevant
               + kG.get() * getPivotAngle().getCos());
       // Check at goal
@@ -212,36 +218,45 @@ public class Dispenser {
               && EqualsUtil.epsilonEquals(setpoint.velocity, 0.0);
 
       // Log state
-      Logger.recordOutput("Dispenser/Profile/SetpointPositionRad", setpoint.position);
-      Logger.recordOutput("Dispenser/Profile/SetpointVelocityRadPerSec", setpoint.velocity);
-      Logger.recordOutput("Dispenser/Profile/GoalPositionRad", goalState.position);
+      Logger.recordOutput("Dispenser/Profile/SetpointAngleRad", setpoint.position);
+      Logger.recordOutput("Dispenser/Profile/SetpointAngleRadPerSec", setpoint.velocity);
+      Logger.recordOutput("Dispenser/Profile/GoalAngleRad", goalState.position);
     } else {
       // Reset setpoint
       setpoint = new State(getPivotAngle().getRadians(), 0.0);
 
       // Clear logs
-      Logger.recordOutput("Dispenser/Profile/SetpointPositionRad", 0.0);
-      Logger.recordOutput("Dispenser/Profile/SetpointVelocityRadPerSec", 0.0);
-      Logger.recordOutput("Dispenser/Profile/GoalPositionRad", 0.0);
+      Logger.recordOutput("Dispenser/Profile/SetpointAngleRad", 0.0);
+      Logger.recordOutput("Dispenser/Profile/SetpointAngleRadPerSec", 0.0);
+      Logger.recordOutput("Dispenser/Profile/GoalAngleRad", 0.0);
     }
 
     // Run tunnel and gripper
     if (!isEStopped) {
       tunnelIO.runVolts(tunnelVolts);
-      gripperIO.runTorqueCurrent(gripperCurrent);
+      switch (gripperGoal) {
+        case IDLE -> gripperIO.stop();
+        case GRIP -> {
+          if (hasAlgae) {
+            gripperIO.runVolts(gripperHoldVolts.get());
+          } else {
+            gripperIO.runVolts(gripperIntakeVolts.get());
+          }
+        }
+        case EJECT -> gripperIO.runVolts(gripperEjectVolts.get());
+      }
     } else {
       pivotIO.stop();
       tunnelIO.stop();
       gripperIO.stop();
     }
 
-    // Check algae
+    // Check algae & coral states
     if (Constants.getRobot() != Constants.RobotType.SIMBOT) {
       if (Math.abs(gripperInputs.data.torqueCurrentAmps()) >= 5.0) {
         hasAlgae =
             algaeDebouncer.calculate(
-                Math.abs(gripperInputs.data.velocityRadsPerSec())
-                    >= algaeIntakeVelocityThresh.get());
+                Math.abs(gripperInputs.data.velocityRadsPerSec()) <= algaeVelocityThresh.get());
       } else {
         algaeDebouncer.calculate(hasAlgae);
       }
@@ -251,7 +266,21 @@ public class Dispenser {
       } else {
         coralDebouncer.calculate(hasCoral);
       }
+    } else {
+      boolean algaeButtonPressed = DriverStation.getStickButtonPressed(2, 1);
+      boolean coralButtonPressed = DriverStation.getStickButtonPressed(2, 2);
+      if (algaeButtonPressed && !lastAlgaeButtonPressed) {
+        hasAlgae = !hasAlgae;
+      }
+      if (coralButtonPressed && !lastCoralButtonPressed) {
+        hasCoral = !hasCoral;
+      }
+      lastAlgaeButtonPressed = algaeButtonPressed;
+      lastCoralButtonPressed = coralButtonPressed;
     }
+
+    // Display angle offset
+    SmartDashboard.putString("Dispenser Angle Offset", String.format("%.1f", offset));
 
     // Log state
     Logger.recordOutput("Dispenser/CoastOverride", coastOverride.getAsBoolean());
@@ -281,8 +310,9 @@ public class Dispenser {
     return hasCoral || disableGamePieceDetectionOverride.getAsBoolean();
   }
 
+  @AutoLogOutput(key = "Dispenser/MeasuredAngle")
   public Rotation2d getPivotAngle() {
-    return pivotInputs.data.internalPosition();
+    return pivotInputs.data.position().plus(maxAngle).minus(Rotation2d.fromDegrees(offset));
   }
 
   public void setOverrides(

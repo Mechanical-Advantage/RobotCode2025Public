@@ -13,23 +13,23 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.littletonrobotics.frc2025.subsystems.superstructure.chariot.Chariot;
+import org.littletonrobotics.frc2025.subsystems.superstructure.dispenser.Dispenser;
 
 @Builder(toBuilder = true, access = AccessLevel.PACKAGE)
 @Getter
 public class SuperstructureStateData {
   @Builder.Default private final SuperstructurePose pose = new SuperstructurePose();
   @Builder.Default private final DoubleSupplier tunnelVolts = () -> 0.0;
-  @Builder.Default private final DoubleSupplier gripperCurrent = () -> 0.0;
+  @Builder.Default private final Dispenser.GripperGoal gripperGoal = Dispenser.GripperGoal.IDLE;
   @Builder.Default private final DoubleSupplier intakeVolts = () -> 0.0;
   @Builder.Default private final Chariot.Goal chariotGoal = Chariot.Goal.RETRACT;
-  @Builder.Default private final Height height = Height.INTAKE;
+  @Builder.Default private final Height height = Height.BOTTOM;
   @Builder.Default private final boolean reversed = false;
 
   /** What height is the carriage above? */
   @RequiredArgsConstructor
   public enum Height {
     BOTTOM(1),
-    INTAKE(2),
     FIRST_STAGE(3),
     SECOND_STAGE(4);
 

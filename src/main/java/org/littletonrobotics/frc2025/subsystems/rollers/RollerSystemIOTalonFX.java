@@ -44,6 +44,8 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
   private final VoltageOut voltageOut = new VoltageOut(0.0).withUpdateFreqHz(0);
   private final NeutralOut neutralOut = new NeutralOut();
 
+  private final TalonFXConfiguration config = new TalonFXConfiguration();
+
   private final double reduction;
 
   private final Debouncer connectedDebouncer = new Debouncer(0.5);
@@ -53,7 +55,6 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
     this.reduction = reduction;
     talon = new TalonFX(id, bus);
 
-    TalonFXConfiguration config = new TalonFXConfiguration();
     config.MotorOutput.Inverted =
         invert ? InvertedValue.Clockwise_Positive : InvertedValue.CounterClockwise_Positive;
     config.MotorOutput.NeutralMode = brake ? NeutralModeValue.Brake : NeutralModeValue.Coast;
@@ -113,11 +114,6 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
   }
 
   @Override
-  public void runTorqueCurrent(double current) {
-    talon.setControl(torqueCurrentFOC.withOutput(current));
-  }
-
-  @Override
   public void runVolts(double volts) {
     talon.setControl(voltageOut.withOutput(volts));
   }
@@ -125,6 +121,15 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
   @Override
   public void stop() {
     talon.setControl(neutralOut);
+  }
+
+  @Override
+  public void setCurrentLimit(double currentLimit) {
+    new Thread(
+        () -> {
+          config.withCurrentLimits(config.CurrentLimits.withStatorCurrentLimit(currentLimit));
+          tryUntilOk(5, () -> talon.getConfigurator().apply(config));
+        });
   }
 
   @Override

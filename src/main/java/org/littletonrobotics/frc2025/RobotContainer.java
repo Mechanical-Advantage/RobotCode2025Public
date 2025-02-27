@@ -27,20 +27,19 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import java.util.Optional;
-import java.util.function.BiConsumer;
-import java.util.function.DoubleSupplier;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.*;
 import lombok.experimental.ExtensionMethod;
 import org.littletonrobotics.frc2025.Constants.Mode;
 import org.littletonrobotics.frc2025.FieldConstants.AprilTagLayoutType;
 import org.littletonrobotics.frc2025.FieldConstants.ReefLevel;
 import org.littletonrobotics.frc2025.commands.*;
+import org.littletonrobotics.frc2025.commands.auto.AutoBuilder;
 import org.littletonrobotics.frc2025.subsystems.climber.Climber;
 import org.littletonrobotics.frc2025.subsystems.climber.ClimberIO;
 import org.littletonrobotics.frc2025.subsystems.climber.ClimberIOSim;
 import org.littletonrobotics.frc2025.subsystems.climber.ClimberIOTalonFX;
 import org.littletonrobotics.frc2025.subsystems.drive.*;
+import org.littletonrobotics.frc2025.subsystems.drive.trajectory.HolonomicTrajectory;
 import org.littletonrobotics.frc2025.subsystems.leds.Leds;
 import org.littletonrobotics.frc2025.subsystems.objectivetracker.ObjectiveTracker;
 import org.littletonrobotics.frc2025.subsystems.objectivetracker.ReefControlsIO;
@@ -57,12 +56,7 @@ import org.littletonrobotics.frc2025.subsystems.superstructure.elevator.Elevator
 import org.littletonrobotics.frc2025.subsystems.vision.Vision;
 import org.littletonrobotics.frc2025.subsystems.vision.VisionIO;
 import org.littletonrobotics.frc2025.subsystems.vision.VisionIONorthstar;
-import org.littletonrobotics.frc2025.util.AllianceFlipUtil;
-import org.littletonrobotics.frc2025.util.Container;
-import org.littletonrobotics.frc2025.util.DoublePressTracker;
-import org.littletonrobotics.frc2025.util.OverrideSwitches;
-import org.littletonrobotics.frc2025.util.TriggerUtil;
-import org.littletonrobotics.frc2025.util.trajectory.HolonomicTrajectory;
+import org.littletonrobotics.frc2025.util.*;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 import org.littletonrobotics.junction.networktables.LoggedNetworkNumber;
 
@@ -135,13 +129,9 @@ public class RobotContainer {
           elevator = new Elevator(new ElevatorIOTalonFX());
           dispenser =
               new Dispenser(
-                  new DispenserIOTalonFX(),
+                  new PivotIOTalonFX(),
                   new RollerSystemIOTalonFX(6, "", 40, false, false, 3.0),
                   new RollerSystemIOTalonFX(7, "", 40, false, false, 2.0));
-          // chariot =
-          //     new Chariot(
-          //         new ChariotIOTalonFX(), new RollerSystemIOTalonFX(12, "*", 0, false, false,
-          // 1.0));
           funnel =
               new RollerSystem("Funnel", new RollerSystemIOTalonFX(2, "", 30, true, false, 1.0));
           climber = new Climber(new ClimberIOTalonFX());
@@ -162,7 +152,8 @@ public class RobotContainer {
           elevator = new Elevator(new ElevatorIOTalonFX());
           dispenser =
               new Dispenser(
-                  new DispenserIO() {}, new RollerSystemIOSpark(5, true), new RollerSystemIO() {});
+                  new PivotIO() {}, new RollerSystemIOSpark(5, true), new RollerSystemIO() {});
+          funnel = new RollerSystem("Funnel", new RollerSystemIOSpark(4, false));
         }
         case SIMBOT -> {
           drive =
@@ -175,7 +166,7 @@ public class RobotContainer {
           elevator = new Elevator(new ElevatorIOSim());
           dispenser =
               new Dispenser(
-                  new DispenserIOSim(),
+                  new PivotIOSim(),
                   new RollerSystemIOSim(DCMotor.getKrakenX60Foc(1), 1.0, 0.2),
                   new RollerSystemIOSim(DCMotor.getKrakenX60Foc(1), 1.0, 0.2));
           climber = new Climber(new ClimberIOSim());
@@ -214,8 +205,7 @@ public class RobotContainer {
       elevator = new Elevator(new ElevatorIO() {});
     }
     if (dispenser == null) {
-      dispenser =
-          new Dispenser(new DispenserIO() {}, new RollerSystemIO() {}, new RollerSystemIO() {});
+      dispenser = new Dispenser(new PivotIO() {}, new RollerSystemIO() {}, new RollerSystemIO() {});
     }
     if (funnel == null) {
       funnel = new RollerSystem("Funnel", new RollerSystemIO() {});
@@ -232,13 +222,24 @@ public class RobotContainer {
 
     // Set up auto routines
     autoChooser = new LoggedDashboardChooser<>("Auto Choices");
+    LoggedDashboardChooser<Boolean> mirror = new LoggedDashboardChooser<>("Processor Side?");
+    mirror.addDefaultOption("Yes", false);
+    mirror.addOption("No", true);
+    MirrorUtil.setMirror(mirror::get);
 
-    // Set up Characterization routines
+    // Set up characterization routines
+    var autoBuilder = new AutoBuilder(drive, superstructure, funnel, objectiveTracker);
+    autoChooser.addOption(
+        "Super Up In The Water Auto (4 Coral)", autoBuilder.superUpInTheWaterAuto());
+    autoChooser.addOption("Up In The Water Auto (4 Coral)", autoBuilder.upInTheWaterAuto());
+    autoChooser.addOption("Up In The Weeds Auto (3 Coral)", autoBuilder.upInTheWeedsAuto());
+    autoChooser.addOption(
+        "Up In The Inspirational Auto (0 Coral)", autoBuilder.upInTheInspirationalAuto());
     autoChooser.addOption(
         "Drive Wheel Radius Characterization", DriveCommands.wheelRadiusCharacterization(drive));
     autoChooser.addOption(
         "Drive Simple FF Characterization", DriveCommands.feedforwardCharacterization(drive));
-    HolonomicTrajectory testTrajectory = new HolonomicTrajectory("BLOB");
+    HolonomicTrajectory testTrajectory = new HolonomicTrajectory("driveStraight");
     autoChooser.addOption(
         "Drive Trajectory",
         Commands.runOnce(
@@ -264,6 +265,7 @@ public class RobotContainer {
         superstructureDisable,
         disableDispenserGamePieceDetection);
     climber.setCoastOverride(() -> superstructureCoastOverride);
+    objectiveTracker.setForceReefBlocked(superstructure::hasAlgae);
 
     // Configure the button bindings
     configureButtonBindings();
@@ -292,17 +294,20 @@ public class RobotContainer {
     BiConsumer<Trigger, Boolean> bindAutoScore =
         (trigger, firstPriority) -> {
           Container<ReefLevel> lockedReefLevel = new Container<>();
+          Container<Boolean> running = new Container<>(false);
           Supplier<Optional<ReefLevel>> levelSupplier =
               firstPriority ? objectiveTracker::getFirstLevel : objectiveTracker::getSecondLevel;
-          trigger
-              .and(
+          Trigger blocked =
+              new Trigger(
                   () ->
                       levelSupplier
                           .get()
                           .filter(
                               reefLevel ->
                                   objectiveTracker.getCoralObjective(reefLevel).isPresent())
-                          .isPresent())
+                          .isEmpty());
+          trigger
+              .and(blocked.negate())
               .onTrue(Commands.runOnce(() -> lockedReefLevel.value = levelSupplier.get().get()))
               .whileTrue(
                   AutoScore.getAutoScoreCommand(
@@ -316,8 +321,20 @@ public class RobotContainer {
                           driverY,
                           driverOmega,
                           joystickDriveCommandFactory.get(),
-                          disableReefAutoAlign)
+                          disableReefAutoAlign,
+                          driver.b())
+                      .alongWith(
+                          Commands.startEnd(
+                              () -> running.value = true, () -> running.value = false))
                       .withName("Auto Score Priority #" + (firstPriority ? 1 : 2)));
+          trigger
+              .and(blocked)
+              .and(() -> !running.value)
+              .onTrue(
+                  Commands.sequence(
+                      controllerRumbleCommand().withTimeout(0.1),
+                      Commands.waitSeconds(0.1),
+                      controllerRumbleCommand().withTimeout(0.1)));
         };
     // Score coral #1
     bindAutoScore.accept(driver.rightTrigger(), true);
@@ -400,7 +417,7 @@ public class RobotContainer {
                 .alongWith(
                     eject
                         ? superstructure.runGoal(SuperstructureState.PROCESSED)
-                        : superstructure.runGoal(SuperstructureState.POST_PRE_PROCESSOR));
+                        : superstructure.runGoal(SuperstructureState.ALGAE_STOW));
 
     // Algae pre-processor
     driver
@@ -489,7 +506,11 @@ public class RobotContainer {
                 () -> leds.hpAttentionAlert = true, () -> leds.hpAttentionAlert = false));
 
     // Coral eject
-    driver.b().whileTrue(superstructure.runGoal(SuperstructureState.L1_CORAL_EJECT));
+    driver
+        .b()
+        .and(driver.rightBumper().negate())
+        .and(driver.rightTrigger().negate())
+        .whileTrue(superstructure.runGoal(SuperstructureState.L1_CORAL_EJECT));
 
     // Force net
     driver.povLeft().whileTrue(superstructure.runGoal(SuperstructureState.THROWN));
@@ -519,6 +540,24 @@ public class RobotContainer {
     // Force processor
     operator.povRight().whileTrue(superstructure.runGoal(SuperstructureState.PROCESSED));
 
+    // Adjust dispenser offset
+    Function<Double, Command> adjustDispenserOffsetCommand =
+        delta -> Commands.runOnce(() -> superstructure.adjustDispenserOffset(delta));
+    operator
+        .povUp()
+        .whileTrue(
+            adjustDispenserOffsetCommand
+                .apply(0.1)
+                .andThen(Commands.waitSeconds(0.2))
+                .repeatedly());
+    operator
+        .povDown()
+        .whileTrue(
+            adjustDispenserOffsetCommand
+                .apply(-0.1)
+                .andThen(Commands.waitSeconds(0.2))
+                .repeatedly());
+
     // Algae eject
     operator
         .rightTrigger()
@@ -533,18 +572,13 @@ public class RobotContainer {
         (faceButton, height) -> {
           faceButton.whileTrueContinuous(
               superstructure
-                  .runGoal(
-                      () ->
-                          Superstructure.getScoringState(height, superstructure.hasAlgae(), false))
+                  .runGoal(() -> Superstructure.getScoringState(height, false))
                   .withName("Operator Score on " + height));
           faceButton
               .and(operator.rightTrigger())
               .whileTrueContinuous(
                   superstructure
-                      .runGoal(
-                          () ->
-                              Superstructure.getScoringState(
-                                  height, superstructure.hasAlgae(), true))
+                      .runGoal(() -> Superstructure.getScoringState(height, true))
                       .withName("Operator Score & Eject On " + height));
         };
     bindOperatorCoralScore.accept(operator.a(), ReefLevel.L1);

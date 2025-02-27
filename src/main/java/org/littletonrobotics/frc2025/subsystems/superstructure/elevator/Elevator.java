@@ -306,6 +306,12 @@ public class Elevator {
             });
   }
 
+  /** Set current position of elevator to home. */
+  public void setHome() {
+    homedPosition = inputs.data.positionRad();
+    homed = true;
+  }
+
   public Command homingSequence() {
     return Commands.startRun(
             () -> {
@@ -322,11 +328,7 @@ public class Elevator {
                       Math.abs(inputs.data.velocityRadPerSec()) <= homingVelocityThresh.get());
             })
         .until(() -> homed)
-        .andThen(
-            () -> {
-              homedPosition = inputs.data.positionRad();
-              homed = true;
-            })
+        .andThen(this::setHome)
         .finallyDo(
             () -> {
               stopProfile = false;

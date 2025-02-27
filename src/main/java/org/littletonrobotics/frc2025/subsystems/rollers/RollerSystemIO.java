@@ -23,17 +23,16 @@ public interface RollerSystemIO {
       double torqueCurrentAmps,
       double tempCelsius,
       boolean connected) {}
-  ;
 
   default void updateInputs(RollerSystemIOInputs inputs) {}
-
-  default void runTorqueCurrent(double current) {}
 
   /* Run rollers at volts */
   default void runVolts(double volts) {}
 
   /* Stop rollers */
   default void stop() {}
+
+  default void setCurrentLimit(double currentLimit) {}
 
   default void setBrakeMode(boolean enabled) {}
 }

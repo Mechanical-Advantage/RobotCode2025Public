@@ -12,23 +12,17 @@ import org.littletonrobotics.junction.AutoLog;
 public interface ClimberIO {
   @AutoLog
   class ClimberIOInputs {
-    public ClimberIOData data =
-        new ClimberIOData(false, false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    public ClimberIOData data = new ClimberIOData(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
   }
 
   record ClimberIOData(
       boolean motorConnected,
-      boolean followerConnected,
       double positionRads,
       double velocityRadsPerSec,
       double appliedVoltage,
       double torqueCurrentAmps,
       double supplyCurrentAmps,
-      double tempCelsius,
-      double followerAppliedVoltage,
-      double followerTorqueCurrentAmps,
-      double followerSupplyCurrentsAmps,
-      double followerTempCelsius) {}
+      double tempCelsius) {}
 
   default void updateInputs(ClimberIOInputs inputs) {}
 

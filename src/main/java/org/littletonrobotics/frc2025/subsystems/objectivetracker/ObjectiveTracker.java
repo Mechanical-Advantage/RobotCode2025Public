@@ -17,12 +17,14 @@ import edu.wpi.first.networktables.StringPublisher;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import java.util.*;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.littletonrobotics.frc2025.FieldConstants;
 import org.littletonrobotics.frc2025.FieldConstants.AlgaeObjective;
 import org.littletonrobotics.frc2025.FieldConstants.CoralObjective;
@@ -89,12 +91,21 @@ public class ObjectiveTracker extends VirtualSubsystem {
   @AutoLogOutput(key = "ObjectiveTracker/PredictedPose")
   private Pose2d predictedRobot = new Pose2d();
 
+  @Setter private BooleanSupplier forceReefBlocked = () -> false;
+
   public ObjectiveTracker(ReefControlsIO io) {
     this.io = io;
 
-    dashboardLevelChooser.addDefaultOption("Auto", "Auto");
+    dashboardLevelChooser.addDefaultOption("   Auto   ", "Auto");
     for (var level : ReefLevel.values()) {
-      dashboardLevelChooser.addOption(level.toString(), level.toString());
+      dashboardLevelChooser.addOption(
+          switch (level) {
+            case L1 -> "   Level 1   ";
+            case L2 -> "   Level 2   ";
+            case L3 -> "   Level 3   ";
+            case L4 -> "   Level 4   ";
+          },
+          level.toString());
     }
 
     var table =
@@ -368,9 +379,11 @@ public class ObjectiveTracker extends VirtualSubsystem {
 
     // Calculate the unblocked nearby branches
     nearbyUnblockedBranches.clear();
-    nearbyBranches.stream()
-        .filter(availableUnblockedBranches::contains)
-        .forEach(nearbyUnblockedBranches::add);
+    if (!forceReefBlocked.getAsBoolean()) {
+      nearbyBranches.stream()
+          .filter(availableUnblockedBranches::contains)
+          .forEach(nearbyUnblockedBranches::add);
+    }
 
     // Show strategy on LEDs
     Leds.getInstance().firstPriorityLevel = firstLevel;
@@ -559,7 +572,7 @@ public class ObjectiveTracker extends VirtualSubsystem {
         (CoralObjective coralObjective) ->
             robot
                 .getTranslation()
-                .getDistance(AutoScore.getCoralScorePose(coralObjective, false).getTranslation()));
+                .getDistance(AutoScore.getCoralScorePose(coralObjective).getTranslation()));
   }
 
   private record ReefState(boolean[][] coral, boolean[] algae, int troughCount) {

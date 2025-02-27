@@ -100,19 +100,20 @@ public class AutoScore {
       DoubleSupplier driverY,
       DoubleSupplier driverOmega,
       Command joystickDrive,
-      BooleanSupplier disableReefAutoAlign) {
+      BooleanSupplier disableReefAutoAlign,
+      BooleanSupplier manualEject) {
     Supplier<Pose2d> robot =
         () ->
             coralObjective
                 .get()
-                .map(objective -> getRobotPose(objective, superstructure.hasAlgae()))
+                .map(AutoScore::getRobotPose)
                 .orElseGet(() -> RobotState.getInstance().getEstimatedPose());
 
     Function<CoralObjective, Pose2d> goal =
         objective ->
             objective.reefLevel() == ReefLevel.L1
                 ? getL1Pose(objective)
-                : getCoralScorePose(objective, superstructure.hasAlgae());
+                : getCoralScorePose(objective);
 
     Container<CoralObjective> coralObjectiveScored = new Container<>();
     Container<Boolean> needsToGetBack = new Container<>(false);
@@ -130,22 +131,11 @@ public class AutoScore {
                             return getDriveTarget(
                                 robot.get(), AllianceFlipUtil.apply(getL1Pose(objective)));
                           }
-                          Pose2d goalPose = getCoralScorePose(objective, superstructure.hasAlgae());
-                          if (superstructure.hasAlgae()
-                              && !superstructure.getState().getValue().isReversed()) {
-                            goalPose =
-                                goalPose.transformBy(
-                                    GeomUtil.toTransform2d(
-                                        goalPose.getTranslation().getDistance(Reef.center)
-                                            - reefRadius
-                                            - (DriveConstants.robotWidth / 2.0)
-                                            - minDistanceReefClearAlgae.get(),
-                                        0.0));
-                          } else if (!superstructure.hasAlgae()
+                          Pose2d goalPose = getCoralScorePose(objective);
+                          if (superstructure.getState()
+                                  != Superstructure.getScoringState(reefLevel.get(), false)
                               && superstructure.getState()
-                                  != Superstructure.getScoringState(reefLevel.get(), false, false)
-                              && superstructure.getState()
-                                  != Superstructure.getScoringState(reefLevel.get(), false, true)) {
+                                  != Superstructure.getScoringState(reefLevel.get(), true)) {
                             goalPose =
                                 goalPose.transformBy(
                                     GeomUtil.toTransform2d(
@@ -232,7 +222,8 @@ public class AutoScore {
                               && Math.abs(poseError.getRotation().getDegrees())
                                   <= thetaToleranceEject.get()
                               && superstructure.atGoal())
-                          || disableReefAutoAlign.getAsBoolean();
+                          || disableReefAutoAlign.getAsBoolean()
+                          || manualEject.getAsBoolean();
                   Logger.recordOutput("AutoScore/AllowEject", ready);
                   if (ready) {
                     coralObjectiveScored.value = coralObjective.get().get();
@@ -278,6 +269,7 @@ public class AutoScore {
         () -> 0,
         () -> 0,
         Commands.none(),
+        () -> false,
         () -> false);
   }
 
@@ -387,16 +379,12 @@ public class AutoScore {
       BooleanSupplier disableReefAutoAlign) {
     final Timer ejectTimer = new Timer();
     return superstructure
-        .runGoal(
-            () -> Superstructure.getScoringState(reefLevel.get(), superstructure.hasAlgae(), false))
+        .runGoal(() -> Superstructure.getScoringState(reefLevel.get(), false))
         .until(eject)
         .andThen(
             Commands.runOnce(ejectTimer::restart),
             superstructure
-                .runGoal(
-                    () ->
-                        Superstructure.getScoringState(
-                            reefLevel.get(), superstructure.hasAlgae(), true))
+                .runGoal(() -> Superstructure.getScoringState(reefLevel.get(), true))
                 .until(() -> ejectTimer.hasElapsed(ejectTimeSeconds.get())))
         .deadlineFor(
             // Measure distance to branch
@@ -411,23 +399,24 @@ public class AutoScore {
                             }
 
                             var dispenserPose =
-                                getRobotPose(objective, superstructure.hasAlgae())
-                                    .transformBy(
-                                        GeomUtil.toTransform2d(
-                                            DispenserPose.forCoralScore(
-                                                            objective.reefLevel(),
-                                                            superstructure.hasAlgae())
-                                                        .getElevatorHeight()
-                                                    * SuperstructureConstants.elevatorAngle.getCos()
-                                                + SuperstructureConstants.dispenserOrigin2d.getX(),
-                                            0.0));
+                                AllianceFlipUtil.apply(
+                                    getRobotPose(objective)
+                                        .transformBy(
+                                            GeomUtil.toTransform2d(
+                                                DispenserPose.forCoralScore(objective.reefLevel())
+                                                            .getElevatorHeight()
+                                                        * SuperstructureConstants.elevatorAngle
+                                                            .getCos()
+                                                    + SuperstructureConstants.dispenserOrigin2d
+                                                        .getX(),
+                                                0.0)));
                             var offsetTranslation =
                                 dispenserPose
                                     .relativeTo(
                                         getBranchPose(objective)
                                             .transformBy(GeomUtil.toTransform2d(Rotation2d.kPi)))
                                     .getTranslation();
-                            double distanceToBranch = -offsetTranslation.getX();
+                            double distanceToBranch = offsetTranslation.getNorm();
                             Logger.recordOutput("AutoScore/DistanceToBranch", distanceToBranch);
                             RobotState.getInstance()
                                 .setDistanceToBranch(
@@ -487,9 +476,9 @@ public class AutoScore {
   }
 
   /** Get position of robot aligned with branch for selected objective. */
-  public static Pose2d getCoralScorePose(CoralObjective coralObjective, boolean algae) {
+  public static Pose2d getCoralScorePose(CoralObjective coralObjective) {
     return getBranchPose(coralObjective)
-        .transformBy(DispenserPose.forCoralScore(coralObjective.reefLevel(), algae).toRobotPose());
+        .transformBy(DispenserPose.forCoralScore(coralObjective.reefLevel()).toRobotPose());
   }
 
   public static Pose2d getReefIntakePose(AlgaeObjective objective) {
@@ -523,9 +512,9 @@ public class AutoScore {
     return distanceToReefCenter >= reefRadius + DriveConstants.robotWidth / 2.0 + distance;
   }
 
-  public static Pose2d getRobotPose(CoralObjective coralObjective, boolean hasAlgae) {
+  public static Pose2d getRobotPose(CoralObjective coralObjective) {
     return RobotState.getInstance()
-        .getReefPose(coralObjective.branchId() / 2, getCoralScorePose(coralObjective, hasAlgae));
+        .getReefPose(coralObjective.branchId() / 2, getCoralScorePose(coralObjective));
   }
 
   private static Pose2d getRobotPose(AlgaeObjective algaeObjective) {

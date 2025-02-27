@@ -110,7 +110,7 @@ public class RobotState {
   public void resetPose(Pose2d pose) {
     // Gyro offset is the rotation that maps the old gyro rotation (estimated - offset) to the new
     // frame of rotation
-    gyroOffset = pose.getRotation().minus(estimatedPose.getRotation().minus(gyroOffset));
+    gyroOffset = pose.getRotation().minus(odometryPose.getRotation().minus(gyroOffset));
     estimatedPose = pose;
     odometryPose = pose;
     poseBuffer.clear();
