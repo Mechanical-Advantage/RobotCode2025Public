@@ -14,6 +14,8 @@ import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StringPublisher;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.MatchType;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import java.util.*;
@@ -158,6 +160,9 @@ public class ObjectiveTracker extends VirtualSubsystem {
     }
     if (inputs.coopState.length > 0) {
       coopState = inputs.coopState[0];
+    }
+    if (DriverStation.getMatchType() == MatchType.Elimination) {
+      coopState = false;
     }
 
     // If state has changed, recalculate
@@ -335,6 +340,7 @@ public class ObjectiveTracker extends VirtualSubsystem {
     }
     io.setAlgaeState(algaeState);
     io.setCoopState(coopState);
+    io.setElims(DriverStation.getMatchType() == MatchType.Elimination);
 
     // Calculate predicted robot
     predictedRobot =

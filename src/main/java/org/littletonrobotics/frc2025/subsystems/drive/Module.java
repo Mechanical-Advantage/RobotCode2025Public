@@ -16,6 +16,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import org.littletonrobotics.frc2025.Constants;
+import org.littletonrobotics.frc2025.Robot;
 import org.littletonrobotics.frc2025.util.LoggedTracer;
 import org.littletonrobotics.frc2025.util.LoggedTunableNumber;
 import org.littletonrobotics.junction.Logger;
@@ -110,9 +111,9 @@ public class Module {
     }
 
     // Update alerts
-    driveDisconnectedAlert.set(!inputs.data.driveConnected());
-    turnDisconnectedAlert.set(!inputs.data.turnConnected());
-    turnEncoderDisconnectedAlert.set(!inputs.data.turnEncoderConnected());
+    driveDisconnectedAlert.set(!inputs.data.driveConnected() && !Robot.isJITing());
+    turnDisconnectedAlert.set(!inputs.data.turnConnected() && !Robot.isJITing());
+    turnEncoderDisconnectedAlert.set(!inputs.data.turnEncoderConnected() && !Robot.isJITing());
 
     // Record cycle time
     LoggedTracer.record("Drive/Module" + index);

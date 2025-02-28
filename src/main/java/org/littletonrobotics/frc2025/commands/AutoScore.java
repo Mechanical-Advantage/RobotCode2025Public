@@ -493,9 +493,11 @@ public class AutoScore {
     return Reef.centerFaces[face].transformBy(
         new Transform2d(
             l1AlignOffsetX.get(),
-            l1AlignOffsetY.get() * (coralObjective.branchId() % 2 == 0 ? 1.0 : -1.0),
-            Rotation2d.fromDegrees(
-                l1AlignOffsetDegrees.get() * (coralObjective.branchId() % 2 == 0 ? 1.0 : -1.0))));
+            MathUtil.clamp(
+                new Transform2d(Reef.centerFaces[face], getRobotPose(coralObjective)).getY(),
+                -1 * l1AlignOffsetY.get(),
+                l1AlignOffsetY.get()),
+            Rotation2d.fromRadians(Math.PI)));
   }
 
   public static boolean withinDistanceToReef(Pose2d robot, double distance) {

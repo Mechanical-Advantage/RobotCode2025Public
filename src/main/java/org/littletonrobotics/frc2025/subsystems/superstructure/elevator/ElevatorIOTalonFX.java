@@ -29,7 +29,7 @@ import org.littletonrobotics.frc2025.Constants.RobotType;
 import org.littletonrobotics.frc2025.util.PhoenixUtil;
 
 public class ElevatorIOTalonFX implements ElevatorIO {
-  public static final double reduction = 4.0;
+  public static final double reduction = 4.0 * (1.72 / 1.8); // Precision adjustment
 
   // Hardware
   private final TalonFX talon;

@@ -36,4 +36,6 @@ public interface ReefControlsIO {
   default void setAlgaeState(int value) {}
 
   default void setCoopState(boolean value) {}
+
+  default void setElims(boolean isElims) {}
 }

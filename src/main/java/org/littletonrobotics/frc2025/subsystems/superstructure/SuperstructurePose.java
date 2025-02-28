@@ -13,6 +13,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.Timer;
 import java.util.Map;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
@@ -26,8 +27,17 @@ import org.littletonrobotics.frc2025.util.GeomUtil;
 import org.littletonrobotics.frc2025.util.LoggedTunableNumber;
 
 public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotation2d> pivotAngle) {
-  private static final double reefAlgaeIntakeAngle = 15.0;
-  private static final double reefAlgaeIntakeDispenserAngle = 20.0;
+  private static final double reefAlgaeIntakeAngleL2 = 0.0;
+  private static final double reefAlgaeIntakeAngleL3 = -20.0;
+  private static final double reefAlgaeIntakeDispenserAngleL2 = 0.0;
+  private static final double reefAlgaeIntakeDispenserAngleL3 = -20.0;
+
+  private static final LoggedTunableNumber intakeHeightBaseline =
+      new LoggedTunableNumber("Superstructure/Intake/ElevatorBaseline", 0.05);
+  private static final LoggedTunableNumber intakeHeightRange =
+      new LoggedTunableNumber("Superstructure/Intake/ElevatorRange", 0.01);
+  private static final LoggedTunableNumber intakeHeightTimeFactor =
+      new LoggedTunableNumber("Superstructure/Intake/ElevatorTimeFactor", 15.0);
 
   private static final Map<ReefLevel, Double> ejectMeters =
       Map.of(
@@ -39,8 +49,18 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
           Units.inchesToMeters(5.0),
           ReefLevel.L4,
           Units.inchesToMeters(5.0));
+  private static final Map<ReefLevel, Double> heightFudges =
+      Map.of(
+          ReefLevel.L1,
+          Units.inchesToMeters(0.0),
+          ReefLevel.L2,
+          Units.inchesToMeters(2.0),
+          ReefLevel.L3,
+          Units.inchesToMeters(2.0),
+          ReefLevel.L4,
+          Units.inchesToMeters(0.0));
   private static final Map<ReefLevel, Double> optimalCoralAngles =
-      Map.of(ReefLevel.L1, 0.0, ReefLevel.L2, -35.0, ReefLevel.L3, -35.0, ReefLevel.L4, -50.0);
+      Map.of(ReefLevel.L1, 0.0, ReefLevel.L2, -32.0, ReefLevel.L3, -32.0, ReefLevel.L4, -55.0);
 
   @Getter
   @RequiredArgsConstructor
@@ -96,7 +116,10 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
         dispenserAngleDeg = -30.0;
       }
       return new Pose2d(
-          new Pose2d(0.0, reefLevel.height, Rotation2d.fromDegrees(-dispenserAngleDeg))
+          new Pose2d(
+                  0.0,
+                  reefLevel.height + heightFudges.get(reefLevel),
+                  Rotation2d.fromDegrees(-dispenserAngleDeg))
               .transformBy(
                   GeomUtil.toTransform2d(ejectMeters.get(reefLevel) + pivotToTunnelFront, 0.0))
               .getTranslation(),
@@ -116,7 +139,8 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
                               -180.0 - ReefLevel.L3.pitch)) // Flip pitch into frame
                       .transformBy(GeomUtil.toTransform2d(FieldConstants.algaeDiameter / 2.0, 0.0))
                       .getTranslation(),
-                  Rotation2d.fromDegrees(-reefAlgaeIntakeAngle))
+                  Rotation2d.fromDegrees(
+                      -(L2Algae ? reefAlgaeIntakeAngleL2 : reefAlgaeIntakeAngleL3)))
               .transformBy(
                   GeomUtil.toTransform2d(
                       FieldConstants.algaeDiameter / 2.0
@@ -124,7 +148,8 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
                           + Units.inchesToMeters(3.0),
                       0.0))
               .getTranslation(),
-          Rotation2d.fromDegrees(reefAlgaeIntakeDispenserAngle));
+          Rotation2d.fromDegrees(
+              L2Algae ? reefAlgaeIntakeDispenserAngleL2 : reefAlgaeIntakeDispenserAngleL3));
     }
   }
 
@@ -132,8 +157,13 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
   @RequiredArgsConstructor
   @Getter
   enum Preset {
-    STOW("Stow", 0.01, 10.0),
-    INTAKE("Intake", 0.03, -30.0),
+    STOW("Stow", 0.05, 10.0),
+    INTAKE(
+        () ->
+            intakeHeightBaseline.get()
+                + intakeHeightRange.get()
+                    * Math.sin(Timer.getTimestamp() * intakeHeightTimeFactor.get()),
+        new LoggedTunableNumber("Superstructure/Intake/Pivot", -20.0)),
     L1(ReefLevel.L1),
     L2(ReefLevel.L2),
     L3(ReefLevel.L3),
@@ -141,9 +171,9 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
     ALGAE_FLOOR_INTAKE("AlgaeFloorIntake", 0.4, -20.0),
     ALGAE_L2_INTAKE("AlgaeL2Intake", DispenserPose.L2_ALGAE_INTAKE),
     ALGAE_L3_INTAKE("AlgaeL3Intake", DispenserPose.L3_ALGAE_INTAKE),
-    PRE_THROW("PreThrow", elevatorMaxTravel, -10.0),
+    PRE_THROW("PreThrow", elevatorMaxTravel, 20.0),
     THROW("Throw", elevatorMaxTravel, 20.0),
-    ALGAE_STOW("AlgaeStow", 0.28, 0.0);
+    ALGAE_STOW("AlgaeStow", 0.15, 0.0);
 
     private final SuperstructurePose pose;
 

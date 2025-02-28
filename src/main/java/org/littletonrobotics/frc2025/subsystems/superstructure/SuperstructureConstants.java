@@ -44,7 +44,7 @@ public class SuperstructureConstants {
   public static final double stage1ToStage2Height = 0.80;
   public static final double stage2ToStage3Height = 1.37;
 
-  public static final Rotation2d pivotSafeAngle = Rotation2d.fromDegrees(-50.0);
+  public static final Rotation2d pivotSafeAngle = Rotation2d.fromDegrees(-30.0);
   public static final LoggedTunableNumber throwHeight =
       new LoggedTunableNumber("Superstructure/Throw/Height", elevatorMaxTravel);
   public static final LoggedTunableNumber throwVelocity =

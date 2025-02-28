@@ -130,8 +130,8 @@ public class RobotContainer {
           dispenser =
               new Dispenser(
                   new PivotIOTalonFX(),
-                  new RollerSystemIOTalonFX(6, "", 40, false, false, 3.0),
-                  new RollerSystemIOTalonFX(7, "", 40, false, false, 2.0));
+                  new RollerSystemIOTalonFX(6, "", 40, true, false, 3.0),
+                  new RollerSystemIOTalonFX(7, "", 40, true, false, (30 / 12) * (48 / 18)));
           funnel =
               new RollerSystem("Funnel", new RollerSystemIOTalonFX(2, "", 30, true, false, 1.0));
           climber = new Climber(new ClimberIOTalonFX());
@@ -229,6 +229,7 @@ public class RobotContainer {
 
     // Set up characterization routines
     var autoBuilder = new AutoBuilder(drive, superstructure, funnel, objectiveTracker);
+    autoChooser.addDefaultOption("Dead In The Water Auto", Commands.none());
     autoChooser.addOption(
         "Super Up In The Water Auto (4 Coral)", autoBuilder.superUpInTheWaterAuto());
     autoChooser.addOption("Up In The Water Auto (4 Coral)", autoBuilder.upInTheWaterAuto());
@@ -347,7 +348,12 @@ public class RobotContainer {
         .and(() -> !climberDeployed)
         .doublePress()
         .onTrue(climber.deploy().alongWith(Commands.runOnce(() -> climberDeployed = true)));
-    driver.y().and(() -> climberDeployed).doublePress().whileTrue(climber.climb());
+    driver
+        .y()
+        .and(() -> climberDeployed)
+        .doublePress()
+        .onTrue(
+            climber.climb().alongWith(Commands.runOnce(() -> Leds.getInstance().climbing = true)));
     RobotModeTriggers.disabled()
         .onTrue(Commands.runOnce(() -> climberDeployed = false).ignoringDisable(true));
 
@@ -500,7 +506,7 @@ public class RobotContainer {
 
     // Strobe LEDs at human player
     driver
-        .y()
+        .x()
         .whileTrue(
             Commands.startEnd(
                 () -> leds.hpAttentionAlert = true, () -> leds.hpAttentionAlert = false));
@@ -681,12 +687,8 @@ public class RobotContainer {
 
   public void updateAlerts() {
     // Controller disconnected alerts
-    driverDisconnected.set(
-        !DriverStation.isJoystickConnected(driver.getHID().getPort())
-            || !DriverStation.getJoystickIsXbox(driver.getHID().getPort()));
-    operatorDisconnected.set(
-        !DriverStation.isJoystickConnected(operator.getHID().getPort())
-            || !DriverStation.getJoystickIsXbox(operator.getHID().getPort()));
+    driverDisconnected.set(!DriverStation.isJoystickConnected(driver.getHID().getPort()));
+    operatorDisconnected.set(!DriverStation.isJoystickConnected(operator.getHID().getPort()));
     overrideDisconnected.set(!overrides.isConnected());
 
     // AprilTag layout alert

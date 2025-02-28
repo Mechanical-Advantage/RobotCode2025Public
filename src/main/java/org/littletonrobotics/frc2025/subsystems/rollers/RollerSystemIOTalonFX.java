@@ -14,7 +14,6 @@ import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.NeutralOut;
-import com.ctre.phoenix6.controls.TorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
@@ -38,9 +37,9 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
   private final StatusSignal<Current> supplyCurrent;
   private final StatusSignal<Current> torqueCurrent;
   private final StatusSignal<Temperature> tempCelsius;
+  private final StatusSignal<Boolean> tempFault;
 
   // Single shot for voltage mode, robot loop will call continuously
-  private final TorqueCurrentFOC torqueCurrentFOC = new TorqueCurrentFOC(0.0).withUpdateFreqHz(0.0);
   private final VoltageOut voltageOut = new VoltageOut(0.0).withUpdateFreqHz(0);
   private final NeutralOut neutralOut = new NeutralOut();
 
@@ -60,6 +59,7 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
     config.MotorOutput.NeutralMode = brake ? NeutralModeValue.Brake : NeutralModeValue.Coast;
     config.CurrentLimits.SupplyCurrentLimit = currentLimitAmps;
     config.CurrentLimits.SupplyCurrentLimitEnable = true;
+    config.Feedback.VelocityFilterTimeConstant = 0.1;
     tryUntilOk(5, () -> talon.getConfigurator().apply(config));
 
     position = talon.getPosition();
@@ -68,6 +68,7 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
     supplyCurrent = talon.getSupplyCurrent();
     torqueCurrent = talon.getTorqueCurrent();
     tempCelsius = talon.getDeviceTemp();
+    tempFault = talon.getStickyFault_DeviceTemp();
 
     tryUntilOk(
         5,
@@ -79,7 +80,8 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
                 appliedVoltage,
                 supplyCurrent,
                 torqueCurrent,
-                tempCelsius));
+                tempCelsius,
+                tempFault));
     tryUntilOk(5, () -> talon.optimizeBusUtilization(0, 1.0));
 
     // Register signals for refresh
@@ -90,7 +92,8 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
         appliedVoltage,
         supplyCurrent,
         torqueCurrent,
-        tempCelsius);
+        tempCelsius,
+        tempFault);
   }
 
   @Override
@@ -103,6 +106,7 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
             supplyCurrent.getValueAsDouble(),
             torqueCurrent.getValueAsDouble(),
             tempCelsius.getValueAsDouble(),
+            tempFault.getValue(),
             connectedDebouncer.calculate(
                 BaseStatusSignal.isAllGood(
                     position,
@@ -110,7 +114,8 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
                     appliedVoltage,
                     supplyCurrent,
                     torqueCurrent,
-                    tempCelsius)));
+                    tempCelsius,
+                    tempFault)));
   }
 
   @Override

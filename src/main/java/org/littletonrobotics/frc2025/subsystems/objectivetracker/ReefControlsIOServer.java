@@ -27,6 +27,7 @@ public class ReefControlsIOServer implements ReefControlsIO {
   private static final String l4TopicName = "Level4";
   private static final String algaeTopicName = "Algae";
   private static final String coopTopicName = "Coop";
+  private static final String isElimsTopicName = "IsElims";
 
   private final IntegerSubscriber selectedLevelIn;
   private final IntegerSubscriber l1StateIn;
@@ -43,6 +44,7 @@ public class ReefControlsIOServer implements ReefControlsIO {
   private final IntegerPublisher l4StateOut;
   private final IntegerPublisher algaeStateOut;
   private final BooleanPublisher coopStateOut;
+  private final BooleanPublisher isElimsOut;
 
   public ReefControlsIOServer() {
     // Create subscribers
@@ -75,6 +77,7 @@ public class ReefControlsIOServer implements ReefControlsIO {
     l4StateOut = outputTable.getIntegerTopic(l4TopicName).publish();
     algaeStateOut = outputTable.getIntegerTopic(algaeTopicName).publish();
     coopStateOut = outputTable.getBooleanTopic(coopTopicName).publish();
+    isElimsOut = outputTable.getBooleanTopic(isElimsTopicName).publish();
 
     // Start web server
     WebServer.start(
@@ -136,5 +139,10 @@ public class ReefControlsIOServer implements ReefControlsIO {
   @Override
   public void setCoopState(boolean value) {
     coopStateOut.set(value);
+  }
+
+  @Override
+  public void setElims(boolean isElims) {
+    isElimsOut.set(isElims);
   }
 }

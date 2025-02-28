@@ -12,6 +12,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
+import org.littletonrobotics.frc2025.Robot;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
@@ -101,7 +102,7 @@ public abstract class GenericSlamElevator<G extends GenericSlamElevator.SlamElev
     lastGoal = getGoal();
 
     // Set alert
-    disconnected.set(!inputs.data.motorConnected());
+    disconnected.set(!inputs.data.motorConnected() && !Robot.isJITing());
 
     // Check if at goal.
     if (!slammed) {

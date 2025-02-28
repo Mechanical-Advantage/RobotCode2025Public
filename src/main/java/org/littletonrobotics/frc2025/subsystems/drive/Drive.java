@@ -28,6 +28,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import lombok.Setter;
 import org.littletonrobotics.frc2025.Constants;
 import org.littletonrobotics.frc2025.Constants.Mode;
+import org.littletonrobotics.frc2025.Robot;
 import org.littletonrobotics.frc2025.RobotState;
 import org.littletonrobotics.frc2025.util.LoggedTracer;
 import org.littletonrobotics.frc2025.util.LoggedTunableNumber;
@@ -183,7 +184,8 @@ public class Drive extends SubsystemBase {
     }
 
     // Update gyro alert
-    gyroDisconnectedAlert.set(!gyroInputs.data.connected() && Constants.getMode() != Mode.SIM);
+    gyroDisconnectedAlert.set(
+        !gyroInputs.data.connected() && Constants.getMode() != Mode.SIM && !Robot.isJITing());
 
     // Record cycle time
     LoggedTracer.record("Drive/Periodic");

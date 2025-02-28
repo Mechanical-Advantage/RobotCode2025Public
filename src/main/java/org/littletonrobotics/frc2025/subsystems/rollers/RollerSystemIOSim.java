@@ -40,6 +40,7 @@ public class RollerSystemIOSim implements RollerSystemIO {
             sim.getCurrentDrawAmps(),
             gearbox.getCurrent(sim.getAngularVelocityRadPerSec(), appliedVoltage),
             0.0,
+            false,
             true);
   }
 

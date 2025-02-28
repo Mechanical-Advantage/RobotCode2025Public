@@ -69,7 +69,7 @@ public class Robot extends LoggedRobot {
       new Alert(
           "Battery voltage is very low, consider turning off the robot or replacing the battery.",
           AlertType.kWarning);
-  private final Alert gcAlert =
+  private final Alert jitAlert =
       new Alert("Please wait to enable, JITing in progress.", AlertType.kWarning);
 
   public Robot() {
@@ -270,14 +270,19 @@ public class Robot extends LoggedRobot {
       Leds.getInstance().lowBatteryAlert = true;
     }
 
-    // GC alert
-    gcAlert.set(Timer.getTimestamp() < 45.0);
+    // JIT alert
+    jitAlert.set(isJITing());
 
     // Log robot state values
     RobotState.getInstance().periodicLog();
 
     // Record cycle time
     LoggedTracer.record("RobotPeriodic");
+  }
+
+  /** Returns whether we should wait to enable because JIT optimizations are in progress. */
+  public static boolean isJITing() {
+    return Timer.getTimestamp() < 45.0;
   }
 
   /** This function is called once when the robot is disabled. */

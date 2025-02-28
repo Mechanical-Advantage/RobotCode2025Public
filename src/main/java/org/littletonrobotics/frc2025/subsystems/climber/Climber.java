@@ -25,11 +25,11 @@ public class Climber extends SubsystemBase {
   private static final LoggedTunableNumber deployAngle =
       new LoggedTunableNumber("Climber/DeployAngle", 130);
   private static final LoggedTunableNumber climbCurrent =
-      new LoggedTunableNumber("Climber/ClimbCurrent", 75);
+      new LoggedTunableNumber("Climber/ClimbCurrent", 65);
   private static final LoggedTunableNumber climbCurrentRampRate =
       new LoggedTunableNumber("Climber/ClimbCurrentRampRate", 30);
   static final LoggedTunableNumber climbStopAngle =
-      new LoggedTunableNumber("Climber/ClimbStopAngle", 200);
+      new LoggedTunableNumber("Climber/ClimbStopAngle", 215);
 
   private final ClimberIO climberIO;
   private final ClimberIOInputsAutoLogged climberInputs = new ClimberIOInputsAutoLogged();
@@ -72,13 +72,19 @@ public class Climber extends SubsystemBase {
     Timer timer = new Timer();
     return runOnce(timer::restart)
         .andThen(
-            run(() ->
-                    climberIO.runTorqueCurrent(
-                        Math.min(climbCurrentRampRate.get() * timer.get(), climbCurrent.get())))
-                .until(
-                    () ->
-                        climberInputs.data.positionRads()
-                            >= Units.degreesToRadians(climbStopAngle.get())))
+            run(
+                () -> {
+                  boolean stopped =
+                      climberInputs.data.positionRads()
+                          >= Units.degreesToRadians(climbStopAngle.get());
+                  if (stopped) {
+                    timer.restart();
+                  }
+                  climberIO.runTorqueCurrent(
+                      stopped
+                          ? 0.0
+                          : Math.min(climbCurrentRampRate.get() * timer.get(), climbCurrent.get()));
+                }))
         .finallyDo(() -> climberIO.runTorqueCurrent(0.0));
   }
 

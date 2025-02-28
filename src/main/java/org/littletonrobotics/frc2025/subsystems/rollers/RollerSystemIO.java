@@ -12,7 +12,7 @@ import org.littletonrobotics.junction.AutoLog;
 public interface RollerSystemIO {
   @AutoLog
   static class RollerSystemIOInputs {
-    public RollerSystemIOData data = new RollerSystemIOData(0, 0, 0, 0, 0, 0, false);
+    public RollerSystemIOData data = new RollerSystemIOData(0, 0, 0, 0, 0, 0, false, false);
   }
 
   record RollerSystemIOData(
@@ -22,6 +22,7 @@ public interface RollerSystemIO {
       double supplyCurrentAmps,
       double torqueCurrentAmps,
       double tempCelsius,
+      boolean tempFault,
       boolean connected) {}
 
   default void updateInputs(RollerSystemIOInputs inputs) {}

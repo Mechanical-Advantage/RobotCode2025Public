@@ -7,7 +7,6 @@
 
 package org.littletonrobotics.frc2025.util;
 
-import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 
@@ -21,9 +20,7 @@ public class OverrideSwitches {
 
   /** Returns whether the controller is connected. */
   public boolean isConnected() {
-    return joystick.isConnected()
-        && !DriverStation.getJoystickIsXbox(joystick.getPort())
-        && joystick.getName().equals("Generic   USB  Joystick");
+    return joystick.isConnected();
   }
 
   /** Gets the state of a driver-side switch (0-2 from left to right). */

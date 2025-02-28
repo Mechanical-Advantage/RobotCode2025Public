@@ -24,6 +24,7 @@ import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.Setter;
 import org.littletonrobotics.frc2025.Constants;
+import org.littletonrobotics.frc2025.Robot;
 import org.littletonrobotics.frc2025.subsystems.superstructure.SuperstructureConstants;
 import org.littletonrobotics.frc2025.util.EqualsUtil;
 import org.littletonrobotics.frc2025.util.LoggedTracer;
@@ -61,9 +62,13 @@ public class Elevator {
     new LoggedTunableNumber("Elevator/kA/Stage3")
   };
   private static final LoggedTunableNumber maxVelocityMetersPerSec =
-      new LoggedTunableNumber("Elevator/MaxVelocityMetersPerSec", 2.0);
+      new LoggedTunableNumber("Elevator/MaxVelocityMetersPerSec", 2.5);
   private static final LoggedTunableNumber maxAccelerationMetersPerSec2 =
-      new LoggedTunableNumber("Elevator/MaxAccelerationMetersPerSec2", 10);
+      new LoggedTunableNumber("Elevator/MaxAccelerationMetersPerSec2", 8.0);
+  private static final LoggedTunableNumber algaeMaxVelocityMetersPerSec =
+      new LoggedTunableNumber("Elevator/AlgaeMaxVelocityMetersPerSec", 1.5);
+  private static final LoggedTunableNumber algaeMaxAccelerationMetersPerSec2 =
+      new LoggedTunableNumber("Elevator/AlgaeMaxAccelerationMetersPerSec2", 4.0);
   private static final LoggedTunableNumber homingVolts =
       new LoggedTunableNumber("Elevator/HomingVolts", -2.0);
   private static final LoggedTunableNumber homingTimeSecs =
@@ -76,8 +81,8 @@ public class Elevator {
   static {
     switch (Constants.getRobot()) {
       case COMPBOT, DEVBOT -> {
-        kP.initDefault(800);
-        kD.initDefault(0);
+        kP.initDefault(600);
+        kD.initDefault(10);
         for (int stage = 0; stage < 3; stage++) {
           kS[stage].initDefault(0);
           kG[stage].initDefault(0);
@@ -109,11 +114,13 @@ public class Elevator {
   @AutoLogOutput private boolean brakeModeEnabled = true;
 
   private TrapezoidProfile profile;
+  private TrapezoidProfile algaeProfile;
   @Getter private State setpoint = new State();
   private Supplier<State> goal = State::new;
   private boolean stopProfile = false;
   @Getter private boolean shouldEStop = false;
   @Setter private boolean isEStopped = false;
+  @Setter private boolean hasAlgae = false;
 
   @AutoLogOutput(key = "Elevator/HomedPositionRad")
   private double homedPosition = 0.0;
@@ -143,8 +150,8 @@ public class Elevator {
     io.updateInputs(inputs);
     Logger.processInputs("Elevator", inputs);
 
-    motorDisconnectedAlert.set(!inputs.data.motorConnected());
-    followerDisconnectedAlert.set(!inputs.data.followerConnected());
+    motorDisconnectedAlert.set(!inputs.data.motorConnected() && !Robot.isJITing());
+    followerDisconnectedAlert.set(!inputs.data.followerConnected() && !Robot.isJITing());
 
     // Update tunable numbers
     if (kP.hasChanged(hashCode()) || kD.hasChanged(hashCode())) {
@@ -156,6 +163,13 @@ public class Elevator {
           new TrapezoidProfile(
               new TrapezoidProfile.Constraints(
                   maxVelocityMetersPerSec.get(), maxAccelerationMetersPerSec2.get()));
+    }
+    if (algaeMaxVelocityMetersPerSec.hasChanged(hashCode())
+        || algaeMaxAccelerationMetersPerSec2.hasChanged(hashCode())) {
+      algaeProfile =
+          new TrapezoidProfile(
+              new TrapezoidProfile.Constraints(
+                  algaeMaxVelocityMetersPerSec.get(), algaeMaxAccelerationMetersPerSec2.get()));
     }
 
     // Set coast mode
@@ -180,7 +194,9 @@ public class Elevator {
               MathUtil.clamp(goal.get().position, 0.0, SuperstructureConstants.elevatorMaxTravel),
               goal.get().velocity);
       double previousVelocity = setpoint.velocity;
-      setpoint = profile.calculate(Constants.loopPeriodSecs, setpoint, goalState);
+      setpoint =
+          (hasAlgae ? algaeProfile : profile)
+              .calculate(Constants.loopPeriodSecs, setpoint, goalState);
       if (setpoint.position < 0.0
           || setpoint.position > SuperstructureConstants.elevatorMaxTravel) {
         setpoint =

@@ -78,6 +78,7 @@ public class RollerSystemIOSpark implements RollerSystemIO {
             0.0,
             ifOkOrDefault(spark, spark::getOutputCurrent, inputs.data.torqueCurrentAmps()),
             ifOkOrDefault(spark, spark::getMotorTemperature, inputs.data.tempCelsius()),
+            false,
             connectedDebouncer.calculate(!sparkStickyFault));
   }
 

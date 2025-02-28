@@ -41,6 +41,7 @@ public class Leds extends VirtualSubsystem {
   public boolean lowBatteryAlert = false;
   public boolean characterizationMode = false;
   public boolean visionDisconnected = false;
+  public boolean climbing = false;
   public Optional<ReefLevel> firstPriorityLevel = Optional.empty();
   public Optional<ReefLevel> secondPriorityLevel = Optional.empty();
   public ReefLevel autoScoringLevel = ReefLevel.L4;
@@ -164,7 +165,7 @@ public class Leds extends VirtualSubsystem {
             waveFastDuration);
       } else if (lowBatteryAlert) {
         // Low battery
-        solid(fullSection, Color.kOrangeRed);
+        strobe(fullSection, Color.kOrangeRed, Color.kBlack, strobeDuration);
       } else if (prideLeds) {
         // Pride stripes
         stripes(
@@ -221,6 +222,11 @@ public class Leds extends VirtualSubsystem {
               case L3 -> l3PriorityColor;
               case L4 -> l4PriorityColor;
             });
+      }
+
+      // Climbing alert
+      if (climbing) {
+        strobe(fullSection, Color.kGold, Color.kDarkBlue, strobeDuration);
       }
 
       // Human player alert

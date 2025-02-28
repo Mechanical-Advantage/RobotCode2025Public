@@ -18,6 +18,7 @@ const l3TopicName = "Level3";
 const l4TopicName = "Level4";
 const algaeTopicName = "Algae";
 const coopTopicName = "Coop";
+const isElimsTopicName = "IsElims";
 
 const ntClient = new NT4_Client(
   window.location.hostname,
@@ -44,6 +45,8 @@ const ntClient = new NT4_Client(
       algaeState = value;
     } else if (topic.name === toDashboardPrefix + coopTopicName) {
       coopState = value;
+    } else if (topic.name === toDashboardPrefix + isElimsTopicName) {
+      isElims = value;
     } else {
       return;
     }
@@ -70,6 +73,7 @@ window.addEventListener("load", () => {
       toDashboardPrefix + l4TopicName,
       toDashboardPrefix + algaeTopicName,
       toDashboardPrefix + coopTopicName,
+      toDashboardPrefix + isElimsTopicName,
     ],
     false,
     false,
@@ -95,6 +99,7 @@ let l3State = 0; // Bitfield
 let l4State = 0; // Bitfield
 let algaeState = 0; // Bitfield
 let coopState = false; // Boolean
+let isElims = false; // Boolean
 
 /** Update the full UI based on the state cache. */
 function updateUI() {
@@ -163,7 +168,14 @@ function updateUI() {
 
   // Update RP flag
   document.getElementsByClassName("flag")[0].hidden =
-    rpLevelCount < (coopState ? 3 : 4);
+    isElims || rpLevelCount < (coopState ? 3 : 4);
+
+  // Update elims state
+  if (isElims) {
+    document.body.classList.add("elims");
+  } else {
+    document.body.classList.remove("elims");
+  }
 }
 
 // ***** BUTTON BINDINGS *****

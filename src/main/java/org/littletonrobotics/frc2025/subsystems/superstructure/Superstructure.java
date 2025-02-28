@@ -97,18 +97,13 @@ public class Superstructure extends SubsystemBase {
         SuperstructureState.STOW,
         EdgeCommand.builder()
             .command(
-                elevator
-                    .homingSequence()
-                    .deadlineFor(
-                        Commands.runOnce(
-                            () -> {
-                              dispenser.setTunnelVolts(0.0);
-                              dispenser.setGripperGoal(Dispenser.GripperGoal.IDLE);
-                            }))
+                runSuperstructureExtras(SuperstructureState.STOW)
                     .andThen(
-                        runSuperstructurePose(SuperstructurePose.Preset.STOW.getPose()),
-                        Commands.waitUntil(this::mechanismsAtGoal),
-                        runSuperstructureExtras(SuperstructureState.STOW)))
+                        Commands.parallel(
+                            dispenser.homingSequence(),
+                            Commands.waitSeconds(0.2).andThen(elevator.homingSequence())),
+                        runSuperstructurePose(SuperstructureState.STOW.getValue().getPose()),
+                        Commands.waitUntil(this::mechanismsAtGoal)))
             .build());
 
     graph.addEdge(
@@ -327,6 +322,12 @@ public class Superstructure extends SubsystemBase {
 
     // Tell elevator we are stowed
     elevator.setStowed(state == SuperstructureState.STOW);
+
+    // Tell elevator if we have algae
+    elevator.setHasAlgae(dispenser.hasAlgae());
+
+    // Tell dispenser if intaking
+    dispenser.setIntaking(state == SuperstructureState.INTAKE);
 
     // E Stop Dispenser and Elevator if Necessary
     isEStopped =

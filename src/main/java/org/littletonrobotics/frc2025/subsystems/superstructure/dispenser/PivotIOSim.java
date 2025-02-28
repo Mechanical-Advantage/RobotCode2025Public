@@ -49,7 +49,7 @@ public class PivotIOSim implements PivotIO {
   private boolean closedLoop = false;
 
   public PivotIOSim() {
-    simState = VecBuilder.fill(Dispenser.maxAngle.getRadians(), 0.0);
+    simState = VecBuilder.fill(Dispenser.maxAngle.getRadians() - 0.1, 0.0);
   }
 
   @Override
@@ -113,7 +113,7 @@ public class PivotIOSim implements PivotIO {
   }
 
   private void setInputVoltage(double voltage) {
-    setInputTorqueCurrent(gearbox.getCurrent(simState.get(1, 0), pivotAppliedVolts));
+    setInputTorqueCurrent(gearbox.getCurrent(simState.get(1, 0), voltage));
   }
 
   private void update(double dt) {
