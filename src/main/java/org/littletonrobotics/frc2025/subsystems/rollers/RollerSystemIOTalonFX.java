@@ -68,7 +68,7 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
     supplyCurrent = talon.getSupplyCurrent();
     torqueCurrent = talon.getTorqueCurrent();
     tempCelsius = talon.getDeviceTemp();
-    tempFault = talon.getStickyFault_DeviceTemp();
+    tempFault = talon.getFault_DeviceTemp();
 
     tryUntilOk(
         5,

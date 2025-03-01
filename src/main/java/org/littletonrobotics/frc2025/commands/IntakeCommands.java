@@ -16,6 +16,8 @@ import org.littletonrobotics.frc2025.util.LoggedTunableNumber;
 
 public class IntakeCommands {
   public static LoggedTunableNumber funnelVolts = new LoggedTunableNumber("Funnel/IntakeVolts", 8);
+  public static LoggedTunableNumber outtakeVolts =
+      new LoggedTunableNumber("Funnel/OuttakeVolts", -10);
 
   private IntakeCommands() {}
 

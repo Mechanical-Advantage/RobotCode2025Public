@@ -35,6 +35,7 @@ public class Leds extends VirtualSubsystem {
   public int loopCycleCount = 0;
   public boolean hpAttentionAlert = false;
   public boolean endgameAlert = false;
+  public boolean autoScoringReef = false;
   public boolean autoScoring = false;
   public boolean superstructureCoast = false;
   public boolean superstructureEstopped = false;
@@ -42,6 +43,7 @@ public class Leds extends VirtualSubsystem {
   public boolean characterizationMode = false;
   public boolean visionDisconnected = false;
   public boolean climbing = false;
+  public boolean coralGrabbed = false;
   public Optional<ReefLevel> firstPriorityLevel = Optional.empty();
   public Optional<ReefLevel> secondPriorityLevel = Optional.empty();
   public ReefLevel autoScoringLevel = ReefLevel.L4;
@@ -84,7 +86,7 @@ public class Leds extends VirtualSubsystem {
   private static final double autoFadeTime = 2.5; // 3s nominal
   private static final double autoFadeMaxTime = 5.0; // Return to normal
   private static final Color l1PriorityColor = Color.kOrangeRed;
-  private static final Color l2PriorityColor = Color.kGreen;
+  private static final Color l2PriorityColor = Color.kCyan;
   private static final Color l3PriorityColor = Color.kBlue;
   private static final Color l4PriorityColor = Color.kPurple;
 
@@ -211,8 +213,8 @@ public class Leds extends VirtualSubsystem {
       solid(topSection, hexColor);
       solid(bottomSection, secondaryHexColor);
 
-      // Auto scoring
-      if (autoScoring) {
+      // Auto scoring reef
+      if (autoScoringReef) {
         rainbow(topThreeQuartSection, rainbowCycleLength, rainbowDuration);
         solid(
             bottomQuartSection,
@@ -224,9 +226,19 @@ public class Leds extends VirtualSubsystem {
             });
       }
 
+      // Auto scoring
+      if (autoScoring) {
+        rainbow(fullSection, rainbowCycleLength, rainbowDuration);
+      }
+
       // Climbing alert
       if (climbing) {
         strobe(fullSection, Color.kGold, Color.kDarkBlue, strobeDuration);
+      }
+
+      // Coral grab alert
+      if (coralGrabbed) {
+        solid(fullSection, Color.kLime);
       }
 
       // Human player alert

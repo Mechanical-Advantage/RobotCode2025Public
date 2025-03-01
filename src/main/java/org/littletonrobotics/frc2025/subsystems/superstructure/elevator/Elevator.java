@@ -76,7 +76,7 @@ public class Elevator {
   private static final LoggedTunableNumber homingVelocityThresh =
       new LoggedTunableNumber("Elevator/HomingVelocityThresh", 5.0);
   private static final LoggedTunableNumber tolerance =
-      new LoggedTunableNumber("Elevator/Tolerance", 0.4);
+      new LoggedTunableNumber("Elevator/Tolerance", 0.5);
 
   static {
     switch (Constants.getRobot()) {

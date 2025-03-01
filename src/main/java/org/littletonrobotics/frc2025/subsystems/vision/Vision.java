@@ -89,9 +89,9 @@ public class Vision extends VirtualSubsystem {
     }
 
     // Update disconnected alerts & LEDs
-    boolean anyDisconnected = false;
+    boolean anyNTDisconnected = false;
     for (int i = 0; i < io.length; i++) {
-      if (aprilTagInputs[i].timestamps.length > 0 && objDetectInputs[i].timestamps.length > 0) {
+      if (aprilTagInputs[i].timestamps.length > 0 || objDetectInputs[i].timestamps.length > 0) {
         disconnectedTimers[i].reset();
       }
       boolean disconnected =
@@ -103,9 +103,9 @@ public class Vision extends VirtualSubsystem {
                 : "Northstar " + i + " disconnected from NT");
       }
       disconnectedAlerts[i].set(disconnected);
-      anyDisconnected = anyDisconnected || disconnected;
+      anyNTDisconnected = anyNTDisconnected || !inputs[i].ntConnected;
     }
-    Leds.getInstance().visionDisconnected = anyDisconnected;
+    Leds.getInstance().visionDisconnected = anyNTDisconnected;
 
     // Loop over instances
     List<Pose2d> allRobotPoses = new ArrayList<>();

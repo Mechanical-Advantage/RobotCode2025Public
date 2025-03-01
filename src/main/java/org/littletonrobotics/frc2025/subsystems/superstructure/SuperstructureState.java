@@ -44,13 +44,19 @@ public enum SuperstructureState {
           .height(Height.SECOND_STAGE)
           .build()),
   L1_CORAL_EJECT(
-      L1_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts).build()),
+      L1_CORAL.getValue().toBuilder()
+          .tunnelVolts(Dispenser.tunnelL1DispenseVolts)
+          .gripperGoal(Dispenser.GripperGoal.L1_EJECT)
+          .build()),
   L2_CORAL_EJECT(
       L2_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts).build()),
   L3_CORAL_EJECT(
       L3_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts).build()),
   L4_CORAL_EJECT(
-      L4_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts).build()),
+      L4_CORAL.getValue().toBuilder()
+          .tunnelVolts(Dispenser.tunnelDispenseVolts)
+          .gripperGoal(Dispenser.GripperGoal.EJECT)
+          .build()),
   ALGAE_FLOOR_INTAKE(
       SuperstructureStateData.builder()
           .pose(Preset.ALGAE_FLOOR_INTAKE.getPose())
@@ -95,7 +101,7 @@ public enum SuperstructureState {
           .build()),
   TOSS(
       SuperstructureState.PRE_TOSS.getValue().toBuilder()
-          .gripperGoal(Dispenser.GripperGoal.GRIP)
+          .gripperGoal(Dispenser.GripperGoal.EJECT)
           .build()),
   ALGAE_STOW_INTAKE(SuperstructureState.ALGAE_STOW.getValue().toBuilder().build()),
   PROCESSED(

@@ -185,17 +185,15 @@ public class AutoBuilder {
                         coralScoreIndex != 4 ? driveIntakingCommand : Commands.none())));
   }
 
-  public Command upInTheWeedsAuto() {
-    final double intakeTimeSeconds = 0.7;
+  public Command upInTheWeedsAuto(boolean isElims) {
+    final double intakeTimeSeconds = 0.15;
     final double driveToStationBiasSeconds = 0.2;
-    ReefLevel level =
-        Constants.getRobot() == Constants.RobotType.DEVBOT ? ReefLevel.L3 : ReefLevel.L4;
 
     CoralObjective[] coralObjectives =
         new CoralObjective[] {
-          new CoralObjective(9, level),
-          new CoralObjective(10, level),
-          new CoralObjective(11, level),
+          new CoralObjective(9, isElims ? ReefLevel.L4 : ReefLevel.L2),
+          new CoralObjective(10, ReefLevel.L4),
+          new CoralObjective(0, ReefLevel.L2),
         };
 
     Timer autoTimer = new Timer();
@@ -224,14 +222,14 @@ public class AutoBuilder {
                 IntStream.rangeClosed(0, 2)
                     .mapToObj(
                         index -> {
-                          var driveToStation = new DriveToStation(drive, false);
+                          var driveToStation = new DriveToStation(drive, true);
                           Debouncer intakingDebouncer = new Debouncer(intakeTimeSeconds);
                           return AutoScore.getAutoScoreCommand(
                                   drive,
                                   superstructure,
                                   funnel,
                                   objectiveTracker::requestScored,
-                                  () -> level,
+                                  () -> coralObjectives[index].reefLevel(),
                                   () -> Optional.of(MirrorUtil.apply(coralObjectives[index])))
                               .withTimeout(4.0)
                               .andThen(
@@ -252,10 +250,11 @@ public class AutoBuilder {
                                                   .times(
                                                       AllianceFlipUtil.shouldFlip() ? -1.0 : 1.0),
                                           () -> 0.0,
-                                          false)
+                                          true)
                                       .alongWith(
                                           superstructure.runGoal(
-                                              Superstructure.getScoringState(level, false)))
+                                              Superstructure.getScoringState(
+                                                  coralObjectives[index].reefLevel(), false)))
                                       .withTimeout(driveToStationBiasSeconds),
                                   driveToStation
                                       .alongWith(IntakeCommands.intake(superstructure, funnel))
@@ -287,6 +286,6 @@ public class AutoBuilder {
                     () ->
                         new Translation2d((AllianceFlipUtil.shouldFlip() ? -1.0 : 1.0) * -1.0, 0.0),
                     () -> 0.0)
-                .withTimeout(2.0));
+                .withTimeout(0.6));
   }
 }

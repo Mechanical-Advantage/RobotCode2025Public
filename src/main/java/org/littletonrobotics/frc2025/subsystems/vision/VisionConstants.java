@@ -17,7 +17,7 @@ import org.littletonrobotics.frc2025.Constants.Mode;
 import org.littletonrobotics.frc2025.util.LoggedTunableNumber;
 
 public class VisionConstants {
-  private static final boolean forceEnableInstanceLogging = false;
+  private static final boolean forceEnableInstanceLogging = true;
   public static final boolean enableInstanceLogging =
       forceEnableInstanceLogging || Constants.getMode() == Mode.REPLAY;
 
@@ -31,8 +31,8 @@ public class VisionConstants {
   public static final LoggedTunableNumber timestampOffset =
       new LoggedTunableNumber("AprilTagVision/TimestampOffset", 0.0);
 
-  private static int monoExposure = 10000;
-  private static int colorExposure = 10000;
+  private static int monoExposure = 12000;
+  private static int colorExposure = 12000;
   private static double monoGain = 0.3;
   private static double colorGain = 0.3;
 
@@ -107,7 +107,7 @@ public class VisionConstants {
                                   0.0,
                                   Units.degreesToRadians(29 + pitchAdjustments[0].get()),
                                   Units.degreesToRadians(-23.31))))
-                  .id("40265450")
+                  .id("40552080")
                   .width(1600)
                   .height(1200)
                   .exposure(monoExposure)
@@ -126,7 +126,7 @@ public class VisionConstants {
                                   0.0,
                                   Units.degreesToRadians(29 + pitchAdjustments[1].get()),
                                   Units.degreesToRadians(23.31))))
-                  .id("40270688")
+                  .id("40552081")
                   .width(1600)
                   .height(1200)
                   .exposure(monoExposure)
@@ -145,7 +145,7 @@ public class VisionConstants {
                                   0.0,
                                   Units.degreesToRadians(-40.0 + pitchAdjustments[2].get()),
                                   Units.degreesToRadians(198.394))))
-                  .id("40270704")
+                  .id("40265453")
                   .width(1600)
                   .height(1200)
                   .exposure(monoExposure)
@@ -166,7 +166,7 @@ public class VisionConstants {
                                   Units.degreesToRadians(-15))))
                   .id("24737133")
                   .width(1280)
-                  .height(720)
+                  .height(960)
                   .exposure(colorExposure)
                   .gain(colorGain)
                   .stdDevFactor(0.8)

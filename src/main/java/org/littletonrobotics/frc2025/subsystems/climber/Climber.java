@@ -27,9 +27,9 @@ public class Climber extends SubsystemBase {
   private static final LoggedTunableNumber climbCurrent =
       new LoggedTunableNumber("Climber/ClimbCurrent", 65);
   private static final LoggedTunableNumber climbCurrentRampRate =
-      new LoggedTunableNumber("Climber/ClimbCurrentRampRate", 30);
+      new LoggedTunableNumber("Climber/ClimbCurrentRampRate", 80);
   static final LoggedTunableNumber climbStopAngle =
-      new LoggedTunableNumber("Climber/ClimbStopAngle", 215);
+      new LoggedTunableNumber("Climber/ClimbStopAngle", 225);
 
   private final ClimberIO climberIO;
   private final ClimberIOInputsAutoLogged climberInputs = new ClimberIOInputsAutoLogged();

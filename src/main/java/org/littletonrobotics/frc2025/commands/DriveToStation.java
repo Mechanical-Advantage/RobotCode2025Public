@@ -29,14 +29,14 @@ public class DriveToStation extends DriveToPose {
   private static final LoggedTunableNumber stationAlignDistance =
       new LoggedTunableNumber(
           "DriveToStation/StationAlignDistance",
-          DriveConstants.robotWidth / 2.0 + Units.inchesToMeters(2.0));
+          DriveConstants.robotWidth / 2.0 + Units.inchesToMeters(5.0));
   private static final LoggedTunableNumber horizontalMaxOffset =
       new LoggedTunableNumber(
           "DriveToStation/HorizontalMaxOffset",
-          FieldConstants.CoralStation.stationLength / 2 - Units.inchesToMeters(16));
+          FieldConstants.CoralStation.stationLength / 2 - Units.inchesToMeters(24));
 
-  public DriveToStation(Drive drive, boolean sideIntaking) {
-    this(drive, () -> 0, () -> 0, () -> 0, sideIntaking);
+  public DriveToStation(Drive drive, boolean isAuto) {
+    this(drive, () -> 0, () -> 0, () -> 0, isAuto);
   }
 
   public DriveToStation(
@@ -44,7 +44,7 @@ public class DriveToStation extends DriveToPose {
       DoubleSupplier driverX,
       DoubleSupplier driverY,
       DoubleSupplier driverOmega,
-      boolean sideIntaking) {
+      boolean isAuto) {
     this(
         drive,
         () ->
@@ -56,11 +56,11 @@ public class DriveToStation extends DriveToPose {
                 Math.pow(
                     MathUtil.applyDeadband(driverOmega.getAsDouble(), DriveCommands.DEADBAND), 2.0),
                 driverOmega.getAsDouble()),
-        sideIntaking);
+        isAuto);
   }
 
   public DriveToStation(
-      Drive drive, Supplier<Translation2d> linearFF, DoubleSupplier theta, boolean sideIntaking) {
+      Drive drive, Supplier<Translation2d> linearFF, DoubleSupplier theta, boolean isAuto) {
     super(
         drive,
         () -> {
@@ -76,12 +76,16 @@ public class DriveToStation extends DriveToPose {
             offset =
                 new Transform2d(
                     stationAlignDistance.get(),
-                    MathUtil.clamp(
-                        offset.getY(), -horizontalMaxOffset.get(), horizontalMaxOffset.get()),
+                    isAuto
+                        ? (curPose.getY() < FieldConstants.fieldWidth / 2.0
+                            ? -horizontalMaxOffset.get()
+                            : horizontalMaxOffset.get())
+                        : MathUtil.clamp(
+                            offset.getY(), -horizontalMaxOffset.get(), horizontalMaxOffset.get()),
                     new Rotation2d());
 
             Rotation2d rotationOffset = curPose.getRotation().minus(stationCenter.getRotation());
-            if (Math.abs(rotationOffset.getDegrees()) > 45 && sideIntaking) {
+            if (Math.abs(rotationOffset.getDegrees()) > 45 && !isAuto) {
               finalPoses.add(
                   new Pose2d(
                       stationCenter.transformBy(offset).getTranslation(),

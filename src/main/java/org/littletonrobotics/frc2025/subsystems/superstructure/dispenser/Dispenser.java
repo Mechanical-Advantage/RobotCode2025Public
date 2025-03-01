@@ -28,6 +28,7 @@ import lombok.Setter;
 import org.littletonrobotics.frc2025.Constants;
 import org.littletonrobotics.frc2025.Constants.RobotType;
 import org.littletonrobotics.frc2025.Robot;
+import org.littletonrobotics.frc2025.subsystems.leds.Leds;
 import org.littletonrobotics.frc2025.subsystems.rollers.RollerSystemIO;
 import org.littletonrobotics.frc2025.subsystems.rollers.RollerSystemIOInputsAutoLogged;
 import org.littletonrobotics.frc2025.util.EqualsUtil;
@@ -58,31 +59,35 @@ public class Dispenser {
   private static final LoggedTunableNumber staticCharacterizationRampRate =
       new LoggedTunableNumber("Dispenser/StaticCharacterizationRampRate", 0.2);
   private static final LoggedTunableNumber algaeVelocityThresh =
-      new LoggedTunableNumber("Dispenser/AlgaeVelocityThreshold", 30.0);
+      new LoggedTunableNumber("Dispenser/AlgaeVelocityThreshold", 5.0);
   private static final LoggedTunableNumber coralVelocityThresh =
-      new LoggedTunableNumber("Dispenser/CoralVelocityThresh", 20.0);
+      new LoggedTunableNumber("Dispenser/CoralVelocityThresh", 36.0);
   public static final LoggedTunableNumber gripperHoldVolts =
-      new LoggedTunableNumber("Dispenser/GripperHoldVolts", 2.0);
+      new LoggedTunableNumber("Dispenser/GripperHoldVolts", 3.0);
   public static final LoggedTunableNumber gripperIntakeVolts =
       new LoggedTunableNumber("Dispenser/GripperIntakeVolts", 5.0);
   public static final LoggedTunableNumber gripperEjectVolts =
       new LoggedTunableNumber("Dispenser/GripperEjectVolts", -12.0);
+  public static final LoggedTunableNumber gripperL1EjectVolts =
+      new LoggedTunableNumber("Dispenser/GripperL1EjectVolts", -5.0);
   public static final LoggedTunableNumber gripperCurrentLimit =
       new LoggedTunableNumber("Dispenser/GripperCurrentLimit", 50.0);
   public static final LoggedTunableNumber tunnelDispenseVolts =
       new LoggedTunableNumber("Dispenser/TunnelDispenseVolts", 6.0);
+  public static final LoggedTunableNumber tunnelL1DispenseVolts =
+      new LoggedTunableNumber("Dispenser/TunnelL1DispenseVolts", 5.0);
   public static final LoggedTunableNumber tunnelIntakeVolts =
       new LoggedTunableNumber("Dispenser/TunnelIntakeVolts", 3.0);
   public static final LoggedTunableNumber tolerance =
-      new LoggedTunableNumber("Dispenser/Tolerance", .1);
+      new LoggedTunableNumber("Dispenser/Tolerance", 0.4);
   public static final LoggedTunableNumber intakeReverseVolts =
-      new LoggedTunableNumber("Dispenser/IntakeReverseVolts", -2.5);
+      new LoggedTunableNumber("Dispenser/IntakeReverseVolts", -1.8);
   public static final LoggedTunableNumber intakeReverseTime =
-      new LoggedTunableNumber("Dispenser/IntakeReverseTime", 0.2);
+      new LoggedTunableNumber("Dispenser/IntakeReverseTime", 0.1);
   public static final LoggedTunableNumber homingTimeSecs =
       new LoggedTunableNumber("Dispenser/HomingTimeSecs", 0.2);
   public static final LoggedTunableNumber homingVolts =
-      new LoggedTunableNumber("Dispenser/HomingVolts", 1.0);
+      new LoggedTunableNumber("Dispenser/HomingVolts", 3.0);
   public static final LoggedTunableNumber homingVelocityThresh =
       new LoggedTunableNumber("Dispenser/HomingVelocityThreshold", 0.1);
 
@@ -106,7 +111,8 @@ public class Dispenser {
   public enum GripperGoal {
     IDLE,
     GRIP,
-    EJECT
+    EJECT,
+    L1_EJECT
   }
 
   // Hardware
@@ -133,7 +139,6 @@ public class Dispenser {
   @Getter private boolean shouldEStop = false;
   @Setter private boolean isEStopped = false;
   @Setter private boolean isIntaking = false;
-  private boolean wasIntaking = false;
   private final Timer intakingReverseTimer = new Timer();
 
   @Getter
@@ -145,15 +150,16 @@ public class Dispenser {
 
   @Setter private boolean hasCoral = false;
   private boolean hasAlgae = false;
+  @Getter private boolean doNotStopIntaking = false;
 
-  private static final double coralDebounceTime = 0.25;
-  private static final double algaeDebounceTime = 0.25;
-  private Debouncer coralDebouncer = new Debouncer(coralDebounceTime);
-  private Debouncer algaeDebouncer = new Debouncer(algaeDebounceTime);
+  private static final double coralDebounceTime = 0.5;
+  private static final double algaeDebounceTime = 0.4;
+  private Debouncer coralDebouncer = new Debouncer(coralDebounceTime, DebounceType.kRising);
+  private Debouncer algaeDebouncer = new Debouncer(algaeDebounceTime, DebounceType.kRising);
   private Debouncer toleranceDebouncer = new Debouncer(0.25, DebounceType.kRising);
   private Debouncer homingDebouncer = new Debouncer(0.25);
 
-  @Setter @Getter @AutoLogOutput private double offset = 0.0;
+  @Setter @Getter @AutoLogOutput private double coralThresholdOffset = 0.0;
   @AutoLogOutput private Rotation2d homingOffset = Rotation2d.kZero;
 
   // Disconnected alerts
@@ -177,6 +183,7 @@ public class Dispenser {
             new TrapezoidProfile.Constraints(
                 Units.degreesToRadians(maxVelocityDegPerSec.get()),
                 Units.degreesToRadians(maxAccelerationDegPerSec2.get())));
+    intakingReverseTimer.start();
   }
 
   public void periodic() {
@@ -248,7 +255,7 @@ public class Dispenser {
               .calculate(Constants.loopPeriodSecs, setpoint, goalState);
       pivotIO.runPosition(
           Rotation2d.fromRadians(
-              setpoint.position - maxAngle.getRadians() + Units.degreesToRadians(offset)),
+              setpoint.position - maxAngle.getRadians() + homingOffset.getRadians()),
           kS.get() * Math.signum(setpoint.velocity) // Magnitude irrelevant
               + kG.get() * getPivotAngle().getCos());
       // Check at goal
@@ -271,15 +278,16 @@ public class Dispenser {
     }
 
     // Run tunnel and gripper
+    Leds.getInstance().coralGrabbed = false;
     if (!isEStopped) {
       double intakeVolts = tunnelVolts;
-      if (isIntaking) {
-        if (!hasCoral) {
-          intakingReverseTimer.restart();
-        } else {
-          intakeVolts =
-              intakingReverseTimer.get() < intakeReverseTime.get() ? intakeReverseVolts.get() : 0.0;
-        }
+      if (isIntaking && !hasCoral) {
+        intakingReverseTimer.restart();
+      } else if (intakingReverseTimer.get() < intakeReverseTime.get()) {
+        intakeVolts = intakeReverseVolts.get();
+      } else if (isIntaking) {
+        Leds.getInstance().coralGrabbed = true;
+        intakeVolts = 0.0;
       }
       tunnelIO.runVolts(intakeVolts);
 
@@ -293,20 +301,13 @@ public class Dispenser {
           }
         }
         case EJECT -> gripperIO.runVolts(gripperEjectVolts.get());
+        case L1_EJECT -> gripperIO.runVolts(gripperL1EjectVolts.get());
       }
     } else {
       pivotIO.stop();
       tunnelIO.stop();
       gripperIO.stop();
     }
-
-    // Reset coral state when intaking
-    if (isIntaking && !wasIntaking) {
-      hasCoral = false;
-      coralDebouncer = new Debouncer(coralDebounceTime);
-      coralDebouncer.calculate(false);
-    }
-    wasIntaking = isIntaking;
 
     // Check algae & coral states
     if (Constants.getRobot() != Constants.RobotType.SIMBOT) {
@@ -317,10 +318,12 @@ public class Dispenser {
       } else {
         algaeDebouncer.calculate(hasAlgae);
       }
-      if (tunnelInputs.data.torqueCurrentAmps() >= 5.0) {
+      if (tunnelInputs.data.torqueCurrentAmps() >= 5.0
+          && tunnelInputs.data.velocityRadsPerSec() > 0.0) {
         hasCoral =
             coralDebouncer.calculate(
-                Math.abs(tunnelInputs.data.velocityRadsPerSec()) <= coralVelocityThresh.get());
+                Math.abs(tunnelInputs.data.velocityRadsPerSec())
+                    <= (coralVelocityThresh.get() + coralThresholdOffset));
       } else {
         coralDebouncer.calculate(hasCoral);
       }
@@ -336,12 +339,13 @@ public class Dispenser {
       lastAlgaeButtonPressed = algaeButtonPressed;
       lastCoralButtonPressed = coralButtonPressed;
     }
+
     // Display hasCoral & hasAlgae
     SmartDashboard.putBoolean("Has Coral?", hasCoral());
     SmartDashboard.putBoolean("Has Algae?", hasAlgae());
 
-    // Display angle offset
-    SmartDashboard.putString("Dispenser Angle Offset", String.format("%.1f", offset));
+    // Display coral threshold offset
+    SmartDashboard.putString("Coral Threshold Offset", String.format("%.1f", coralThresholdOffset));
 
     // Log state
     Logger.recordOutput("Dispenser/CoastOverride", coastOverride.getAsBoolean());
@@ -373,12 +377,19 @@ public class Dispenser {
 
   @AutoLogOutput(key = "Dispenser/MeasuredAngle")
   public Rotation2d getPivotAngle() {
-    return pivotInputs
-        .data
-        .position()
-        .plus(maxAngle)
-        .minus(homingOffset)
-        .minus(Rotation2d.fromDegrees(offset));
+    return pivotInputs.data.position().plus(maxAngle).minus(homingOffset);
+  }
+
+  public void resetHasCoral() {
+    hasCoral = false;
+    coralDebouncer = new Debouncer(coralDebounceTime, DebounceType.kRising);
+    coralDebouncer.calculate(false);
+  }
+
+  public void resetHasAlgae() {
+    hasAlgae = false;
+    algaeDebouncer = new Debouncer(algaeDebounceTime, DebounceType.kRising);
+    algaeDebouncer.calculate(false);
   }
 
   public void setOverrides(
@@ -427,17 +438,21 @@ public class Dispenser {
     return Commands.startRun(
             () -> {
               stopProfile = true;
-              homingDebouncer = new Debouncer(homingTimeSecs.get());
+              homingDebouncer = new Debouncer(homingTimeSecs.get(), DebounceType.kRising);
               homingDebouncer.calculate(false);
             },
             () -> {
               if (disabledOverride.getAsBoolean() || coastOverride.getAsBoolean()) return;
               pivotIO.runVolts(homingVolts.get());
             })
-        .until(
-            () ->
-                homingDebouncer.calculate(
-                    Math.abs(pivotInputs.data.velocityRadPerSec()) <= homingVelocityThresh.get()))
+        .raceWith(
+            Commands.runOnce(() -> {})
+                .andThen(
+                    Commands.waitUntil(
+                        () ->
+                            homingDebouncer.calculate(
+                                Math.abs(pivotInputs.data.velocityRadPerSec())
+                                    <= homingVelocityThresh.get()))))
         .andThen(
             () -> {
               homingOffset = pivotInputs.data.position();

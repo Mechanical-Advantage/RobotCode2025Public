@@ -78,7 +78,7 @@ public class RobotContainer {
   private final Trigger robotRelative = overrides.driverSwitch(0);
   private final Trigger superstructureDisable = overrides.driverSwitch(1);
   private final Trigger superstructureCoast = overrides.driverSwitch(2);
-  private final Trigger disableAutoCoralStationIntake = overrides.operatorSwitch(0);
+  private final Trigger disableAutoCoralStationIntake = overrides.operatorSwitch(0).negate();
   private final Trigger disableReefAutoAlign = overrides.operatorSwitch(1);
   private final Trigger disableCoralStationAutoAlign = overrides.operatorSwitch(2);
   private final Trigger disableAlgaeScoreAutoAlign = overrides.operatorSwitch(3);
@@ -119,13 +119,11 @@ public class RobotContainer {
                   new ModuleIOComp(DriveConstants.moduleConfigsComp[1]),
                   new ModuleIOComp(DriveConstants.moduleConfigsComp[2]),
                   new ModuleIOComp(DriveConstants.moduleConfigsComp[3]));
-          // vision =
-          //     new Vision(
-          //         this::getSelectedAprilTagLayout,
-          //         new VisionIONorthstar(this::getSelectedAprilTagLayout, 0),
-          //         new VisionIONorthstar(this::getSelectedAprilTagLayout, 1),
-          //         new VisionIONorthstar(this::getSelectedAprilTagLayout, 2),
-          //         new VisionIONorthstar(this::getSelectedAprilTagLayout, 3));
+          vision =
+              new Vision(
+                  this::getSelectedAprilTagLayout,
+                  new VisionIONorthstar(this::getSelectedAprilTagLayout, 0),
+                  new VisionIONorthstar(this::getSelectedAprilTagLayout, 1));
           elevator = new Elevator(new ElevatorIOTalonFX());
           dispenser =
               new Dispenser(
@@ -191,12 +189,7 @@ public class RobotContainer {
       switch (Constants.getRobot()) {
         case COMPBOT ->
             vision =
-                new Vision(
-                    this::getSelectedAprilTagLayout,
-                    new VisionIO() {},
-                    new VisionIO() {},
-                    new VisionIO() {},
-                    new VisionIO() {});
+                new Vision(this::getSelectedAprilTagLayout, new VisionIO() {}, new VisionIO() {});
         case DEVBOT -> vision = new Vision(this::getSelectedAprilTagLayout, new VisionIO() {});
         default -> vision = new Vision(this::getSelectedAprilTagLayout);
       }
@@ -230,12 +223,12 @@ public class RobotContainer {
     // Set up characterization routines
     var autoBuilder = new AutoBuilder(drive, superstructure, funnel, objectiveTracker);
     autoChooser.addDefaultOption("Dead In The Water Auto", Commands.none());
-    autoChooser.addOption(
-        "Super Up In The Water Auto (4 Coral)", autoBuilder.superUpInTheWaterAuto());
-    autoChooser.addOption("Up In The Water Auto (4 Coral)", autoBuilder.upInTheWaterAuto());
-    autoChooser.addOption("Up In The Weeds Auto (3 Coral)", autoBuilder.upInTheWeedsAuto());
-    autoChooser.addOption(
-        "Up In The Inspirational Auto (0 Coral)", autoBuilder.upInTheInspirationalAuto());
+    // autoChooser.addOption(
+    //     "Super Up In The Water Auto", autoBuilder.superUpInTheWaterAuto());
+    // autoChooser.addOption("Up In The Water Auto", autoBuilder.upInTheWaterAuto());
+    autoChooser.addOption("Up In The Weeds Auto", autoBuilder.upInTheWeedsAuto(false));
+    autoChooser.addOption("Up In The Elimination Auto", autoBuilder.upInTheWeedsAuto(true));
+    autoChooser.addOption("Up In The Inspirational Auto", autoBuilder.upInTheInspirationalAuto());
     autoChooser.addOption(
         "Drive Wheel Radius Characterization", DriveCommands.wheelRadiusCharacterization(drive));
     autoChooser.addOption(
@@ -360,12 +353,18 @@ public class RobotContainer {
     // Coral intake
     driver
         .leftTrigger()
-        .whileTrue(
+        .whileTrueContinuous(
             Commands.either(
                     joystickDriveCommandFactory.get(),
-                    new DriveToStation(drive, driverX, driverY, driverOmega, true),
+                    new DriveToStation(drive, driverX, driverY, driverOmega, false),
                     disableCoralStationAutoAlign)
-                .alongWith(IntakeCommands.intake(superstructure, funnel))
+                .deadlineFor(
+                    Commands.startEnd(
+                        () -> Leds.getInstance().autoScoring = true,
+                        () -> Leds.getInstance().autoScoring = false))
+                .alongWith(
+                    IntakeCommands.intake(superstructure, funnel),
+                    Commands.runOnce(superstructure::resetHasCoral))
                 .withName("Coral Station Intake"));
 
     // Algae reef intake & score
@@ -392,6 +391,10 @@ public class RobotContainer {
                     driverOmega,
                     joystickDriveCommandFactory.get(),
                     disableReefAutoAlign)
+                .deadlineFor(
+                    Commands.startEnd(
+                        () -> Leds.getInstance().autoScoring = true,
+                        () -> Leds.getInstance().autoScoring = false))
                 .onlyIf(() -> objectiveTracker.getAlgaeObjective().isPresent())
                 .withName("Algae Reef Intake"));
 
@@ -401,24 +404,28 @@ public class RobotContainer {
             Commands.either(
                     joystickDriveCommandFactory.get(),
                     new DriveToPose(
-                        drive,
-                        () ->
-                            AutoScore.getDriveTarget(
-                                RobotState.getInstance().getEstimatedPose(),
-                                AllianceFlipUtil.apply(
-                                    FieldConstants.Processor.centerFace.transformBy(
-                                        new Transform2d(
-                                            new Translation2d(
-                                                DriveConstants.robotWidth / 2.0
-                                                    + Units.inchesToMeters(3.0),
-                                                0),
-                                            Rotation2d.kPi)))),
-                        RobotState.getInstance()::getEstimatedPose,
-                        () ->
-                            DriveCommands.getLinearVelocityFromJoysticks(
-                                    driverX.getAsDouble(), driverY.getAsDouble())
-                                .times(AllianceFlipUtil.shouldFlip() ? -1.0 : 1.0),
-                        () -> DriveCommands.getOmegaFromJoysticks(driverOmega.getAsDouble())),
+                            drive,
+                            () ->
+                                AutoScore.getDriveTarget(
+                                    RobotState.getInstance().getEstimatedPose(),
+                                    AllianceFlipUtil.apply(
+                                        FieldConstants.Processor.centerFace.transformBy(
+                                            new Transform2d(
+                                                new Translation2d(
+                                                    DriveConstants.robotWidth / 2.0
+                                                        + Units.inchesToMeters(3.0),
+                                                    0),
+                                                Rotation2d.kPi)))),
+                            RobotState.getInstance()::getEstimatedPose,
+                            () ->
+                                DriveCommands.getLinearVelocityFromJoysticks(
+                                        driverX.getAsDouble(), driverY.getAsDouble())
+                                    .times(AllianceFlipUtil.shouldFlip() ? -1.0 : 1.0),
+                            () -> DriveCommands.getOmegaFromJoysticks(driverOmega.getAsDouble()))
+                        .deadlineFor(
+                            Commands.startEnd(
+                                () -> Leds.getInstance().autoScoring = true,
+                                () -> Leds.getInstance().autoScoring = false)),
                     disableAlgaeScoreAutoAlign)
                 .alongWith(
                     eject
@@ -524,6 +531,9 @@ public class RobotContainer {
     // Force processor
     driver.povRight().whileTrue(superstructure.runGoal(SuperstructureState.PROCESSED));
 
+    // Raise elevator
+    driver.povUp().toggleOnTrue(superstructure.runGoal(SuperstructureState.L2_CORAL));
+
     // ***** OPERATOR CONTROLLER *****
 
     // Algae stow intake
@@ -535,7 +545,11 @@ public class RobotContainer {
                 .withName("Algae Stow Intake"));
 
     // Coral intake
-    operator.rightBumper().whileTrue(IntakeCommands.intake(superstructure, funnel));
+    operator
+        .rightBumper()
+        .whileTrue(
+            IntakeCommands.intake(superstructure, funnel)
+                .alongWith(Commands.runOnce(superstructure::resetHasCoral)));
 
     // Home elevator
     operator.leftBumper().onTrue(superstructure.runHomingSequence());
@@ -546,23 +560,25 @@ public class RobotContainer {
     // Force processor
     operator.povRight().whileTrue(superstructure.runGoal(SuperstructureState.PROCESSED));
 
-    // Adjust dispenser offset
-    Function<Double, Command> adjustDispenserOffsetCommand =
-        delta -> Commands.runOnce(() -> superstructure.adjustDispenserOffset(delta));
+    // Adjust coral threshold offset
+    Function<Double, Command> adjustCoralThresholdOffsetCommand =
+        delta -> Commands.runOnce(() -> superstructure.adjustCoralThresholdOffset(delta));
     operator
         .povUp()
         .whileTrue(
-            adjustDispenserOffsetCommand
-                .apply(0.1)
+            adjustCoralThresholdOffsetCommand
+                .apply(0.5)
                 .andThen(Commands.waitSeconds(0.2))
-                .repeatedly());
+                .repeatedly()
+                .ignoringDisable(true));
     operator
         .povDown()
         .whileTrue(
-            adjustDispenserOffsetCommand
-                .apply(-0.1)
+            adjustCoralThresholdOffsetCommand
+                .apply(-0.5)
                 .andThen(Commands.waitSeconds(0.2))
-                .repeatedly());
+                .repeatedly()
+                .ignoringDisable(true));
 
     // Algae eject
     operator
@@ -597,7 +613,15 @@ public class RobotContainer {
     // Auto intake coral
     funnel.setDefaultCommand(
         funnel.runRoller(
-            () -> superstructure.isRequestFunnelIntake() ? IntakeCommands.funnelVolts.get() : 0.0));
+            () -> {
+              if (superstructure.isRequestFunnelIntake()) {
+                return IntakeCommands.funnelVolts.get();
+              } else if (superstructure.isRequestFunnelOuttake()) {
+                return IntakeCommands.outtakeVolts.get();
+              } else {
+                return 0.0;
+              }
+            }));
 
     // Reset gyro
     var driverStartAndBack = driver.start().and(driver.back());

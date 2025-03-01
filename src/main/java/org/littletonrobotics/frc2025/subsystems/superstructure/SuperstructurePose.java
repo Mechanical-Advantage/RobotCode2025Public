@@ -27,22 +27,22 @@ import org.littletonrobotics.frc2025.util.GeomUtil;
 import org.littletonrobotics.frc2025.util.LoggedTunableNumber;
 
 public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotation2d> pivotAngle) {
-  private static final double reefAlgaeIntakeAngleL2 = 0.0;
-  private static final double reefAlgaeIntakeAngleL3 = -20.0;
-  private static final double reefAlgaeIntakeDispenserAngleL2 = 0.0;
+  private static final double reefAlgaeIntakeAngleL2 = -20.0;
+  private static final double reefAlgaeIntakeAngleL3 = 0.0;
+  private static final double reefAlgaeIntakeDispenserAngleL2 = 5.0;
   private static final double reefAlgaeIntakeDispenserAngleL3 = -20.0;
 
   private static final LoggedTunableNumber intakeHeightBaseline =
-      new LoggedTunableNumber("Superstructure/Intake/ElevatorBaseline", 0.05);
+      new LoggedTunableNumber("Superstructure/Intake/ElevatorBaseline", 0.04);
   private static final LoggedTunableNumber intakeHeightRange =
-      new LoggedTunableNumber("Superstructure/Intake/ElevatorRange", 0.01);
+      new LoggedTunableNumber("Superstructure/Intake/ElevatorRange", 0.008);
   private static final LoggedTunableNumber intakeHeightTimeFactor =
-      new LoggedTunableNumber("Superstructure/Intake/ElevatorTimeFactor", 15.0);
+      new LoggedTunableNumber("Superstructure/Intake/ElevatorTimeFactor", 25.0);
 
   private static final Map<ReefLevel, Double> ejectMeters =
       Map.of(
           ReefLevel.L1,
-          Units.inchesToMeters(15.0),
+          Units.inchesToMeters(2.0),
           ReefLevel.L2,
           Units.inchesToMeters(5.0),
           ReefLevel.L3,
@@ -52,15 +52,15 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
   private static final Map<ReefLevel, Double> heightFudges =
       Map.of(
           ReefLevel.L1,
-          Units.inchesToMeters(0.0),
+          Units.inchesToMeters(2.0),
           ReefLevel.L2,
-          Units.inchesToMeters(2.0),
+          Units.inchesToMeters(3.0),
           ReefLevel.L3,
-          Units.inchesToMeters(2.0),
+          Units.inchesToMeters(3.0),
           ReefLevel.L4,
-          Units.inchesToMeters(0.0));
+          Units.inchesToMeters(1.0));
   private static final Map<ReefLevel, Double> optimalCoralAngles =
-      Map.of(ReefLevel.L1, 0.0, ReefLevel.L2, -32.0, ReefLevel.L3, -32.0, ReefLevel.L4, -55.0);
+      Map.of(ReefLevel.L1, 0.0, ReefLevel.L2, -35.0, ReefLevel.L3, -35.0, ReefLevel.L4, -48.0);
 
   @Getter
   @RequiredArgsConstructor
@@ -157,13 +157,13 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
   @RequiredArgsConstructor
   @Getter
   enum Preset {
-    STOW("Stow", 0.05, 10.0),
+    STOW("Stow", intakeHeightBaseline.get(), -18.0),
     INTAKE(
         () ->
             intakeHeightBaseline.get()
                 + intakeHeightRange.get()
                     * Math.sin(Timer.getTimestamp() * intakeHeightTimeFactor.get()),
-        new LoggedTunableNumber("Superstructure/Intake/Pivot", -20.0)),
+        new LoggedTunableNumber("Superstructure/Intake/Pivot", -18.0)),
     L1(ReefLevel.L1),
     L2(ReefLevel.L2),
     L3(ReefLevel.L3),

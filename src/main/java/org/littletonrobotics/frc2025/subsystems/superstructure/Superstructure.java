@@ -53,6 +53,8 @@ public class Superstructure extends SubsystemBase {
   @Getter private SuperstructureState state = SuperstructureState.START;
   private SuperstructureState next = null;
   @Getter private SuperstructureState goal = SuperstructureState.START;
+  private boolean hasHomedDispenser = false;
+  private final Command homeDispenser;
 
   @AutoLogOutput(key = "Superstructure/EStopped")
   private boolean isEStopped = false;
@@ -76,10 +78,12 @@ public class Superstructure extends SubsystemBase {
   private final SuperstructureVisualizer goalVisualizer = new SuperstructureVisualizer("Goal");
 
   @AutoLogOutput @Getter private boolean requestFunnelIntake = false;
+  @AutoLogOutput @Getter private boolean requestFunnelOuttake = false;
 
   public Superstructure(Elevator elevator, Dispenser dispenser) {
     this.elevator = elevator;
     this.dispenser = dispenser;
+    homeDispenser = dispenser.homingSequence();
 
     // Updating E Stop based on disabled override
     new Trigger(() -> disableOverride.getAsBoolean())
@@ -100,8 +104,12 @@ public class Superstructure extends SubsystemBase {
                 runSuperstructureExtras(SuperstructureState.STOW)
                     .andThen(
                         Commands.parallel(
-                            dispenser.homingSequence(),
-                            Commands.waitSeconds(0.2).andThen(elevator.homingSequence())),
+                                dispenser.homingSequence(),
+                                Commands.waitSeconds(0.2).andThen(elevator.homingSequence()))
+                            .deadlineFor(
+                                Commands.startEnd(
+                                    () -> requestFunnelOuttake = true,
+                                    () -> requestFunnelOuttake = false)),
                         runSuperstructurePose(SuperstructureState.STOW.getValue().getPose()),
                         Commands.waitUntil(this::mechanismsAtGoal)))
             .build());
@@ -131,6 +139,7 @@ public class Superstructure extends SubsystemBase {
             SuperstructureState.L2_CORAL,
             SuperstructureState.L3_CORAL,
             SuperstructureState.L4_CORAL,
+            SuperstructureState.ALGAE_STOW_INTAKE,
             SuperstructureState.ALGAE_FLOOR_INTAKE,
             SuperstructureState.ALGAE_L2_INTAKE,
             SuperstructureState.ALGAE_L3_INTAKE);
@@ -155,6 +164,7 @@ public class Superstructure extends SubsystemBase {
     for (var from : freeNoAlgaeStates) {
       for (var to : freeNoAlgaeStates) {
         if (from == to) continue;
+        if (algaeIntakeStates.contains(from) && algaeIntakeStates.contains(to)) continue;
         if (algaeIntakeStates.contains(from)) {
           graph.addEdge(
               from,
@@ -169,6 +179,7 @@ public class Superstructure extends SubsystemBase {
     for (var from : freeAlgaeStates) {
       for (var to : freeAlgaeStates) {
         if (from == to) continue;
+        if (algaeIntakeStates.contains(from) && algaeIntakeStates.contains(to)) continue;
         if (algaeIntakeStates.contains(from)) {
           graph.addEdge(
               from,
@@ -318,6 +329,18 @@ public class Superstructure extends SubsystemBase {
                   edgeCommand.getCommand().schedule();
                 });
       }
+
+      // Auto home dispenser when stowing
+      if (state == SuperstructureState.STOW
+          && goal == SuperstructureState.STOW
+          && !dispenser.hasCoral()) {
+        if (!hasHomedDispenser) {
+          homeDispenser.schedule();
+          hasHomedDispenser = true;
+        }
+      } else {
+        hasHomedDispenser = false;
+      }
     }
 
     // Tell elevator we are stowed
@@ -327,7 +350,8 @@ public class Superstructure extends SubsystemBase {
     elevator.setHasAlgae(dispenser.hasAlgae());
 
     // Tell dispenser if intaking
-    dispenser.setIntaking(state == SuperstructureState.INTAKE);
+    dispenser.setIntaking(
+        state == SuperstructureState.INTAKE || next == SuperstructureState.INTAKE);
 
     // E Stop Dispenser and Elevator if Necessary
     isEStopped =
@@ -376,8 +400,8 @@ public class Superstructure extends SubsystemBase {
     this.autoCoralStationIntakeOverride = autoCoralStationIntakeOverride;
   }
 
-  public void adjustDispenserOffset(double deltaDegrees) {
-    dispenser.setOffset(dispenser.getOffset() + deltaDegrees);
+  public void adjustCoralThresholdOffset(double deltaDegrees) {
+    dispenser.setCoralThresholdOffset(dispenser.getCoralThresholdOffset() + deltaDegrees);
   }
 
   @AutoLogOutput(key = "Superstructure/AtGoal")
@@ -391,6 +415,14 @@ public class Superstructure extends SubsystemBase {
 
   public boolean hasCoral() {
     return dispenser.hasCoral();
+  }
+
+  public void resetHasCoral() {
+    dispenser.resetHasCoral();
+  }
+
+  public void resetHasAlgae() {
+    dispenser.resetHasAlgae();
   }
 
   private void setGoal(SuperstructureState goal) {
