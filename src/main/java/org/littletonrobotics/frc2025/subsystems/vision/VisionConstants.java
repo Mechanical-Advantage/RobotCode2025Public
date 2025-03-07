@@ -169,7 +169,7 @@ public class VisionConstants {
                   .height(960)
                   .exposure(colorExposure)
                   .gain(colorGain)
-                  .stdDevFactor(0.8)
+                  .stdDevFactor(1.25)
                   .build()
             };
         default -> new CameraConfig[] {};

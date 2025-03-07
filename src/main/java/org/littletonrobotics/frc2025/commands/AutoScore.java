@@ -101,7 +101,7 @@ public class AutoScore {
       DoubleSupplier driverY,
       DoubleSupplier driverOmega,
       Command joystickDrive,
-      BooleanSupplier disableReefAutoAlign,
+      Trigger disableReefAutoAlign,
       BooleanSupplier manualEject) {
     Supplier<Pose2d> robot =
         () ->
@@ -159,9 +159,9 @@ public class AutoScore {
     // Schedule get back command
     new Trigger(() -> hasEnded.value && needsToGetBack.value)
         .and(RobotModeTriggers.teleop())
+        .and(disableReefAutoAlign.negate())
         .onTrue(
-            getSuperstructureGetBackCommand(
-                    superstructure, superstructure::getState, disableReefAutoAlign)
+            getSuperstructureGetBackCommand(superstructure, superstructure::getState)
                 .andThen(() -> needsToGetBack.value = false)
                 .withInterruptBehavior(InterruptionBehavior.kCancelIncoming));
 
@@ -223,8 +223,8 @@ public class AutoScore {
                                   <= maxAngularVel[intReefLevel].get()
                               && Math.abs(poseError.getRotation().getDegrees())
                                   <= thetaToleranceEject.get()
-                              && superstructure.atGoal())
-                          || disableReefAutoAlign.getAsBoolean()
+                              && superstructure.atGoal()
+                              && !disableReefAutoAlign.getAsBoolean())
                           || manualEject.getAsBoolean();
                   Logger.recordOutput("AutoScore/AllowEject", ready);
                   if (ready) {
@@ -271,7 +271,7 @@ public class AutoScore {
         () -> 0,
         () -> 0,
         Commands.none(),
-        () -> false,
+        new Trigger(() -> false),
         () -> false);
   }
 
@@ -284,7 +284,7 @@ public class AutoScore {
       DoubleSupplier driverY,
       DoubleSupplier driverOmega,
       Command joystickDrive,
-      BooleanSupplier disableReefAutoAlign) {
+      Trigger disableReefAutoAlign) {
     Supplier<Pose2d> robot =
         () ->
             algaeObjective
@@ -331,8 +331,9 @@ public class AutoScore {
     // Schedule get back command
     new Trigger(() -> hasEnded.value && needsToGetBack.value)
         .and(RobotModeTriggers.teleop())
+        .and(disableReefAutoAlign.negate())
         .onTrue(
-            getSuperstructureGetBackCommand(superstructure, algaeIntakeState, disableReefAutoAlign)
+            getSuperstructureGetBackCommand(superstructure, algaeIntakeState)
                 .andThen(() -> needsToGetBack.value = false)
                 .withInterruptBehavior(InterruptionBehavior.kCancelIncoming));
 
@@ -448,21 +449,17 @@ public class AutoScore {
   }
 
   private static Command getSuperstructureGetBackCommand(
-      Superstructure superstructure,
-      Supplier<SuperstructureState> holdState,
-      BooleanSupplier disableReefAutoAlign) {
+      Superstructure superstructure, Supplier<SuperstructureState> holdState) {
     return superstructure
         .runGoal(holdState)
         .until(
             () ->
-                disableReefAutoAlign.getAsBoolean()
-                    || (superstructure.hasAlgae()
-                        ? outOfDistanceToReef(
-                            RobotState.getInstance().getEstimatedPose(),
-                            minDistanceReefClearAlgae.get())
-                        : outOfDistanceToReef(
-                            RobotState.getInstance().getEstimatedPose(),
-                            minDistanceReefClear.get())))
+                superstructure.hasAlgae()
+                    ? outOfDistanceToReef(
+                        RobotState.getInstance().getEstimatedPose(),
+                        minDistanceReefClearAlgae.get())
+                    : outOfDistanceToReef(
+                        RobotState.getInstance().getEstimatedPose(), minDistanceReefClear.get()))
         .withName("Superstructure Get Back!");
   }
 

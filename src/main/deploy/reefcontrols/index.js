@@ -50,7 +50,6 @@ const ntClient = new NT4_Client(
     } else {
       return;
     }
-    document.body.style.backgroundColor = "white";
     updateUI();
   },
   () => {
@@ -113,6 +112,19 @@ function updateUI() {
       }
     }
   );
+
+  // Update background color
+  switch (selectedLevel) {
+    case 0:
+      document.body.style.backgroundColor = "#ccffff";
+      break;
+    case 1:
+      document.body.style.backgroundColor = "#b5e5ff";
+      break;
+    case 2:
+      document.body.style.backgroundColor = "#dfbbfc";
+      break;
+  }
 
   // Update level counts
   let rpLevelCount = 0;

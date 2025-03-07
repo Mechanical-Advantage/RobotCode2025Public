@@ -63,7 +63,7 @@ div.overview-section div.counter-container div.counter-area {
 }
 
 div.overview-section div.counter-container div.counter-area.active {
-  background-color: lightblue;
+  background-color: #ffffff;
 }
 
 div.overview-section div.counter-container div.counter-area div {
@@ -275,7 +275,6 @@ div.lower-section div.add {
 
 div.lower-section div.coop {
   left: 68%;
-  background-color: #c6efff;
 }
 
 div.lower-section div.coop.active {
