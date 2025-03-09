@@ -53,7 +53,7 @@ public class ClimberIOTalonFX implements ClimberIO {
     var config = new TalonFXConfiguration();
     config.Feedback.SensorToMechanismRatio = reduction;
     config.TorqueCurrent.PeakForwardTorqueCurrent = 120.0;
-    config.TorqueCurrent.PeakReverseTorqueCurrent = 0.0;
+    config.TorqueCurrent.PeakReverseTorqueCurrent = -120.0;
     config.CurrentLimits.StatorCurrentLimit = 120.0;
     config.CurrentLimits.StatorCurrentLimitEnable = true;
     config.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;

@@ -23,13 +23,13 @@ const isElimsTopicName = "IsElims";
 const ntClient = new NT4_Client(
   window.location.hostname,
   "ReefControls",
-  (topic) => {
+  () => {
     // Topic announce
   },
-  (topic) => {
+  () => {
     // Topic unannounce
   },
-  (topic, timestamp, value) => {
+  (topic, _, value) => {
     // New data
     if (topic.name === toDashboardPrefix + selectedLevelTopicName) {
       selectedLevel = value;
@@ -141,7 +141,7 @@ function updateUI() {
             count++;
           }
         }
-        element.innerText = count === 12 ? "\u2713" : count;
+        element.innerText = count === 12 ? "\u2705" : count;
         if (count >= 5) rpLevelCount++;
       }
     }
@@ -192,22 +192,34 @@ function updateUI() {
 
 // ***** BUTTON BINDINGS *****
 
+let isTouch = false;
+
 function bind(element, callback) {
-  let lastActivation = 0;
-  let activate = () => {
-    if (new Date().getTime() - lastActivation > 500) {
+  let activate = (touchEvent) => {
+    if (touchEvent) {
+      isTouch = true;
+    }
+    if (isTouch == touchEvent) {
       callback();
-      lastActivation = new Date().getTime();
     }
   };
 
-  element.addEventListener("touchstart", activate);
-  element.addEventListener("click", activate);
+  element.addEventListener("touchstart", () => activate(true));
+  element.addEventListener("mousedown", () => activate(false));
   element.addEventListener("contextmenu", (event) => {
     event.preventDefault();
-    activate();
+    activate(false);
   });
 }
+
+let lastMouseEvent = 0;
+window.addEventListener("mousemove", () => {
+  let now = new Date().getTime();
+  if (now - lastMouseEvent < 50) {
+    isTouch = false;
+  }
+  lastMouseEvent = now;
+});
 
 window.addEventListener("load", () => {
   // Buttons to change selected level
@@ -302,7 +314,7 @@ window.addEventListener("load", () => {
     ];
 
     context.beginPath();
-    corners.forEach((corner, index) => {
+    corners.forEach((corner) => {
       context.moveTo(width * 0.5, height * 0.5);
       context.lineTo(...corner);
     });

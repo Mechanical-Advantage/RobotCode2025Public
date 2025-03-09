@@ -49,7 +49,10 @@ public enum SuperstructureState {
           .gripperGoal(Dispenser.GripperGoal.L1_EJECT)
           .build()),
   L2_CORAL_EJECT(
-      L2_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts).build()),
+      L2_CORAL.getValue().toBuilder()
+          .tunnelVolts(Dispenser.tunnelDispenseVolts)
+          .gripperGoal(Dispenser.GripperGoal.L1_EJECT)
+          .build()),
   L3_CORAL_EJECT(
       L3_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts).build()),
   L4_CORAL_EJECT(

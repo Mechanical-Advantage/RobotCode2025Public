@@ -23,13 +23,14 @@ import org.littletonrobotics.frc2025.Constants;
 import org.littletonrobotics.frc2025.FieldConstants;
 import org.littletonrobotics.frc2025.FieldConstants.ReefLevel;
 import org.littletonrobotics.frc2025.RobotState;
+import org.littletonrobotics.frc2025.subsystems.superstructure.dispenser.Dispenser;
 import org.littletonrobotics.frc2025.util.GeomUtil;
 import org.littletonrobotics.frc2025.util.LoggedTunableNumber;
 
 public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotation2d> pivotAngle) {
-  private static final double reefAlgaeIntakeAngleL2 = -20.0;
+  private static final double reefAlgaeIntakeAngleL2 = -10.0;
   private static final double reefAlgaeIntakeAngleL3 = 0.0;
-  private static final double reefAlgaeIntakeDispenserAngleL2 = 5.0;
+  private static final double reefAlgaeIntakeDispenserAngleL2 = -20.0;
   private static final double reefAlgaeIntakeDispenserAngleL3 = -20.0;
 
   private static final LoggedTunableNumber intakeHeightBaseline =
@@ -44,23 +45,23 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
           ReefLevel.L1,
           Units.inchesToMeters(2.0),
           ReefLevel.L2,
-          Units.inchesToMeters(5.0),
+          Units.inchesToMeters(8.0),
           ReefLevel.L3,
-          Units.inchesToMeters(5.0),
+          Units.inchesToMeters(5.5),
           ReefLevel.L4,
-          Units.inchesToMeters(5.0));
+          Units.inchesToMeters(6.0));
   private static final Map<ReefLevel, Double> heightFudges =
       Map.of(
           ReefLevel.L1,
-          Units.inchesToMeters(2.0),
+          Units.inchesToMeters(1.0),
           ReefLevel.L2,
-          Units.inchesToMeters(3.0),
+          Units.inchesToMeters(0.0),
           ReefLevel.L3,
-          Units.inchesToMeters(3.0),
+          Units.inchesToMeters(2.5),
           ReefLevel.L4,
           Units.inchesToMeters(1.0));
   private static final Map<ReefLevel, Double> optimalCoralAngles =
-      Map.of(ReefLevel.L1, 0.0, ReefLevel.L2, -35.0, ReefLevel.L3, -35.0, ReefLevel.L4, -48.0);
+      Map.of(ReefLevel.L1, 0.0, ReefLevel.L2, -20.0, ReefLevel.L3, -35.0, ReefLevel.L4, -48.0);
 
   @Getter
   @RequiredArgsConstructor
@@ -171,8 +172,8 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
     ALGAE_FLOOR_INTAKE("AlgaeFloorIntake", 0.4, -20.0),
     ALGAE_L2_INTAKE("AlgaeL2Intake", DispenserPose.L2_ALGAE_INTAKE),
     ALGAE_L3_INTAKE("AlgaeL3Intake", DispenserPose.L3_ALGAE_INTAKE),
-    PRE_THROW("PreThrow", elevatorMaxTravel, 20.0),
-    THROW("Throw", elevatorMaxTravel, 20.0),
+    PRE_THROW("PreThrow", 1.0, Dispenser.maxAngle.getDegrees()),
+    THROW("Throw", elevatorMaxTravel, Dispenser.maxAngle.getDegrees()),
     ALGAE_STOW("AlgaeStow", 0.15, 0.0);
 
     private final SuperstructurePose pose;

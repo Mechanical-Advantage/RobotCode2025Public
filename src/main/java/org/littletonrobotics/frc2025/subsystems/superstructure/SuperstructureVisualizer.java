@@ -100,20 +100,20 @@ public class SuperstructureVisualizer {
             superstructureOrigin3d.plus(
                 new Translation3d(
                     secondStageHeight, new Rotation3d(0.0, -elevatorAngle.getRadians(), 0.0))),
-            new Rotation3d()),
+            Rotation3d.kZero),
         new Pose3d(
             superstructureOrigin3d.plus(
                 new Translation3d(
                     firstStageHeight, new Rotation3d(0.0, -elevatorAngle.getRadians(), 0.0))),
-            new Rotation3d()),
-        new Pose3d(pivotPose3d.getTranslation(), new Rotation3d()),
+            Rotation3d.kZero),
+        new Pose3d(pivotPose3d.getTranslation(), Rotation3d.kZero),
         pivotPose3d,
         new Pose3d(
             intakeOrigin3d.plus(
                 new Translation3d(
                     algaeIntakePosition,
                     new Rotation3d(0.0, Units.degreesToRadians(-intakeAngleDeg), 0.0))),
-            new Rotation3d()));
+            Rotation3d.kZero));
     if (hasAlgae) {
       Logger.recordOutput(
           "Mechanism3d/" + name + "/Algae",

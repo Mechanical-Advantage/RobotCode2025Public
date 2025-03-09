@@ -108,10 +108,10 @@ public class FieldConstants {
               new Pose3d(
                   new Translation3d(
                       poseDirection
-                          .transformBy(new Transform2d(adjustX, adjustY, new Rotation2d()))
+                          .transformBy(new Transform2d(adjustX, adjustY, Rotation2d.kZero))
                           .getX(),
                       poseDirection
-                          .transformBy(new Transform2d(adjustX, adjustY, new Rotation2d()))
+                          .transformBy(new Transform2d(adjustX, adjustY, Rotation2d.kZero))
                           .getY(),
                       level.height),
                   new Rotation3d(
@@ -122,10 +122,10 @@ public class FieldConstants {
               new Pose3d(
                   new Translation3d(
                       poseDirection
-                          .transformBy(new Transform2d(adjustX, -adjustY, new Rotation2d()))
+                          .transformBy(new Transform2d(adjustX, -adjustY, Rotation2d.kZero))
                           .getX(),
                       poseDirection
-                          .transformBy(new Transform2d(adjustX, -adjustY, new Rotation2d()))
+                          .transformBy(new Transform2d(adjustX, -adjustY, Rotation2d.kZero))
                           .getY(),
                       level.height),
                   new Rotation3d(
@@ -150,11 +150,11 @@ public class FieldConstants {
     // Measured from the center of the ice cream
     public static final double separation = Units.inchesToMeters(72.0);
     public static final Pose2d middleIceCream =
-        new Pose2d(Units.inchesToMeters(48), fieldWidth / 2.0, new Rotation2d());
+        new Pose2d(Units.inchesToMeters(48), fieldWidth / 2.0, Rotation2d.kZero);
     public static final Pose2d leftIceCream =
-        new Pose2d(Units.inchesToMeters(48), middleIceCream.getY() + separation, new Rotation2d());
+        new Pose2d(Units.inchesToMeters(48), middleIceCream.getY() + separation, Rotation2d.kZero);
     public static final Pose2d rightIceCream =
-        new Pose2d(Units.inchesToMeters(48), middleIceCream.getY() - separation, new Rotation2d());
+        new Pose2d(Units.inchesToMeters(48), middleIceCream.getY() - separation, Rotation2d.kZero);
   }
 
   public enum ReefLevel {

@@ -13,6 +13,7 @@ import static org.littletonrobotics.frc2025.FieldConstants.startingLineX;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Timer;
@@ -31,7 +32,6 @@ import org.littletonrobotics.frc2025.commands.*;
 import org.littletonrobotics.frc2025.subsystems.drive.Drive;
 import org.littletonrobotics.frc2025.subsystems.drive.DriveConstants;
 import org.littletonrobotics.frc2025.subsystems.drive.trajectory.HolonomicTrajectory;
-import org.littletonrobotics.frc2025.subsystems.objectivetracker.ObjectiveTracker;
 import org.littletonrobotics.frc2025.subsystems.rollers.RollerSystem;
 import org.littletonrobotics.frc2025.subsystems.superstructure.Superstructure;
 import org.littletonrobotics.frc2025.util.AllianceFlipUtil;
@@ -42,7 +42,6 @@ public class AutoBuilder {
   private final Drive drive;
   private final Superstructure superstructure;
   private final RollerSystem funnel;
-  private final ObjectiveTracker objectiveTracker;
 
   private final double intakeTimeSeconds = 0.35;
   private final double coralEjectTimeSeconds = 0.3;
@@ -85,7 +84,6 @@ public class AutoBuilder {
                                     upInTheWater1Score.getDuration() - coralEjectTimeSeconds)),
                         Commands.runOnce(
                             () -> System.out.printf("Scored Coral #1 at %.2f\n", autoTimer.get())),
-                        objectiveTracker.requestScored(() -> MirrorUtil.apply(coralObjectives[0])),
                         IntakeCommands.intake(superstructure, funnel))),
 
             // Rest of them
@@ -160,7 +158,6 @@ public class AutoBuilder {
                             System.out.printf(
                                 "Scored Coral #" + coralScoreIndex + " at %.2f\n",
                                 autoTimer.get())),
-                    objectiveTracker.requestScored(() -> MirrorUtil.apply(coralObjective)),
                     coralScoreIndex != 4
                         ? Commands.waitUntil(
                                 () ->
@@ -228,7 +225,6 @@ public class AutoBuilder {
                                   drive,
                                   superstructure,
                                   funnel,
-                                  objectiveTracker::requestScored,
                                   () -> coralObjectives[index].reefLevel(),
                                   () -> Optional.of(MirrorUtil.apply(coralObjectives[index])))
                               .withTimeout(4.0)
@@ -267,6 +263,38 @@ public class AutoBuilder {
                                                           Rotation2d.fromDegrees(10.0)))));
                         })
                     .toArray(Command[]::new)));
+  }
+
+  public Command upInTheSimplicityAuto() {
+    final var objective = new CoralObjective(7, ReefLevel.L4);
+    return Commands.runOnce(
+            () -> {
+              RobotState.getInstance()
+                  .resetPose(
+                      AllianceFlipUtil.apply(
+                          MirrorUtil.apply(
+                              new Pose2d(
+                                  startingLineX - DriveConstants.robotWidth / 2.0,
+                                  fieldWidth / 2.0,
+                                  Rotation2d.kPi))));
+              superstructure.setAutoStart();
+            })
+        .andThen(
+            AutoScore.getAutoScoreCommand(
+                drive,
+                superstructure,
+                funnel,
+                objective::reefLevel,
+                () -> Optional.of(MirrorUtil.apply(objective))),
+            new DriveToPose(
+                    drive,
+                    () ->
+                        AutoScore.getCoralScorePose(objective)
+                            .plus(new Transform2d(-0.5, 0.0, Rotation2d.kZero)))
+                .withTimeout(3.0)
+                .deadlineFor(
+                    superstructure.runGoal(
+                        Superstructure.getScoringState(objective.reefLevel(), false))));
   }
 
   public Command upInTheInspirationalAuto() {

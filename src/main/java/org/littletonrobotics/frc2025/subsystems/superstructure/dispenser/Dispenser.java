@@ -31,6 +31,8 @@ import org.littletonrobotics.frc2025.Robot;
 import org.littletonrobotics.frc2025.subsystems.leds.Leds;
 import org.littletonrobotics.frc2025.subsystems.rollers.RollerSystemIO;
 import org.littletonrobotics.frc2025.subsystems.rollers.RollerSystemIOInputsAutoLogged;
+import org.littletonrobotics.frc2025.subsystems.superstructure.sensors.CoralSensorIO;
+import org.littletonrobotics.frc2025.subsystems.superstructure.sensors.CoralSensorIOInputsAutoLogged;
 import org.littletonrobotics.frc2025.util.EqualsUtil;
 import org.littletonrobotics.frc2025.util.LoggedTracer;
 import org.littletonrobotics.frc2025.util.LoggedTunableNumber;
@@ -59,11 +61,11 @@ public class Dispenser {
   private static final LoggedTunableNumber staticCharacterizationRampRate =
       new LoggedTunableNumber("Dispenser/StaticCharacterizationRampRate", 0.2);
   private static final LoggedTunableNumber algaeVelocityThresh =
-      new LoggedTunableNumber("Dispenser/AlgaeVelocityThreshold", 5.0);
-  private static final LoggedTunableNumber coralVelocityThresh =
-      new LoggedTunableNumber("Dispenser/CoralVelocityThresh", 36.0);
+      new LoggedTunableNumber("Dispenser/AlgaeVelocityThreshold", 45.0);
+  private static final LoggedTunableNumber coralProxThreshold =
+      new LoggedTunableNumber("Dispenser/CoralProxThresh", 0.06);
   public static final LoggedTunableNumber gripperHoldVolts =
-      new LoggedTunableNumber("Dispenser/GripperHoldVolts", 3.0);
+      new LoggedTunableNumber("Dispenser/GripperHoldVolts", 5.0);
   public static final LoggedTunableNumber gripperIntakeVolts =
       new LoggedTunableNumber("Dispenser/GripperIntakeVolts", 5.0);
   public static final LoggedTunableNumber gripperEjectVolts =
@@ -75,7 +77,7 @@ public class Dispenser {
   public static final LoggedTunableNumber tunnelDispenseVolts =
       new LoggedTunableNumber("Dispenser/TunnelDispenseVolts", 6.0);
   public static final LoggedTunableNumber tunnelL1DispenseVolts =
-      new LoggedTunableNumber("Dispenser/TunnelL1DispenseVolts", 5.0);
+      new LoggedTunableNumber("Dispenser/TunnelL1DispenseVolts", 3.5);
   public static final LoggedTunableNumber tunnelIntakeVolts =
       new LoggedTunableNumber("Dispenser/TunnelIntakeVolts", 3.0);
   public static final LoggedTunableNumber tolerance =
@@ -122,6 +124,9 @@ public class Dispenser {
   private final RollerSystemIOInputsAutoLogged tunnelInputs = new RollerSystemIOInputsAutoLogged();
   private final RollerSystemIO gripperIO;
   private final RollerSystemIOInputsAutoLogged gripperInputs = new RollerSystemIOInputsAutoLogged();
+  private final CoralSensorIO coralSensorIO;
+  private final CoralSensorIOInputsAutoLogged coralSensorInputs =
+      new CoralSensorIOInputsAutoLogged();
 
   // Overrides
   private BooleanSupplier coastOverride = () -> false;
@@ -152,7 +157,7 @@ public class Dispenser {
   private boolean hasAlgae = false;
   @Getter private boolean doNotStopIntaking = false;
 
-  private static final double coralDebounceTime = 0.5;
+  private static final double coralDebounceTime = 0.1;
   private static final double algaeDebounceTime = 0.4;
   private Debouncer coralDebouncer = new Debouncer(coralDebounceTime, DebounceType.kRising);
   private Debouncer algaeDebouncer = new Debouncer(algaeDebounceTime, DebounceType.kRising);
@@ -173,10 +178,15 @@ public class Dispenser {
   private boolean lastAlgaeButtonPressed = false;
   private boolean lastCoralButtonPressed = false;
 
-  public Dispenser(PivotIO pivotIO, RollerSystemIO tunnelIO, RollerSystemIO gripperIO) {
+  public Dispenser(
+      PivotIO pivotIO,
+      RollerSystemIO tunnelIO,
+      RollerSystemIO gripperIO,
+      CoralSensorIO coralSensorIO) {
     this.pivotIO = pivotIO;
     this.tunnelIO = tunnelIO;
     this.gripperIO = gripperIO;
+    this.coralSensorIO = coralSensorIO;
 
     profile =
         new TrapezoidProfile(
@@ -193,6 +203,8 @@ public class Dispenser {
     Logger.processInputs("Dispenser/Tunnel", tunnelInputs);
     gripperIO.updateInputs(gripperInputs);
     Logger.processInputs("Dispenser/Gripper", gripperInputs);
+    coralSensorIO.updateInputs(coralSensorInputs);
+    Logger.processInputs("Dispenser/CoralSensor", coralSensorInputs);
 
     pivotMotorDisconnectedAlert.set(
         !pivotInputs.data.motorConnected()
@@ -321,9 +333,11 @@ public class Dispenser {
       if (tunnelInputs.data.torqueCurrentAmps() >= 5.0
           && tunnelInputs.data.velocityRadsPerSec() > 0.0) {
         hasCoral =
-            coralDebouncer.calculate(
-                Math.abs(tunnelInputs.data.velocityRadsPerSec())
-                    <= (coralVelocityThresh.get() + coralThresholdOffset));
+            (Constants.getRobot() != RobotType.DEVBOT)
+                ? coralDebouncer.calculate(
+                    coralSensorInputs.data.valid()
+                        && coralSensorInputs.data.distanceMeters() < coralProxThreshold.get())
+                : coralDebouncer.calculate(pivotInputs.data.velocityRadPerSec() < 1.0);
       } else {
         coralDebouncer.calculate(hasCoral);
       }

@@ -24,12 +24,14 @@ public class Climber extends SubsystemBase {
       new LoggedTunableNumber("Climber/DeployCurrent", 30);
   private static final LoggedTunableNumber deployAngle =
       new LoggedTunableNumber("Climber/DeployAngle", 130);
+  private static final LoggedTunableNumber undeployAngle =
+      new LoggedTunableNumber("Climber/UndeployAngle", 140);
   private static final LoggedTunableNumber climbCurrent =
       new LoggedTunableNumber("Climber/ClimbCurrent", 65);
   private static final LoggedTunableNumber climbCurrentRampRate =
       new LoggedTunableNumber("Climber/ClimbCurrentRampRate", 80);
   static final LoggedTunableNumber climbStopAngle =
-      new LoggedTunableNumber("Climber/ClimbStopAngle", 225);
+      new LoggedTunableNumber("Climber/ClimbStopAngle", 220);
 
   private final ClimberIO climberIO;
   private final ClimberIOInputsAutoLogged climberInputs = new ClimberIOInputsAutoLogged();
@@ -68,6 +70,13 @@ public class Climber extends SubsystemBase {
         .finallyDo(() -> climberIO.runTorqueCurrent(0.0));
   }
 
+  public Command undeploy() {
+    return run(() -> climberIO.runTorqueCurrent(-deployCurrent.get()))
+        .until(
+            () -> climberInputs.data.positionRads() <= Units.degreesToRadians(undeployAngle.get()))
+        .finallyDo(() -> climberIO.runTorqueCurrent(0.0));
+  }
+
   public Command climb() {
     Timer timer = new Timer();
     return runOnce(timer::restart)
@@ -92,5 +101,11 @@ public class Climber extends SubsystemBase {
     if (brakeModeEnabled == enabled) return;
     brakeModeEnabled = enabled;
     climberIO.setBrakeMode(enabled);
+  }
+
+  public enum ClimbState {
+    START,
+    DEPLOYED,
+    CLIMBING
   }
 }

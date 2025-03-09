@@ -76,7 +76,7 @@ public class DriveToPose extends Command {
       new ProfiledPIDController(
           0.0, 0.0, 0.0, new TrapezoidProfile.Constraints(0.0, 0.0), Constants.loopPeriodSecs);
 
-  private Translation2d lastSetpointTranslation = new Translation2d();
+  private Translation2d lastSetpointTranslation = Translation2d.kZero;
   private double driveErrorAbs = 0.0;
   private double thetaErrorAbs = 0.0;
   @Getter private boolean running = false;
@@ -200,7 +200,7 @@ public class DriveToPose extends Command {
 
     Translation2d driveVelocity =
         new Pose2d(
-                new Translation2d(),
+                Translation2d.kZero,
                 currentPose.getTranslation().minus(targetPose.getTranslation()).getAngle())
             .transformBy(GeomUtil.toTransform2d(driveVelocityScalar, 0.0))
             .getTranslation();

@@ -42,7 +42,7 @@ public class Leds extends VirtualSubsystem {
   public boolean lowBatteryAlert = false;
   public boolean characterizationMode = false;
   public boolean visionDisconnected = false;
-  public boolean climbing = false;
+  public boolean ready = false;
   public boolean coralGrabbed = false;
   public Optional<ReefLevel> firstPriorityLevel = Optional.empty();
   public Optional<ReefLevel> secondPriorityLevel = Optional.empty();
@@ -231,9 +231,9 @@ public class Leds extends VirtualSubsystem {
         rainbow(fullSection, rainbowCycleLength, rainbowDuration);
       }
 
-      // Climbing alert
-      if (climbing) {
-        strobe(fullSection, Color.kGold, Color.kDarkBlue, strobeDuration);
+      // Ready alert
+      if (ready) {
+        strobe(fullSection, Color.kWhite, Color.kBlue, strobeDuration);
       }
 
       // Coral grab alert

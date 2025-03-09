@@ -15,6 +15,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.*;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import java.util.*;
@@ -31,6 +32,7 @@ import org.littletonrobotics.frc2025.Constants.Mode;
 import org.littletonrobotics.frc2025.Constants.RobotType;
 import org.littletonrobotics.frc2025.FieldConstants;
 import org.littletonrobotics.frc2025.RobotState;
+import org.littletonrobotics.frc2025.commands.AlgaeScoreCommands;
 import org.littletonrobotics.frc2025.subsystems.leds.Leds;
 import org.littletonrobotics.frc2025.subsystems.superstructure.chariot.Chariot.Goal;
 import org.littletonrobotics.frc2025.subsystems.superstructure.dispenser.Dispenser;
@@ -52,6 +54,8 @@ public class Superstructure extends SubsystemBase {
 
   @Getter private SuperstructureState state = SuperstructureState.START;
   private SuperstructureState next = null;
+  private SuperstructureState lastState = SuperstructureState.START;
+  private SuperstructureState sourceState = SuperstructureState.START;
   @Getter private SuperstructureState goal = SuperstructureState.START;
   private boolean hasHomedDispenser = false;
   private final Command homeDispenser;
@@ -79,6 +83,7 @@ public class Superstructure extends SubsystemBase {
 
   @AutoLogOutput @Getter private boolean requestFunnelIntake = false;
   @AutoLogOutput @Getter private boolean requestFunnelOuttake = false;
+  @AutoLogOutput private boolean forceFastConstraints = false;
 
   public Superstructure(Elevator elevator, Dispenser dispenser) {
     this.elevator = elevator;
@@ -226,7 +231,6 @@ public class Superstructure extends SubsystemBase {
             Pair.of(SuperstructureState.L2_CORAL, SuperstructureState.L2_CORAL_EJECT),
             Pair.of(SuperstructureState.L3_CORAL, SuperstructureState.L3_CORAL_EJECT),
             Pair.of(SuperstructureState.L4_CORAL, SuperstructureState.L4_CORAL_EJECT),
-            Pair.of(SuperstructureState.PRE_THROWN, SuperstructureState.THROWN),
             Pair.of(SuperstructureState.PRE_TOSS, SuperstructureState.TOSS));
     for (var pair : pairedStates) {
       addEdge.accept(pair.getFirst(), pair.getSecond(), false, AlgaeEdge.NONE, true);
@@ -270,6 +274,10 @@ public class Superstructure extends SubsystemBase {
         SuperstructureState.STOW, SuperstructureState.ALGAE_STOW, false, AlgaeEdge.ALGAE, false);
     addEdge.accept(
         SuperstructureState.ALGAE_STOW, SuperstructureState.STOW, false, AlgaeEdge.NO_ALGAE, false);
+    addEdge.accept(
+        SuperstructureState.PRE_THROWN, SuperstructureState.THROWN, true, AlgaeEdge.NONE, false);
+    addEdge.accept(
+        SuperstructureState.THROWN, SuperstructureState.PRE_THROWN, false, AlgaeEdge.ALGAE, false);
 
     setDefaultCommand(
         runGoal(
@@ -330,9 +338,16 @@ public class Superstructure extends SubsystemBase {
                 });
       }
 
+      // Update last state
+      if (state != lastState) {
+        sourceState = lastState;
+        lastState = state;
+      }
+
       // Auto home dispenser when stowing
       if (state == SuperstructureState.STOW
           && goal == SuperstructureState.STOW
+          && sourceState != SuperstructureState.INTAKE
           && !dispenser.hasCoral()) {
         if (!hasHomedDispenser) {
           homeDispenser.schedule();
@@ -347,7 +362,7 @@ public class Superstructure extends SubsystemBase {
     elevator.setStowed(state == SuperstructureState.STOW);
 
     // Tell elevator if we have algae
-    elevator.setHasAlgae(dispenser.hasAlgae());
+    elevator.setHasAlgae(dispenser.hasAlgae() && !forceFastConstraints);
 
     // Tell dispenser if intaking
     dispenser.setIntaking(
@@ -534,6 +549,27 @@ public class Superstructure extends SubsystemBase {
    * subsystems are complete with profiles.
    */
   private EdgeCommand getEdgeCommand(SuperstructureState from, SuperstructureState to) {
+    if (from == SuperstructureState.PRE_THROWN && to == SuperstructureState.THROWN) {
+      Timer algaeEjectTimer = new Timer();
+      return EdgeCommand.builder()
+          .command(
+              Commands.runOnce(
+                      () -> {
+                        algaeEjectTimer.restart();
+                        forceFastConstraints = true;
+                        elevator.setGoal(to.getValue().getPose().elevatorHeight());
+                        dispenser.setGoal(to.getValue().getPose().pivotAngle());
+                      })
+                  .andThen(
+                      Commands.waitUntil(
+                          () ->
+                              algaeEjectTimer.hasElapsed(
+                                  AlgaeScoreCommands.throwGripperEjectTime.get())),
+                      runSuperstructureExtras(SuperstructureState.THROWN),
+                      Commands.runOnce(() -> forceFastConstraints = false)))
+          .build();
+    }
+
     BooleanSupplier fromIsLower =
         () ->
             from.getValue().getPose().pivotAngle().get().getDegrees()

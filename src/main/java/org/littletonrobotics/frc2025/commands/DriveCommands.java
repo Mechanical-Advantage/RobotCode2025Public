@@ -56,8 +56,8 @@ public class DriveCommands {
     linearMagnitude = linearMagnitude * linearMagnitude;
 
     // Return new linear velocity
-    return new Pose2d(new Translation2d(), linearDirection)
-        .transformBy(new Transform2d(linearMagnitude, 0.0, new Rotation2d()))
+    return new Pose2d(Translation2d.kZero, linearDirection)
+        .transformBy(new Transform2d(linearMagnitude, 0.0, Rotation2d.kZero))
         .getTranslation();
   }
 
@@ -98,7 +98,7 @@ public class DriveCommands {
                       speeds,
                       DriverStation.getAlliance().isPresent()
                               && DriverStation.getAlliance().get() == Alliance.Red
-                          ? RobotState.getInstance().getRotation().plus(new Rotation2d(Math.PI))
+                          ? RobotState.getInstance().getRotation().plus(Rotation2d.kPi)
                           : RobotState.getInstance().getRotation()));
         },
         drive);
@@ -148,7 +148,7 @@ public class DriveCommands {
                       && DriverStation.getAlliance().get() == Alliance.Red;
               drive.runVelocity(
                   ChassisSpeeds.fromFieldRelativeSpeeds(
-                      speeds, isFlipped ? rotation.plus(new Rotation2d(Math.PI)) : rotation));
+                      speeds, isFlipped ? rotation.plus(Rotation2d.kPi) : rotation));
             },
             drive)
 
@@ -295,7 +295,7 @@ public class DriveCommands {
 
   private static class WheelRadiusCharacterizationState {
     double[] positions = new double[4];
-    Rotation2d lastAngle = new Rotation2d();
+    Rotation2d lastAngle = Rotation2d.kZero;
     double gyroDelta = 0.0;
   }
 }

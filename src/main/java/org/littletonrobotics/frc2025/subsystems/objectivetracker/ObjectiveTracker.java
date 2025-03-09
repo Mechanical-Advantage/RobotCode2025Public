@@ -16,11 +16,8 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StringPublisher;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.MatchType;
-import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Commands;
 import java.util.*;
 import java.util.function.BooleanSupplier;
-import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -273,7 +270,7 @@ public class ObjectiveTracker extends VirtualSubsystem {
                           GeomUtil.toTransform3d(
                               new Pose3d(
                                   new Translation3d(-Units.inchesToMeters(11.875) / 2.5, 0.0, 0.0),
-                                  new Rotation3d())))));
+                                  Rotation3d.kZero)))));
         }
       }
       Logger.recordOutput("ObjectiveTracker/3DView/Coral", coralPoses.toArray(Pose3d[]::new));
@@ -431,25 +428,6 @@ public class ObjectiveTracker extends VirtualSubsystem {
 
     // Record cycle time
     LoggedTracer.record("ObjectiveTracker");
-  }
-
-  public Command requestScored(Supplier<CoralObjective> coralObjective) {
-    return Commands.runOnce(
-        () -> {
-          if (coralObjective.get().reefLevel() == ReefLevel.L1) {
-            reefState =
-                new ReefState(reefState.coral(), reefState.algae(), reefState.troughCount + 1);
-          } else {
-            reefState
-                    .coral()[coralObjective.get().reefLevel().ordinal() - 1][
-                    coralObjective.get().branchId()] =
-                true;
-          }
-        });
-  }
-
-  public Command requestAlgaeIntaked(Supplier<AlgaeObjective> algaeObjective) {
-    return Commands.runOnce(() -> reefState.algae()[algaeObjective.get().id()] = false);
   }
 
   private Optional<ReefLevel> getLevel(boolean secondPriority) {

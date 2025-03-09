@@ -33,6 +33,10 @@ public class DriveToStation extends DriveToPose {
   private static final LoggedTunableNumber horizontalMaxOffset =
       new LoggedTunableNumber(
           "DriveToStation/HorizontalMaxOffset",
+          FieldConstants.CoralStation.stationLength / 2 - Units.inchesToMeters(32));
+  private static final LoggedTunableNumber autoOffset =
+      new LoggedTunableNumber(
+          "DriveToStation/AutoOffset",
           FieldConstants.CoralStation.stationLength / 2 - Units.inchesToMeters(24));
 
   public DriveToStation(Drive drive, boolean isAuto) {
@@ -78,11 +82,11 @@ public class DriveToStation extends DriveToPose {
                     stationAlignDistance.get(),
                     isAuto
                         ? (curPose.getY() < FieldConstants.fieldWidth / 2.0
-                            ? -horizontalMaxOffset.get()
-                            : horizontalMaxOffset.get())
+                            ? -autoOffset.get()
+                            : autoOffset.get())
                         : MathUtil.clamp(
                             offset.getY(), -horizontalMaxOffset.get(), horizontalMaxOffset.get()),
-                    new Rotation2d());
+                    Rotation2d.kZero);
 
             Rotation2d rotationOffset = curPose.getRotation().minus(stationCenter.getRotation());
             if (Math.abs(rotationOffset.getDegrees()) > 45 && !isAuto) {

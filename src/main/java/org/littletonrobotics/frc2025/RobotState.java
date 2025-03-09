@@ -85,7 +85,7 @@ public class RobotState {
         new SwerveModulePosition()
       };
   // Assume gyro starts at zero
-  private Rotation2d gyroOffset = new Rotation2d();
+  private Rotation2d gyroOffset = Rotation2d.kZero;
 
   private final Map<Integer, TxTyPoseRecord> txTyPoses = new HashMap<>();
   private Set<AlgaePoseRecord> algaePoses = new HashSet<>();
