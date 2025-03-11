@@ -20,7 +20,7 @@ import java.util.function.Function;
 import java.util.stream.IntStream;
 import lombok.experimental.ExtensionMethod;
 import org.littletonrobotics.frc2025.FieldConstants;
-import org.littletonrobotics.frc2025.commands.AutoScore;
+import org.littletonrobotics.frc2025.commands.AutoScoreCommands;
 import org.littletonrobotics.frc2025.subsystems.drive.DriveConstants;
 import org.littletonrobotics.frc2025.util.GeomUtil;
 
@@ -59,7 +59,8 @@ public class DriveTrajectories {
       IntStream.rangeClosed(1, 4)
           .mapToObj(
               i ->
-                  AutoScore.getCoralScorePose(new CoralObjective(i == 4 ? 0 : i + 8, ReefLevel.L4)))
+                  AutoScoreCommands.getCoralScorePose(
+                      new CoralObjective(i == 4 ? 0 : i + 8, ReefLevel.L4)))
           .toArray(Pose2d[]::new);
 
   // Super up in the water auto

@@ -14,7 +14,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import org.littletonrobotics.frc2025.FieldConstants.CoralObjective;
 import org.littletonrobotics.frc2025.RobotState;
-import org.littletonrobotics.frc2025.commands.AutoScore;
+import org.littletonrobotics.frc2025.commands.AutoScoreCommands;
 import org.littletonrobotics.frc2025.commands.DriveTrajectory;
 import org.littletonrobotics.frc2025.subsystems.drive.Drive;
 import org.littletonrobotics.frc2025.subsystems.drive.trajectory.HolonomicTrajectory;
@@ -48,7 +48,9 @@ public class AutoCommands {
     return new DriveTrajectory(
         drive,
         trajectory,
-        () -> AutoScore.getRobotPose(mirror ? MirrorUtil.apply(coralObjective) : coralObjective),
+        () ->
+            AutoScoreCommands.getRobotPose(
+                mirror ? MirrorUtil.apply(coralObjective) : coralObjective),
         mirror);
   }
 
@@ -58,9 +60,12 @@ public class AutoCommands {
             () ->
                 trajectoryCommand.setOverrideRotation(
                     Optional.of(
-                        AllianceFlipUtil.apply(AutoScore.getBranchPose(coralObjective.get()))
+                        AllianceFlipUtil.apply(
+                                AutoScoreCommands.getBranchPose(coralObjective.get()))
                             .getTranslation()
-                            .minus(AutoScore.getRobotPose(coralObjective.get()).getTranslation())
+                            .minus(
+                                AutoScoreCommands.getRobotPose(coralObjective.get())
+                                    .getTranslation())
                             .getAngle())))
         .finallyDo(() -> trajectoryCommand.setOverrideRotation(Optional.empty()));
   }
@@ -70,7 +75,7 @@ public class AutoCommands {
       CoralObjective coralObjective,
       boolean mirror,
       BooleanSupplier eject) {
-    return AutoScore.getSuperstructureAimAndEjectCommand(
+    return AutoScoreCommands.superstructureAimAndEject(
         superstructure,
         coralObjective::reefLevel,
         () -> Optional.of(mirror ? MirrorUtil.apply(coralObjective) : coralObjective),

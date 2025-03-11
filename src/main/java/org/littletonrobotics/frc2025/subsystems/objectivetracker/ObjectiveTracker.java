@@ -29,7 +29,7 @@ import org.littletonrobotics.frc2025.FieldConstants.AlgaeObjective;
 import org.littletonrobotics.frc2025.FieldConstants.CoralObjective;
 import org.littletonrobotics.frc2025.FieldConstants.ReefLevel;
 import org.littletonrobotics.frc2025.RobotState;
-import org.littletonrobotics.frc2025.commands.AutoScore;
+import org.littletonrobotics.frc2025.commands.AutoScoreCommands;
 import org.littletonrobotics.frc2025.subsystems.leds.Leds;
 import org.littletonrobotics.frc2025.util.AllianceFlipUtil;
 import org.littletonrobotics.frc2025.util.GeomUtil;
@@ -353,7 +353,7 @@ public class ObjectiveTracker extends VirtualSubsystem {
             objective ->
                 Math.abs(
                         predictedRobot
-                            .relativeTo(AutoScore.getBranchPose(objective))
+                            .relativeTo(AutoScoreCommands.getBranchPose(objective))
                             .getTranslation()
                             .getAngle()
                             .getDegrees())
@@ -411,13 +411,15 @@ public class ObjectiveTracker extends VirtualSubsystem {
         presentAlgae.stream()
             .filter(
                 objective ->
-                    predictedRobot.relativeTo(AutoScore.getReefIntakePose(objective)).getX() <= 0.1)
+                    predictedRobot.relativeTo(AutoScoreCommands.getReefIntakePose(objective)).getX()
+                        <= 0.1)
             .min(
                 Comparator.comparingDouble(
                     objective ->
                         predictedRobot
                             .getTranslation()
-                            .getDistance(AutoScore.getReefIntakePose(objective).getTranslation())));
+                            .getDistance(
+                                AutoScoreCommands.getReefIntakePose(objective).getTranslation())));
     algaeObjective.ifPresentOrElse(
         objective ->
             Logger.recordOutput(
@@ -556,7 +558,7 @@ public class ObjectiveTracker extends VirtualSubsystem {
         (CoralObjective coralObjective) ->
             robot
                 .getTranslation()
-                .getDistance(AutoScore.getCoralScorePose(coralObjective).getTranslation()));
+                .getDistance(AutoScoreCommands.getCoralScorePose(coralObjective).getTranslation()));
   }
 
   private record ReefState(boolean[][] coral, boolean[] algae, int troughCount) {

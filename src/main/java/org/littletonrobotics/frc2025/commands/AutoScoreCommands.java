@@ -41,7 +41,7 @@ import org.littletonrobotics.frc2025.util.GeomUtil;
 import org.littletonrobotics.frc2025.util.LoggedTunableNumber;
 import org.littletonrobotics.junction.Logger;
 
-public class AutoScore {
+public class AutoScoreCommands {
   // Radius of regular hexagon is side length
   private static final double reefRadius = Reef.faceLength;
   private static final LoggedTunableNumber maxDistanceReefLineup =
@@ -93,9 +93,9 @@ public class AutoScore {
   private static final LoggedTunableNumber ejectTimeSeconds =
       new LoggedTunableNumber("AutoScore/EjectTimeSeconds", 0.5);
 
-  private AutoScore() {}
+  private AutoScoreCommands() {}
 
-  public static Command getAutoScoreCommand(
+  public static Command autoScore(
       Drive drive,
       Superstructure superstructure,
       RollerSystem funnel,
@@ -111,7 +111,7 @@ public class AutoScore {
         () ->
             coralObjective
                 .get()
-                .map(AutoScore::getRobotPose)
+                .map(AutoScoreCommands::getRobotPose)
                 .orElseGet(() -> RobotState.getInstance().getEstimatedPose());
 
     Function<CoralObjective, Pose2d> goal =
@@ -165,7 +165,7 @@ public class AutoScore {
         .and(RobotModeTriggers.teleop())
         .and(disableReefAutoAlign.negate())
         .onTrue(
-            getSuperstructureGetBackCommand(superstructure, superstructure::getState)
+            superstructureGetBack(superstructure, superstructure::getState, disableReefAutoAlign)
                 .andThen(() -> needsToGetBack.value = false)
                 .withInterruptBehavior(InterruptionBehavior.kCancelIncoming));
 
@@ -203,7 +203,7 @@ public class AutoScore {
                   }
                   return ready;
                 }),
-            getSuperstructureAimAndEjectCommand(
+            superstructureAimAndEject(
                 superstructure,
                 reefLevel,
                 coralObjective,
@@ -260,13 +260,13 @@ public class AutoScore {
             });
   }
 
-  public static Command getAutoScoreCommand(
+  public static Command autoScore(
       Drive drive,
       Superstructure superstructure,
       RollerSystem funnel,
       Supplier<ReefLevel> reefLevel,
       Supplier<Optional<CoralObjective>> coralObjective) {
-    return getAutoScoreCommand(
+    return autoScore(
         drive,
         superstructure,
         funnel,
@@ -280,7 +280,7 @@ public class AutoScore {
         () -> false);
   }
 
-  public static Command getReefIntakeCommand(
+  public static Command reefIntake(
       Drive drive,
       Superstructure superstructure,
       Supplier<Optional<AlgaeObjective>> algaeObjective,
@@ -293,7 +293,7 @@ public class AutoScore {
         () ->
             algaeObjective
                 .get()
-                .map(AutoScore::getRobotPose)
+                .map(AutoScoreCommands::getRobotPose)
                 .orElseGet(() -> RobotState.getInstance().getEstimatedPose());
 
     Supplier<SuperstructureState> algaeIntakeState =
@@ -344,7 +344,7 @@ public class AutoScore {
         .and(RobotModeTriggers.teleop())
         .and(disableReefAutoAlign.negate())
         .onTrue(
-            getSuperstructureGetBackCommand(superstructure, algaeIntakeState)
+            superstructureGetBack(superstructure, algaeIntakeState, disableReefAutoAlign)
                 .andThen(() -> needsToGetBack.value = false)
                 .withInterruptBehavior(InterruptionBehavior.kCancelIncoming));
 
@@ -385,7 +385,7 @@ public class AutoScore {
         .finallyDo(() -> hasEnded.value = true);
   }
 
-  public static Command getSuperstructureAimAndEjectCommand(
+  public static Command superstructureAimAndEject(
       Superstructure superstructure,
       Supplier<ReefLevel> reefLevel,
       Supplier<Optional<CoralObjective>> coralObjective,
@@ -449,17 +449,18 @@ public class AutoScore {
                 }));
   }
 
-  public static Command getSuperstructureAimAndEjectCommand(
+  public static Command superstructureAimAndEject(
       Superstructure superstructure,
       Supplier<ReefLevel> reefLevel,
       Supplier<Optional<CoralObjective>> coralObjective,
       BooleanSupplier eject) {
-    return getSuperstructureAimAndEjectCommand(
-        superstructure, reefLevel, coralObjective, eject, () -> false);
+    return superstructureAimAndEject(superstructure, reefLevel, coralObjective, eject, () -> false);
   }
 
-  private static Command getSuperstructureGetBackCommand(
-      Superstructure superstructure, Supplier<SuperstructureState> holdState) {
+  private static Command superstructureGetBack(
+      Superstructure superstructure,
+      Supplier<SuperstructureState> holdState,
+      BooleanSupplier disableReefAutoAlign) {
     return superstructure
         .runGoal(holdState)
         .until(

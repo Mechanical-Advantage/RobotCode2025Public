@@ -38,6 +38,11 @@ public class FieldConstants {
             AprilTagLayoutType.OFFICIAL.getLayout().getTagPose(16).get().getX(),
             0,
             Rotation2d.fromDegrees(90));
+    public static final Pose2d opposingCenterFace =
+        new Pose2d(
+            AprilTagLayoutType.OFFICIAL.getLayout().getTagPose(3).get().getX(),
+            fieldWidth,
+            Rotation2d.fromDegrees(-90));
   }
 
   public static class Barge {

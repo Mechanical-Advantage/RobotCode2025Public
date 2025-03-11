@@ -27,6 +27,7 @@ public enum SuperstructureState {
           .pose(Preset.INTAKE.getPose())
           .tunnelVolts(Dispenser.tunnelIntakeVolts)
           .build()),
+  GOODBYE_CORAL(SuperstructureStateData.builder().pose(Preset.GOODBYE_CORAL.getPose()).build()),
   L1_CORAL(SuperstructureStateData.builder().pose(Preset.L1.getPose()).build()),
   L2_CORAL(
       SuperstructureStateData.builder()
@@ -43,6 +44,8 @@ public enum SuperstructureState {
           .pose(Preset.L4.getPose())
           .height(Height.SECOND_STAGE)
           .build()),
+  GOODBYE_CORAL_EJECT(
+      GOODBYE_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts).build()),
   L1_CORAL_EJECT(
       L1_CORAL.getValue().toBuilder()
           .tunnelVolts(Dispenser.tunnelL1DispenseVolts)

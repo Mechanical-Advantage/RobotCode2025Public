@@ -161,7 +161,7 @@ public class AutoBuilder {
                     coralScoreIndex != 4
                         ? Commands.waitUntil(
                                 () ->
-                                    AutoScore.outOfDistanceToReef(
+                                    AutoScoreCommands.outOfDistanceToReef(
                                         RobotState.getInstance().getEstimatedPose(), 0.10))
                             .andThen(
                                 IntakeCommands.intake(superstructure, funnel)
@@ -210,7 +210,7 @@ public class AutoBuilder {
         .andThen(
             new DriveToPose(
                     drive,
-                    () -> AutoScore.getCoralScorePose(MirrorUtil.apply(coralObjectives[0])),
+                    () -> AutoScoreCommands.getCoralScorePose(MirrorUtil.apply(coralObjectives[0])),
                     () -> RobotState.getInstance().getEstimatedPose(),
                     () -> AllianceFlipUtil.apply(new Translation2d(-3.0, 0.0)),
                     () -> 0.0)
@@ -221,7 +221,7 @@ public class AutoBuilder {
                         index -> {
                           var driveToStation = new DriveToStation(drive, true);
                           Debouncer intakingDebouncer = new Debouncer(intakeTimeSeconds);
-                          return AutoScore.getAutoScoreCommand(
+                          return AutoScoreCommands.autoScore(
                                   drive,
                                   superstructure,
                                   funnel,
@@ -239,7 +239,7 @@ public class AutoBuilder {
                                   new DriveToStation(
                                           drive,
                                           () ->
-                                              AutoScore.getCoralScorePose(
+                                              AutoScoreCommands.getCoralScorePose(
                                                       MirrorUtil.apply(coralObjectives[index]))
                                                   .getTranslation()
                                                   .minus(FieldConstants.Reef.center)
@@ -280,7 +280,7 @@ public class AutoBuilder {
               superstructure.setAutoStart();
             })
         .andThen(
-            AutoScore.getAutoScoreCommand(
+            AutoScoreCommands.autoScore(
                 drive,
                 superstructure,
                 funnel,
@@ -289,7 +289,7 @@ public class AutoBuilder {
             new DriveToPose(
                     drive,
                     () ->
-                        AutoScore.getCoralScorePose(objective)
+                        AutoScoreCommands.getCoralScorePose(objective)
                             .plus(new Transform2d(-0.5, 0.0, Rotation2d.kZero)))
                 .withTimeout(3.0)
                 .deadlineFor(

@@ -313,7 +313,7 @@ public class RobotContainer {
               .and(blocked.negate())
               .onTrue(Commands.runOnce(() -> lockedReefLevel.value = levelSupplier.get().get()))
               .whileTrue(
-                  AutoScore.getAutoScoreCommand(
+                  AutoScoreCommands.autoScore(
                           drive,
                           superstructure,
                           funnel,
@@ -405,11 +405,17 @@ public class RobotContainer {
                 .withName("Coral Station Intake"));
 
     // Algae reef intake & score
+    Trigger onOpposingSide =
+        new Trigger(
+            () ->
+                AllianceFlipUtil.applyX(RobotState.getInstance().getEstimatedPose().getX())
+                    > FieldConstants.fieldLength / 2);
     Trigger shouldProcess =
         new Trigger(
             () ->
                 AllianceFlipUtil.applyY(RobotState.getInstance().getEstimatedPose().getY())
-                    < FieldConstants.fieldWidth / 2);
+                        < FieldConstants.fieldWidth / 2
+                    || onOpposingSide.getAsBoolean());
     Container<Boolean> hasAlgae = new Container<>(false);
     driver.leftBumper().onTrue(Commands.runOnce(() -> hasAlgae.value = superstructure.hasAlgae()));
 
@@ -418,7 +424,7 @@ public class RobotContainer {
         .leftBumper()
         .and(() -> !hasAlgae.value)
         .whileTrue(
-            AutoScore.getReefIntakeCommand(
+            AutoScoreCommands.reefIntake(
                     drive,
                     superstructure,
                     objectiveTracker::getAlgaeObjective,
@@ -448,6 +454,7 @@ public class RobotContainer {
                     driverY,
                     driverOmega,
                     joystickDriveCommandFactory.get(),
+                    onOpposingSide,
                     false,
                     disableAlgaeScoreAutoAlign)
                 .withName("Algae Pre-Processor"));
@@ -466,6 +473,7 @@ public class RobotContainer {
                     driverY,
                     driverOmega,
                     joystickDriveCommandFactory.get(),
+                    onOpposingSide,
                     true,
                     disableAlgaeScoreAutoAlign)
                 .withName("Algae Processing"));
@@ -523,7 +531,10 @@ public class RobotContainer {
         .b()
         .and(driver.rightBumper().negate())
         .and(driver.rightTrigger().negate())
-        .whileTrue(superstructure.runGoal(SuperstructureState.L1_CORAL_EJECT));
+        .whileTrue(
+            superstructure
+                .runGoal(SuperstructureState.GOODBYE_CORAL_EJECT)
+                .alongWith(funnel.runRoller(IntakeCommands.outtakeVolts)));
 
     // Force net
     driver.povLeft().whileTrue(superstructure.runGoal(SuperstructureState.THROWN));

@@ -164,7 +164,10 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
             intakeHeightBaseline.get()
                 + intakeHeightRange.get()
                     * Math.sin(Timer.getTimestamp() * intakeHeightTimeFactor.get()),
-        new LoggedTunableNumber("Superstructure/Intake/Pivot", -18.0)),
+        new LoggedTunableNumber("Superstructure/Intake/IntakePivot", -18.0)),
+    GOODBYE_CORAL(
+        () -> intakeHeightBaseline.get(),
+        new LoggedTunableNumber("Superstructure/Intake/EjectPivot", 18.0)),
     L1(ReefLevel.L1),
     L2(ReefLevel.L2),
     L3(ReefLevel.L3),

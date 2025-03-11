@@ -140,6 +140,7 @@ public class Superstructure extends SubsystemBase {
     final Set<SuperstructureState> freeNoAlgaeStates =
         Set.of(
             SuperstructureState.STOW,
+            SuperstructureState.GOODBYE_CORAL,
             SuperstructureState.L1_CORAL,
             SuperstructureState.L2_CORAL,
             SuperstructureState.L3_CORAL,
@@ -227,6 +228,7 @@ public class Superstructure extends SubsystemBase {
     final Set<Pair<SuperstructureState, SuperstructureState>> pairedStates =
         Set.of(
             Pair.of(SuperstructureState.STOW, SuperstructureState.INTAKE),
+            Pair.of(SuperstructureState.GOODBYE_CORAL, SuperstructureState.GOODBYE_CORAL_EJECT),
             Pair.of(SuperstructureState.L1_CORAL, SuperstructureState.L1_CORAL_EJECT),
             Pair.of(SuperstructureState.L2_CORAL, SuperstructureState.L2_CORAL_EJECT),
             Pair.of(SuperstructureState.L3_CORAL, SuperstructureState.L3_CORAL_EJECT),

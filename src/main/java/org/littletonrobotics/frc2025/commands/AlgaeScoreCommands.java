@@ -9,8 +9,6 @@ package org.littletonrobotics.frc2025.commands;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Transform2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
@@ -30,8 +28,12 @@ import org.littletonrobotics.frc2025.util.GeomUtil;
 import org.littletonrobotics.frc2025.util.LoggedTunableNumber;
 
 public class AlgaeScoreCommands {
-  private static final LoggedTunableNumber processLineupDistance =
-      new LoggedTunableNumber("AlgaeScoreCommands/ProcessLineupDistance", 0.06);
+  private static final LoggedTunableNumber processLineupXOffset =
+      new LoggedTunableNumber("AlgaeScoreCommands/ProcessLineupXOffset", 0.12);
+  private static final LoggedTunableNumber processLineupYOffset =
+      new LoggedTunableNumber("AlgaeScoreCommands/ProcessLineupYOffset", 0.1);
+  private static final LoggedTunableNumber processEjectDegOffset =
+      new LoggedTunableNumber("AlgaeScoreCommands/ProcessEjectDegreeOffset", 15.0);
   private static final LoggedTunableNumber throwLineupDistance =
       new LoggedTunableNumber("AlgaeScoreCommands/ThrowLineupDistance", 0.6);
   private static final LoggedTunableNumber throwDriveDistance =
@@ -52,6 +54,7 @@ public class AlgaeScoreCommands {
       DoubleSupplier driverY,
       DoubleSupplier driverOmega,
       Command joystickDrive,
+      BooleanSupplier onOpposingSide,
       boolean eject,
       BooleanSupplier disableAlgaeScoreAutoAlign) {
     return Commands.either(
@@ -59,16 +62,22 @@ public class AlgaeScoreCommands {
             new DriveToPose(
                     drive,
                     () ->
-                        AutoScore.getDriveTarget(
+                        AutoScoreCommands.getDriveTarget(
                             RobotState.getInstance().getEstimatedPose(),
                             AllianceFlipUtil.apply(
-                                FieldConstants.Processor.centerFace.transformBy(
-                                    new Transform2d(
-                                        new Translation2d(
-                                            DriveConstants.robotWidth / 2.0
-                                                + processLineupDistance.get(),
-                                            0),
-                                        Rotation2d.kPi)))),
+                                    onOpposingSide.getAsBoolean()
+                                        ? FieldConstants.Processor.opposingCenterFace
+                                        : FieldConstants.Processor.centerFace)
+                                .transformBy(
+                                    GeomUtil.toTransform2d(
+                                        DriveConstants.robotWidth / 2.0
+                                            + processLineupXOffset.get(),
+                                        processLineupYOffset.get()))
+                                .transformBy(
+                                    GeomUtil.toTransform2d(
+                                        Rotation2d.kPi.plus(
+                                            Rotation2d.fromDegrees(
+                                                eject ? processEjectDegOffset.get() : 0.0))))),
                     RobotState.getInstance()::getEstimatedPose,
                     () ->
                         DriveCommands.getLinearVelocityFromJoysticks(
