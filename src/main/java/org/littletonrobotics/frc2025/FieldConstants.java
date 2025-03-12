@@ -239,7 +239,11 @@ public class FieldConstants {
 
   public record CoralObjective(int branchId, ReefLevel reefLevel) {}
 
-  public record AlgaeObjective(int id) {}
+  public record AlgaeObjective(int id, boolean low) {
+    public AlgaeObjective(int id) {
+      this(id, id % 2 == 1);
+    }
+  }
 
   @RequiredArgsConstructor
   public enum FieldType {

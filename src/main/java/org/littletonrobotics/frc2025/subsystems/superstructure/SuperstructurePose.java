@@ -14,13 +14,13 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Timer;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.littletonrobotics.frc2025.Constants;
-import org.littletonrobotics.frc2025.FieldConstants;
 import org.littletonrobotics.frc2025.FieldConstants.ReefLevel;
 import org.littletonrobotics.frc2025.RobotState;
 import org.littletonrobotics.frc2025.subsystems.superstructure.dispenser.Dispenser;
@@ -28,11 +28,6 @@ import org.littletonrobotics.frc2025.util.GeomUtil;
 import org.littletonrobotics.frc2025.util.LoggedTunableNumber;
 
 public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotation2d> pivotAngle) {
-  private static final double reefAlgaeIntakeAngleL2 = -10.0;
-  private static final double reefAlgaeIntakeAngleL3 = 0.0;
-  private static final double reefAlgaeIntakeDispenserAngleL2 = -20.0;
-  private static final double reefAlgaeIntakeDispenserAngleL3 = -20.0;
-
   private static final LoggedTunableNumber intakeHeightBaseline =
       new LoggedTunableNumber("Superstructure/Intake/ElevatorBaseline", 0.04);
   private static final LoggedTunableNumber intakeHeightRange =
@@ -40,28 +35,37 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
   private static final LoggedTunableNumber intakeHeightTimeFactor =
       new LoggedTunableNumber("Superstructure/Intake/ElevatorTimeFactor", 25.0);
 
-  private static final Map<ReefLevel, Double> ejectMeters =
-      Map.of(
-          ReefLevel.L1,
-          Units.inchesToMeters(2.0),
-          ReefLevel.L2,
-          Units.inchesToMeters(8.0),
-          ReefLevel.L3,
-          Units.inchesToMeters(5.5),
-          ReefLevel.L4,
-          Units.inchesToMeters(6.0));
-  private static final Map<ReefLevel, Double> heightFudges =
-      Map.of(
-          ReefLevel.L1,
-          Units.inchesToMeters(1.0),
-          ReefLevel.L2,
-          Units.inchesToMeters(0.0),
-          ReefLevel.L3,
-          Units.inchesToMeters(2.5),
-          ReefLevel.L4,
-          Units.inchesToMeters(1.0));
-  private static final Map<ReefLevel, Double> optimalCoralAngles =
-      Map.of(ReefLevel.L1, 0.0, ReefLevel.L2, -20.0, ReefLevel.L3, -35.0, ReefLevel.L4, -48.0);
+  private static final Map<ReefLevel, LoggedTunableNumber> ejectDistance = new HashMap<>();
+  private static final Map<ReefLevel, LoggedTunableNumber> ejectAngles = new HashMap<>();
+  private static final Map<ReefLevel, LoggedTunableNumber> heightFudges = new HashMap<>();
+
+  private static void addInitialValue(
+      Map<ReefLevel, LoggedTunableNumber> map,
+      ReefLevel reefLevel,
+      double initialValue,
+      String key) {
+    map.put(
+        reefLevel,
+        new LoggedTunableNumber("Superstructure/ReefScore/" + key + "/" + reefLevel, initialValue));
+  }
+
+  static {
+    // Coral eject distance
+    addInitialValue(ejectDistance, ReefLevel.L1, Units.inchesToMeters(2.0), "EjectDistance");
+    addInitialValue(ejectDistance, ReefLevel.L2, Units.inchesToMeters(8.0), "EjectDistance");
+    addInitialValue(ejectDistance, ReefLevel.L3, Units.inchesToMeters(5.5), "EjectDistance");
+    addInitialValue(ejectDistance, ReefLevel.L4, Units.inchesToMeters(6.0), "EjectDistance");
+    // Coral eject angles
+    addInitialValue(ejectAngles, ReefLevel.L1, 20.0, "EjectAngles");
+    addInitialValue(ejectAngles, ReefLevel.L2, -20.0, "EjectAngles");
+    addInitialValue(ejectAngles, ReefLevel.L3, -35.0, "EjectAngles");
+    addInitialValue(ejectAngles, ReefLevel.L4, -48.0, "EjectAngles");
+    // Height fudges
+    addInitialValue(heightFudges, ReefLevel.L1, 0.08, "HeightFudges");
+    addInitialValue(heightFudges, ReefLevel.L2, Units.inchesToMeters(0.0), "HeightFudges");
+    addInitialValue(heightFudges, ReefLevel.L3, Units.inchesToMeters(2.5), "HeightFudges");
+    addInitialValue(heightFudges, ReefLevel.L4, Units.inchesToMeters(1.0), "HeightFudges");
+  }
 
   @Getter
   @RequiredArgsConstructor
@@ -70,27 +74,25 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
    * is just the rotation of dispenser when scoring.
    */
   public enum DispenserPose {
-    L1(getCoralScorePose(ReefLevel.L1)),
-    L2(getCoralScorePose(ReefLevel.L2)),
-    L3(getCoralScorePose(ReefLevel.L3)),
-    L4(getCoralScorePose(ReefLevel.L4)),
-    L2_ALGAE_INTAKE(getAlgaeIntakePose(true)),
-    L3_ALGAE_INTAKE(getAlgaeIntakePose(false));
+    L1(() -> getCoralScorePose(ReefLevel.L1)),
+    L2(() -> getCoralScorePose(ReefLevel.L2)),
+    L3(() -> getCoralScorePose(ReefLevel.L3)),
+    L4(() -> getCoralScorePose(ReefLevel.L4));
 
-    private final Pose2d pose;
+    private final Supplier<Pose2d> pose;
 
     public double getElevatorHeight() {
-      return (pose.getY() - dispenserOrigin2d.getY()) / elevatorAngle.getSin();
+      return (pose.get().getY() - dispenserOrigin2d.getY()) / elevatorAngle.getSin();
     }
 
     public double getDispenserAngleDeg() {
-      return pose.getRotation().getDegrees();
+      return pose.get().getRotation().getDegrees();
     }
 
     public Transform2d toRobotPose() {
       return new Transform2d(
           getElevatorHeight() * SuperstructureConstants.elevatorAngle.getCos()
-              + pose.getX()
+              + pose.get().getX()
               + SuperstructureConstants.dispenserOrigin2d.getX(),
           0.0,
           Rotation2d.kPi);
@@ -105,52 +107,21 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
       };
     }
 
-    public static DispenserPose forAlgaeIntake(FieldConstants.AlgaeObjective objective) {
-      return (objective.id() % 2 == 0)
-          ? DispenserPose.L3_ALGAE_INTAKE
-          : DispenserPose.L2_ALGAE_INTAKE;
-    }
-
     private static Pose2d getCoralScorePose(ReefLevel reefLevel) {
-      double dispenserAngleDeg = optimalCoralAngles.get(reefLevel);
+      double dispenserAngleDeg = ejectAngles.get(reefLevel).get();
       if (Constants.getRobot() == Constants.RobotType.DEVBOT) {
         dispenserAngleDeg = -30.0;
       }
       return new Pose2d(
           new Pose2d(
                   0.0,
-                  reefLevel.height + heightFudges.get(reefLevel),
+                  reefLevel.height + heightFudges.get(reefLevel).get(),
                   Rotation2d.fromDegrees(-dispenserAngleDeg))
               .transformBy(
-                  GeomUtil.toTransform2d(ejectMeters.get(reefLevel) + pivotToTunnelFront, 0.0))
+                  GeomUtil.toTransform2d(
+                      ejectDistance.get(reefLevel).get() + pivotToTunnelFront, 0.0))
               .getTranslation(),
           Rotation2d.fromDegrees(dispenserAngleDeg));
-    }
-
-    private static Pose2d getAlgaeIntakePose(boolean L2Algae) {
-      return new Pose2d(
-          new Pose2d(
-                  new Pose2d(
-                          0.0,
-                          ReefLevel.L3.height
-                              + (L2Algae ? -1.0 : 1.0)
-                                  * (ReefLevel.L3.height - ReefLevel.L2.height)
-                                  / 2.0,
-                          Rotation2d.fromDegrees(
-                              -180.0 - ReefLevel.L3.pitch)) // Flip pitch into frame
-                      .transformBy(GeomUtil.toTransform2d(FieldConstants.algaeDiameter / 2.0, 0.0))
-                      .getTranslation(),
-                  Rotation2d.fromDegrees(
-                      -(L2Algae ? reefAlgaeIntakeAngleL2 : reefAlgaeIntakeAngleL3)))
-              .transformBy(
-                  GeomUtil.toTransform2d(
-                      FieldConstants.algaeDiameter / 2.0
-                          + pivotToTunnelFront
-                          + Units.inchesToMeters(3.0),
-                      0.0))
-              .getTranslation(),
-          Rotation2d.fromDegrees(
-              L2Algae ? reefAlgaeIntakeDispenserAngleL2 : reefAlgaeIntakeDispenserAngleL3));
     }
   }
 
@@ -166,15 +137,14 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
                     * Math.sin(Timer.getTimestamp() * intakeHeightTimeFactor.get()),
         new LoggedTunableNumber("Superstructure/Intake/IntakePivot", -18.0)),
     GOODBYE_CORAL(
-        () -> intakeHeightBaseline.get(),
-        new LoggedTunableNumber("Superstructure/Intake/EjectPivot", 18.0)),
-    L1(ReefLevel.L1),
-    L2(ReefLevel.L2),
-    L3(ReefLevel.L3),
-    L4(ReefLevel.L4),
-    ALGAE_FLOOR_INTAKE("AlgaeFloorIntake", 0.4, -20.0),
-    ALGAE_L2_INTAKE("AlgaeL2Intake", DispenserPose.L2_ALGAE_INTAKE),
-    ALGAE_L3_INTAKE("AlgaeL3Intake", DispenserPose.L3_ALGAE_INTAKE),
+        intakeHeightBaseline, new LoggedTunableNumber("Superstructure/Intake/EjectPivot", 18.0)),
+    L1(ReefLevel.L1, false),
+    L1_EJECT(ReefLevel.L1, true),
+    L2(ReefLevel.L2, false),
+    L3(ReefLevel.L3, false),
+    L4(ReefLevel.L4, false),
+    ALGAE_L2_INTAKE("AlgaeIntakeL2", 1.5, 0.0),
+    ALGAE_L3_INTAKE("AlgaeIntakeL3", 1.5, 0.0),
     PRE_THROW("PreThrow", 1.0, Dispenser.maxAngle.getDegrees()),
     THROW("Throw", elevatorMaxTravel, Dispenser.maxAngle.getDegrees()),
     ALGAE_STOW("AlgaeStow", 0.15, 0.0);
@@ -187,32 +157,30 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
               elevatorHeight, () -> Rotation2d.fromDegrees(pivotAngle.getAsDouble())));
     }
 
-    Preset(String name, DispenserPose dispenserPose) {
-      this(name, dispenserPose.getElevatorHeight(), dispenserPose.getDispenserAngleDeg());
-    }
-
     Preset(String name, double elevatorHeight, double pivotAngle) {
       this(
           new LoggedTunableNumber("Superstructure/" + name + "/Elevator", elevatorHeight),
           new LoggedTunableNumber("Superstructure/" + name + "/Pivot", pivotAngle));
     }
 
-    Preset(ReefLevel ReefLevel) {
-      var dispenserPose = DispenserPose.forCoralScore(ReefLevel);
-      var elevatorHeight =
-          new LoggedTunableNumber(
-              "Superstructure/" + ReefLevel + "/Elevator", dispenserPose.getElevatorHeight());
+    Preset(ReefLevel reefLevel, boolean isL1Eject) {
+      var dispenserPose = DispenserPose.forCoralScore(reefLevel);
+      DoubleSupplier l1LaunchAdjustment =
+          isL1Eject
+              ? new LoggedTunableNumber("Superstructure/ReefScore/L1LaunchAdjustment", 0.0)
+              : () -> 0.0;
       pose =
           new SuperstructurePose(
-              elevatorHeight,
+              () -> dispenserPose.getElevatorHeight() + l1LaunchAdjustment.getAsDouble(),
               () ->
-                  RobotState.getInstance().getDistanceToBranch().isEmpty()
+                  (RobotState.getInstance().getDistanceToBranch().isEmpty()
+                          || reefLevel == ReefLevel.L1)
                       ? Rotation2d.fromDegrees(dispenserPose.getDispenserAngleDeg())
                       : Rotation2d.fromDegrees(
                           new Rotation2d(
                                   RobotState.getInstance().getDistanceToBranch().getAsDouble(),
-                                  ReefLevel.height
-                                      - (elevatorHeight.get() * elevatorAngle.getSin()
+                                  reefLevel.height
+                                      - (dispenserPose.getElevatorHeight() * elevatorAngle.getSin()
                                           + dispenserOrigin2d.getY()))
                               .getDegrees()));
     }

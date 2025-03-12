@@ -18,6 +18,7 @@ import edu.wpi.first.wpilibj2.command.Command.InterruptionBehavior;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.function.*;
@@ -80,14 +81,16 @@ public class AutoScoreCommands {
   };
   private static final LoggedTunableNumber thetaToleranceEject =
       new LoggedTunableNumber("AutoScore/ThetaToleranceEject", 2.0);
+  private static final LoggedTunableNumber l2ReefIntakeDistance =
+      new LoggedTunableNumber("AutoScore/L2ReefIntakeDistance", 0.05);
+  private static final LoggedTunableNumber l3ReefIntakeDistance =
+      new LoggedTunableNumber("AutoScore/L3ReefIntakeDistance", 0.08);
   private static final LoggedTunableNumber l1AlignOffsetX =
       new LoggedTunableNumber("AutoScore/L1AlignOffsetX", 0.45);
   private static final LoggedTunableNumber l1AlignOffsetY =
       new LoggedTunableNumber(
           "AutoScore/L1AlignOffsetY",
           FieldConstants.Reef.faceLength / 2.0 - Units.inchesToMeters(2.5));
-  private static final LoggedTunableNumber l1AlignOffsetDegrees =
-      new LoggedTunableNumber("AutoScore/L1AlignOffsetDegrees", 180.0);
   private static final LoggedTunableNumber minDistanceAim =
       new LoggedTunableNumber("AutoScore/MinDistanceAim", 0.2);
   private static final LoggedTunableNumber ejectTimeSeconds =
@@ -150,6 +153,13 @@ public class AutoScoreCommands {
                                             - minDistanceReefClear.get(),
                                         0.0));
                           }
+                          goalPose =
+                              new Pose2d(
+                                  goalPose.getTranslation(),
+                                  getBranchPose(objective)
+                                      .getTranslation()
+                                      .minus(robot.get().getTranslation())
+                                      .getAngle());
                           return getDriveTarget(robot.get(), AllianceFlipUtil.apply(goalPose));
                         })
                     .orElseGet(() -> RobotState.getInstance().getEstimatedPose()),
@@ -502,17 +512,25 @@ public class AutoScoreCommands {
     int branchId = objective.id() * 2;
     return getBranchPose(new CoralObjective(branchId, ReefLevel.L3))
         .interpolate(getBranchPose(new CoralObjective(branchId + 1, ReefLevel.L3)), 0.5)
-        .transformBy(DispenserPose.forAlgaeIntake(objective).toRobotPose());
+        .transformBy(
+            GeomUtil.toTransform2d(
+                (objective.low() ? l2ReefIntakeDistance.get() : l3ReefIntakeDistance.get())
+                    + DriveConstants.robotWidth / 2.0,
+                0.0));
   }
 
   private static Pose2d getL1Pose(CoralObjective coralObjective) {
-    int face = coralObjective.branchId() / 2;
-    return Reef.centerFaces[face].transformBy(
-        new Transform2d(
-            l1AlignOffsetX.get(),
-            l1AlignOffsetY.get() * (coralObjective.branchId() % 2 == 0 ? 1.0 : -1.0),
-            Rotation2d.fromDegrees(
-                l1AlignOffsetDegrees.get() * (coralObjective.branchId() % 2 == 0 ? 1.0 : -1.0))));
+    Pose2d centerFace =
+        Reef.centerFaces[coralObjective.branchId() / 2].transformBy(
+            new Transform2d(l1AlignOffsetX.get(), 0, Rotation2d.kPi));
+    return RobotState.getInstance()
+        .getEstimatedPose()
+        .nearest(
+            List.of(
+                centerFace.transformBy(new Transform2d(0, -l1AlignOffsetY.get(), Rotation2d.kZero)),
+                centerFace,
+                centerFace.transformBy(
+                    new Transform2d(0, l1AlignOffsetY.get(), Rotation2d.kZero))));
   }
 
   public static boolean withinDistanceToReef(Pose2d robot, double distance) {

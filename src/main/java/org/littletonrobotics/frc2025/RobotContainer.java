@@ -555,6 +555,10 @@ public class RobotContainer {
                 .runGoal(SuperstructureState.ALGAE_STOW_INTAKE)
                 .withName("Algae Stow Intake"));
 
+    // Algae reef intake
+    operator.povDown().whileTrue(superstructure.runGoal(SuperstructureState.ALGAE_L2_INTAKE));
+    operator.povUp().whileTrue(superstructure.runGoal(SuperstructureState.ALGAE_L3_INTAKE));
+
     // Coral intake
     operator
         .rightBumper()
@@ -570,26 +574,6 @@ public class RobotContainer {
 
     // Force processor
     operator.povRight().whileTrue(superstructure.runGoal(SuperstructureState.PROCESSED));
-
-    // Adjust coral threshold offset
-    Function<Double, Command> adjustCoralThresholdOffsetCommand =
-        delta -> Commands.runOnce(() -> superstructure.adjustCoralThresholdOffset(delta));
-    operator
-        .povUp()
-        .whileTrue(
-            adjustCoralThresholdOffsetCommand
-                .apply(0.5)
-                .andThen(Commands.waitSeconds(0.2))
-                .repeatedly()
-                .ignoringDisable(true));
-    operator
-        .povDown()
-        .whileTrue(
-            adjustCoralThresholdOffsetCommand
-                .apply(-0.5)
-                .andThen(Commands.waitSeconds(0.2))
-                .repeatedly()
-                .ignoringDisable(true));
 
     // Algae eject
     operator

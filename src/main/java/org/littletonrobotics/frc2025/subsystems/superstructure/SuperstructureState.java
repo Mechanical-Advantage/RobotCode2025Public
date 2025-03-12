@@ -12,7 +12,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.littletonrobotics.frc2025.subsystems.superstructure.SuperstructurePose.Preset;
 import org.littletonrobotics.frc2025.subsystems.superstructure.SuperstructureStateData.Height;
-import org.littletonrobotics.frc2025.subsystems.superstructure.chariot.Chariot;
 import org.littletonrobotics.frc2025.subsystems.superstructure.dispenser.Dispenser;
 
 @Getter
@@ -47,7 +46,8 @@ public enum SuperstructureState {
   GOODBYE_CORAL_EJECT(
       GOODBYE_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts).build()),
   L1_CORAL_EJECT(
-      L1_CORAL.getValue().toBuilder()
+      SuperstructureStateData.builder()
+          .pose(Preset.L1_EJECT.getPose())
           .tunnelVolts(Dispenser.tunnelL1DispenseVolts)
           .gripperGoal(Dispenser.GripperGoal.L1_EJECT)
           .build()),
@@ -62,13 +62,6 @@ public enum SuperstructureState {
       L4_CORAL.getValue().toBuilder()
           .tunnelVolts(Dispenser.tunnelDispenseVolts)
           .gripperGoal(Dispenser.GripperGoal.EJECT)
-          .build()),
-  ALGAE_FLOOR_INTAKE(
-      SuperstructureStateData.builder()
-          .pose(Preset.ALGAE_FLOOR_INTAKE.getPose())
-          .chariotGoal(Chariot.Goal.DEPLOY)
-          .gripperGoal(Dispenser.GripperGoal.GRIP)
-          .intakeVolts(Chariot.floorIntakeVolts)
           .build()),
   ALGAE_L2_INTAKE(
       SuperstructureStateData.builder()

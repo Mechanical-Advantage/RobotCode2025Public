@@ -77,7 +77,7 @@ public class Dispenser {
   public static final LoggedTunableNumber tunnelDispenseVolts =
       new LoggedTunableNumber("Dispenser/TunnelDispenseVolts", 6.0);
   public static final LoggedTunableNumber tunnelL1DispenseVolts =
-      new LoggedTunableNumber("Dispenser/TunnelL1DispenseVolts", 3.5);
+      new LoggedTunableNumber("Dispenser/TunnelL1DispenseVolts", 5.0);
   public static final LoggedTunableNumber tunnelIntakeVolts =
       new LoggedTunableNumber("Dispenser/TunnelIntakeVolts", 3.0);
   public static final LoggedTunableNumber tolerance =
