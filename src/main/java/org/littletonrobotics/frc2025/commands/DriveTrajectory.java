@@ -197,7 +197,7 @@ public class DriveTrajectory extends Command {
                     new Pose2d(
                         setpointState.getPose().getTranslation(),
                         Rotation2d.fromRadians(overrideThetaController.getSetpoint().position)))
-            .orElse(new Pose2d()));
+            .orElse(Pose2d.kZero));
   }
 
   @Override

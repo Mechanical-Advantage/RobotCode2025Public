@@ -88,7 +88,7 @@ public class ObjectiveTracker extends VirtualSubsystem {
       new LoggedDashboardChooser<>("Reef Level");
 
   @AutoLogOutput(key = "ObjectiveTracker/PredictedPose")
-  private Pose2d predictedRobot = new Pose2d();
+  private Pose2d predictedRobot = Pose2d.kZero;
 
   @Setter private BooleanSupplier forceReefBlocked = () -> false;
 

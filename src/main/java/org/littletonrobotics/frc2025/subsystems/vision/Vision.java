@@ -304,7 +304,7 @@ public class Vision extends VirtualSubsystem {
 
       // If no frames from instances, clear robot pose
       if (enableInstanceLogging && aprilTagInputs[instanceIndex].timestamps.length == 0) {
-        Logger.recordOutput("AprilTagVision/Inst" + instanceIndex + "/RobotPose", new Pose2d());
+        Logger.recordOutput("AprilTagVision/Inst" + instanceIndex + "/RobotPose", Pose2d.kZero);
       }
 
       // If no recent frames from instance, clear tag poses

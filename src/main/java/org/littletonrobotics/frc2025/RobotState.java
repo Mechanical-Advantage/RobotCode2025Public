@@ -57,7 +57,7 @@ public class RobotState {
               .getLayout()
               .getTagPose(i)
               .map(Pose3d::toPose2d)
-              .orElse(new Pose2d()));
+              .orElse(Pose2d.kZero));
     }
   }
 
@@ -69,8 +69,8 @@ public class RobotState {
   }
 
   // Pose Estimation Members
-  @Getter @AutoLogOutput private Pose2d odometryPose = new Pose2d();
-  @Getter @AutoLogOutput private Pose2d estimatedPose = new Pose2d();
+  @Getter @AutoLogOutput private Pose2d odometryPose = Pose2d.kZero;
+  @Getter @AutoLogOutput private Pose2d estimatedPose = Pose2d.kZero;
 
   private final TimeInterpolatableBuffer<Pose2d> poseBuffer =
       TimeInterpolatableBuffer.createBuffer(poseBufferSizeSec);
@@ -103,7 +103,7 @@ public class RobotState {
     kinematics = new SwerveDriveKinematics(DriveConstants.moduleTranslations);
 
     for (int i = 1; i <= FieldConstants.aprilTagCount; i++) {
-      txTyPoses.put(i, new TxTyPoseRecord(new Pose2d(), Double.POSITIVE_INFINITY, -1.0));
+      txTyPoses.put(i, new TxTyPoseRecord(Pose2d.kZero, Double.POSITIVE_INFINITY, -1.0));
     }
   }
 
