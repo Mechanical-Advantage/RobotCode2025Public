@@ -105,7 +105,7 @@ public class Leds extends VirtualSubsystem {
                     Color.kWhite,
                     Color.kBlack,
                     breathSlowDuration,
-                    System.currentTimeMillis() / 1000.0);
+                    Timer.getFPGATimestamp());
                 leds.setData(buffer);
               }
             });
@@ -283,28 +283,20 @@ public class Leds extends VirtualSubsystem {
   }
 
   private Color breath(Section section, Color c1, Color c2, double duration, double timestamp) {
+    Color color = breathCalculate(section, c1, c2, duration, timestamp);
+    solid(section, color);
+    return color;
+  }
+
+  private Color breathCalculate(
+      Section section, Color c1, Color c2, double duration, double timestamp) {
     double x = ((timestamp % duration) / duration) * 2.0 * Math.PI;
     double ratio = (Math.sin(x) + 1.0) / 2.0;
     double red = (c1.red * (1 - ratio)) + (c2.red * ratio);
     double green = (c1.green * (1 - ratio)) + (c2.green * ratio);
     double blue = (c1.blue * (1 - ratio)) + (c2.blue * ratio);
     var color = new Color(red, green, blue);
-    solid(section, color);
     return color;
-  }
-
-  private Color breathCalculate(Section section, Color c1, Color c2, double duration) {
-    double x = ((Timer.getTimestamp() % duration) / duration) * 2.0 * Math.PI;
-    double ratio = (Math.sin(x) + 1.0) / 2.0;
-    double red = (c1.red * (1 - ratio)) + (c2.red * ratio);
-    double green = (c1.green * (1 - ratio)) + (c2.green * ratio);
-    double blue = (c1.blue * (1 - ratio)) + (c2.blue * ratio);
-    var color = new Color(red, green, blue);
-    return color;
-  }
-
-  private Color breath(Section section, Color c1, Color c2, double duration) {
-    return breath(section, c1, c2, duration, Timer.getTimestamp());
   }
 
   private void rainbow(Section section, double cycleLength, double duration) {
@@ -365,7 +357,8 @@ public class Leds extends VirtualSubsystem {
           section,
           primaryColor,
           Color.lerpRGB(primaryColor, Color.kBlack, 0.9),
-          breathFastDuration);
+          breathFastDuration,
+          Timer.getTimestamp());
     }
   }
 }

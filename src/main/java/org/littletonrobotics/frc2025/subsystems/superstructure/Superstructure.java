@@ -393,17 +393,23 @@ public class Superstructure extends SubsystemBase {
 
     // Update visualizer
     measuredVisualizer.update(
-        elevator.getPositionMeters(), dispenser.getPivotAngle(), 0.0, dispenser.hasAlgae());
+        elevator.getPositionMeters(),
+        dispenser.getPivotAngle(),
+        0.0,
+        dispenser.hasAlgae(),
+        dispenser.hasCoral());
     setpointVisualizer.update(
         elevator.getSetpoint().position,
         Rotation2d.fromRadians(dispenser.getSetpoint().position),
         0.0,
-        dispenser.hasAlgae());
+        dispenser.hasAlgae(),
+        dispenser.hasCoral());
     goalVisualizer.update(
         elevator.getGoalMeters(),
         Rotation2d.fromRadians(dispenser.getGoal()),
         0.0,
-        dispenser.hasAlgae());
+        dispenser.hasAlgae(),
+        dispenser.hasCoral());
 
     // Record cycle time
     LoggedTracer.record("Superstructure");

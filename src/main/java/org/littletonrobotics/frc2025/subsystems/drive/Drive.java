@@ -9,7 +9,9 @@ package org.littletonrobotics.frc2025.subsystems.drive;
 
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.Vector;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Twist3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
@@ -145,6 +147,31 @@ public class Drive extends SubsystemBase {
                   Optional.ofNullable(
                       gyroInputs.data.connected() ? gyroInputs.odometryYawPositions[i] : null),
                   sampleTimestamps[i]));
+
+      // Log 3D robot pose
+      Logger.recordOutput(
+          "RobotState/EstimatedPose3d",
+          new Pose3d(RobotState.getInstance().getEstimatedPose())
+              .exp(
+                  new Twist3d(
+                      0.0,
+                      0.0,
+                      Math.abs(gyroInputs.data.pitchPosition().getRadians())
+                          * DriveConstants.trackWidthX
+                          / 2.0,
+                      0.0,
+                      gyroInputs.data.pitchPosition().getRadians(),
+                      0.0))
+              .exp(
+                  new Twist3d(
+                      0.0,
+                      0.0,
+                      Math.abs(gyroInputs.data.rollPosition().getRadians())
+                          * DriveConstants.trackWidthY
+                          / 2.0,
+                      gyroInputs.data.rollPosition().getRadians(),
+                      0.0,
+                      0.0)));
     }
 
     RobotState.getInstance().addDriveSpeeds(getChassisSpeeds());

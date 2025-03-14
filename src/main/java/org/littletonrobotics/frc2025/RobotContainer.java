@@ -356,7 +356,8 @@ public class RobotContainer {
                     () -> {
                       climbState.value = ClimbState.DEPLOYED;
                       Leds.getInstance().ready = true;
-                    }));
+                    })
+                .withName("Deploy Climber"));
     driver
         .y()
         .and(() -> climbState.value == ClimbState.DEPLOYED)
@@ -365,7 +366,8 @@ public class RobotContainer {
             climber
                 .climb()
                 .alongWith(Commands.runOnce(() -> climbState.value = ClimbState.CLIMBING))
-                .finallyDo(() -> Leds.getInstance().ready = false));
+                .finallyDo(() -> Leds.getInstance().ready = false)
+                .withName("Climb Climber"));
     driver
         .y()
         .and(() -> climbState.value == ClimbState.CLIMBING)
@@ -377,7 +379,8 @@ public class RobotContainer {
                     () -> {
                       climbState.value = ClimbState.DEPLOYED;
                       Leds.getInstance().ready = true;
-                    }));
+                    })
+                .withName("Undeploy Climber"));
     RobotModeTriggers.disabled()
         .onTrue(
             Commands.runOnce(
@@ -524,7 +527,8 @@ public class RobotContainer {
         .x()
         .whileTrue(
             Commands.startEnd(
-                () -> leds.hpAttentionAlert = true, () -> leds.hpAttentionAlert = false));
+                    () -> leds.hpAttentionAlert = true, () -> leds.hpAttentionAlert = false)
+                .withName("Strobe LEDs at HP"));
 
     // Coral eject
     driver
@@ -534,16 +538,25 @@ public class RobotContainer {
         .whileTrue(
             superstructure
                 .runGoal(SuperstructureState.GOODBYE_CORAL_EJECT)
-                .alongWith(funnel.runRoller(IntakeCommands.outtakeVolts)));
+                .alongWith(funnel.runRoller(IntakeCommands.outtakeVolts))
+                .withName("Coral Eject"));
 
     // Force net
-    driver.povLeft().whileTrue(superstructure.runGoal(SuperstructureState.THROWN));
+    driver
+        .povLeft()
+        .whileTrue(superstructure.runGoal(SuperstructureState.THROWN).withName("Force Net"));
 
     // Force processor
-    driver.povRight().whileTrue(superstructure.runGoal(SuperstructureState.PROCESSED));
+    driver
+        .povRight()
+        .whileTrue(
+            superstructure.runGoal(SuperstructureState.PROCESSED).withName("Force Processor"));
 
     // Raise elevator
-    driver.povUp().toggleOnTrue(superstructure.runGoal(SuperstructureState.L2_CORAL));
+    driver
+        .povUp()
+        .toggleOnTrue(
+            superstructure.runGoal(SuperstructureState.L2_CORAL).withName("Force Raise Elevator"));
 
     // ***** OPERATOR CONTROLLER *****
 
@@ -556,24 +569,45 @@ public class RobotContainer {
                 .withName("Algae Stow Intake"));
 
     // Algae reef intake
-    operator.povDown().whileTrue(superstructure.runGoal(SuperstructureState.ALGAE_L2_INTAKE));
-    operator.povUp().whileTrue(superstructure.runGoal(SuperstructureState.ALGAE_L3_INTAKE));
+    operator
+        .povDown()
+        .whileTrue(
+            superstructure
+                .runGoal(SuperstructureState.ALGAE_L2_INTAKE)
+                .withName("Operator Algae L2 Intake"));
+    operator
+        .povUp()
+        .whileTrue(
+            superstructure
+                .runGoal(SuperstructureState.ALGAE_L3_INTAKE)
+                .withName("Operator Algae L3 Intake"));
 
     // Coral intake
     operator
         .rightBumper()
         .whileTrue(
             IntakeCommands.intake(superstructure, funnel)
-                .alongWith(Commands.runOnce(superstructure::resetHasCoral)));
+                .alongWith(Commands.runOnce(superstructure::resetHasCoral))
+                .withName("Operator Coral Intake"));
 
     // Home elevator
-    operator.leftBumper().onTrue(superstructure.runHomingSequence());
+    operator
+        .leftBumper()
+        .onTrue(superstructure.runHomingSequence().withName("Operator Home Elevator"));
 
     // Force net
-    operator.povLeft().whileTrue(superstructure.runGoal(SuperstructureState.THROWN));
+    operator
+        .povLeft()
+        .whileTrue(
+            superstructure.runGoal(SuperstructureState.THROWN).withName("Operator Force Net"));
 
     // Force processor
-    operator.povRight().whileTrue(superstructure.runGoal(SuperstructureState.PROCESSED));
+    operator
+        .povRight()
+        .whileTrue(
+            superstructure
+                .runGoal(SuperstructureState.PROCESSED)
+                .withName("Operator Force Processor"));
 
     // Algae eject
     operator
@@ -582,7 +616,8 @@ public class RobotContainer {
         .and(operator.b().negate())
         .and(operator.x().negate())
         .and(operator.y().negate())
-        .whileTrue(superstructure.runGoal(SuperstructureState.TOSS));
+        .whileTrue(
+            superstructure.runGoal(SuperstructureState.TOSS).withName("Operator Algae Eject"));
 
     // Operator commands for superstructure
     BiConsumer<Trigger, ReefLevel> bindOperatorCoralScore =
@@ -607,16 +642,18 @@ public class RobotContainer {
 
     // Auto intake coral
     funnel.setDefaultCommand(
-        funnel.runRoller(
-            () -> {
-              if (superstructure.isRequestFunnelIntake()) {
-                return IntakeCommands.funnelVolts.get();
-              } else if (superstructure.isRequestFunnelOuttake()) {
-                return IntakeCommands.outtakeVolts.get();
-              } else {
-                return 0.0;
-              }
-            }));
+        funnel
+            .runRoller(
+                () -> {
+                  if (superstructure.isRequestFunnelIntake()) {
+                    return IntakeCommands.funnelVolts.get();
+                  } else if (superstructure.isRequestFunnelOuttake()) {
+                    return IntakeCommands.outtakeVolts.get();
+                  } else {
+                    return 0.0;
+                  }
+                })
+            .withName("Auto Intake Coral"));
 
     // Reset gyro
     var driverStartAndBack = driver.start().and(driver.back());
@@ -631,6 +668,7 @@ public class RobotContainer {
                                 new Pose2d(
                                     RobotState.getInstance().getEstimatedPose().getTranslation(),
                                     AllianceFlipUtil.apply(Rotation2d.kZero))))
+                .withName("Reset Gyro")
                 .ignoringDisable(true));
 
     // Superstructure coast
@@ -643,6 +681,7 @@ public class RobotContainer {
                         leds.superstructureCoast = true;
                       }
                     })
+                .withName("Superstructure Coast")
                 .ignoringDisable(true))
         .onFalse(
             Commands.runOnce(
@@ -650,6 +689,7 @@ public class RobotContainer {
                       superstructureCoastOverride = false;
                       leds.superstructureCoast = false;
                     })
+                .withName("Superstructure Uncoast")
                 .ignoringDisable(true));
     RobotModeTriggers.disabled()
         .onFalse(
@@ -670,7 +710,8 @@ public class RobotContainer {
             controllerRumbleCommand()
                 .withTimeout(0.5)
                 .beforeStarting(() -> leds.endgameAlert = true)
-                .finallyDo(() -> leds.endgameAlert = false));
+                .finallyDo(() -> leds.endgameAlert = false)
+                .withName("Controller Endgame Alert 1"));
     new Trigger(
             () ->
                 DriverStation.isTeleopEnabled()
@@ -683,7 +724,8 @@ public class RobotContainer {
                 .repeatedly()
                 .withTimeout(0.9)
                 .beforeStarting(() -> leds.endgameAlert = true)
-                .finallyDo(() -> leds.endgameAlert = false)); // Rumble three times
+                .finallyDo(() -> leds.endgameAlert = false)
+                .withName("Controller Endgame Alert 2")); // Rumble three times
   }
 
   // Creates controller rumble command

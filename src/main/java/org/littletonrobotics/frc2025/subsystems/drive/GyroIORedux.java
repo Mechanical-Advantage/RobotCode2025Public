@@ -26,7 +26,8 @@ public class GyroIORedux implements GyroIO {
     // Configure the gyro
     CanandgyroSettings settings =
         new CanandgyroSettings()
-            .setAngularPositionFramePeriod(1.0 / DriveConstants.odometryFrequency)
+            .setYawFramePeriod(1.0 / DriveConstants.odometryFrequency)
+            .setAngularPositionFramePeriod(0.01)
             .setAngularVelocityFramePeriod(0.01);
     gyro.setSettings(settings, 0.25, 5);
     gyro.setYaw(0.0, 0.1);
@@ -43,12 +44,17 @@ public class GyroIORedux implements GyroIO {
         new GyroIOData(
             connectedDebouncer.calculate(gyro.isConnected()),
             Rotation2d.fromRotations(gyro.getYaw()),
-            Units.rotationsToRadians(gyro.getAngularVelocityYaw()));
+            Units.rotationsToRadians(gyro.getAngularVelocityYaw()),
+            Rotation2d.fromRotations(gyro.getPitch()),
+            Units.rotationsToRadians(gyro.getAngularVelocityPitch()),
+            Rotation2d.fromRotations(gyro.getRoll()),
+            Units.rotationsToRadians(gyro.getAngularVelocityRoll()));
 
     inputs.odometryYawTimestamps =
         yawTimestampQueue.stream().mapToDouble((Double value) -> value).toArray();
     inputs.odometryYawPositions =
         yawPositionQueue.stream().map(Rotation2d::fromRotations).toArray(Rotation2d[]::new);
+
     yawTimestampQueue.clear();
     yawPositionQueue.clear();
   }
