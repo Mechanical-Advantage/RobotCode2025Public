@@ -12,7 +12,6 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.littletonrobotics.frc2025.subsystems.superstructure.chariot.Chariot;
 import org.littletonrobotics.frc2025.subsystems.superstructure.dispenser.Dispenser;
 
 @Builder(toBuilder = true, access = AccessLevel.PACKAGE)
@@ -22,7 +21,6 @@ public class SuperstructureStateData {
   @Builder.Default private final DoubleSupplier tunnelVolts = () -> 0.0;
   @Builder.Default private final Dispenser.GripperGoal gripperGoal = Dispenser.GripperGoal.IDLE;
   @Builder.Default private final DoubleSupplier intakeVolts = () -> 0.0;
-  @Builder.Default private final Chariot.Goal chariotGoal = Chariot.Goal.RETRACT;
   @Builder.Default private final Height height = Height.BOTTOM;
   @Builder.Default private final boolean reversed = false;
 

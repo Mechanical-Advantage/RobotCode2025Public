@@ -49,6 +49,4 @@ public class SuperstructureConstants {
       new LoggedTunableNumber("Superstructure/Throw/Height", elevatorMaxTravel);
   public static final LoggedTunableNumber throwVelocity =
       new LoggedTunableNumber("Superstructure/Throw/Velocity", 3.0);
-
-  public static final double chariotMaxExtension = 0.442630;
 }

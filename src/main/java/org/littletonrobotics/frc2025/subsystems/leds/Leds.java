@@ -91,7 +91,7 @@ public class Leds extends VirtualSubsystem {
   private static final Color l4PriorityColor = Color.kPurple;
 
   private Leds() {
-    leds = new AddressableLED(9);
+    leds = new AddressableLED(8);
     buffer = new AddressableLEDBuffer(length);
     leds.setLength(length);
     leds.setData(buffer);

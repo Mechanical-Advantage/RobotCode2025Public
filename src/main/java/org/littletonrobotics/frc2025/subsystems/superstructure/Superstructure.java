@@ -34,7 +34,6 @@ import org.littletonrobotics.frc2025.FieldConstants;
 import org.littletonrobotics.frc2025.RobotState;
 import org.littletonrobotics.frc2025.commands.AlgaeScoreCommands;
 import org.littletonrobotics.frc2025.subsystems.leds.Leds;
-import org.littletonrobotics.frc2025.subsystems.superstructure.chariot.Chariot.Goal;
 import org.littletonrobotics.frc2025.subsystems.superstructure.dispenser.Dispenser;
 import org.littletonrobotics.frc2025.subsystems.superstructure.elevator.Elevator;
 import org.littletonrobotics.frc2025.util.AllianceFlipUtil;
@@ -668,10 +667,6 @@ public class Superstructure extends SubsystemBase {
           dispenser.setTunnelVolts(state.getValue().getTunnelVolts().getAsDouble());
           dispenser.setGripperGoal(state.getValue().getGripperGoal());
         });
-  }
-
-  private Command getSlamCommand(Goal goal) {
-    return Commands.runOnce(() -> {}); // Chariot does not exist right now :(
   }
 
   private boolean isEdgeAllowed(EdgeCommand edge, SuperstructureState goal) {

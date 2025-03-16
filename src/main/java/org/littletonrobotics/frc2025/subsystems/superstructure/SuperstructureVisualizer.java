@@ -128,7 +128,7 @@ public class SuperstructureVisualizer {
                       Rotation3d.kZero))
               .getTranslation());
     } else {
-      Logger.recordOutput("Mechanism3d/" + name + "/Algae", new Translation3d[] {});
+      Logger.recordOutput("Mechanism3d/" + name + "/Algae", new Pose3d[] {});
     }
 
     if (hasCoral) {
