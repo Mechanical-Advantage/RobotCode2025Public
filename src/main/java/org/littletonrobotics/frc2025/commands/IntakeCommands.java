@@ -23,7 +23,11 @@ public class IntakeCommands {
 
   public static Command intake(Superstructure superstructure, RollerSystem funnel) {
     return superstructure
-        .runGoal(SuperstructureState.INTAKE)
+        .runGoal(
+            () ->
+                superstructure.hasAlgae()
+                    ? SuperstructureState.ALGAE_CORAL_INTAKE
+                    : SuperstructureState.CORAL_INTAKE)
         .alongWith(
             Commands.waitUntil(superstructure::atGoal).andThen(funnel.runRoller(funnelVolts)));
   }

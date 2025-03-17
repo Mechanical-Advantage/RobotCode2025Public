@@ -7,6 +7,7 @@
 
 package org.littletonrobotics.frc2025.subsystems.superstructure;
 
+import edu.wpi.first.math.geometry.Rotation2d;
 import java.util.function.DoubleSupplier;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -17,28 +18,30 @@ import org.littletonrobotics.frc2025.subsystems.superstructure.dispenser.Dispens
 @Builder(toBuilder = true, access = AccessLevel.PACKAGE)
 @Getter
 public class SuperstructureStateData {
-  @Builder.Default private final SuperstructurePose pose = new SuperstructurePose();
+  @Builder.Default
+  private final SuperstructurePose pose = new SuperstructurePose(() -> 0.0, () -> Rotation2d.kZero);
+
   @Builder.Default private final DoubleSupplier tunnelVolts = () -> 0.0;
   @Builder.Default private final Dispenser.GripperGoal gripperGoal = Dispenser.GripperGoal.IDLE;
   @Builder.Default private final DoubleSupplier intakeVolts = () -> 0.0;
   @Builder.Default private final Height height = Height.BOTTOM;
-  @Builder.Default private final boolean reversed = false;
 
   /** What height is the carriage above? */
   @RequiredArgsConstructor
+  @Getter
   public enum Height {
-    BOTTOM(1),
-    FIRST_STAGE(3),
-    SECOND_STAGE(4);
+    BOTTOM(0),
+    FIRST_STAGE(SuperstructureConstants.stage1ToStage2Height),
+    SECOND_STAGE(SuperstructureConstants.stage2ToStage3Height);
 
-    private final int order;
+    private final double position;
 
     public boolean lowerThan(Height other) {
-      return order <= other.order;
+      return position <= other.position;
     }
 
     public boolean upperThan(Height other) {
-      return order > other.order;
+      return position > other.position;
     }
   }
 }

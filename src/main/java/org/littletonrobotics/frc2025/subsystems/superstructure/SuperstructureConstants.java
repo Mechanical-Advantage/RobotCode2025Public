@@ -14,14 +14,14 @@ import edu.wpi.first.math.util.Units;
 import org.littletonrobotics.frc2025.util.LoggedTunableNumber;
 
 public class SuperstructureConstants {
-  public static final double pivotToTunnelFront = Units.inchesToMeters(4.55);
+  public static final double pivotToTunnelFront = Units.inchesToMeters(7.2);
   public static final double G = 9.807;
   // From inside face to inside face, measured from CAD
   public static final double firstStageHeight = Units.inchesToMeters(33.0);
   public static final double stageHeight = Units.inchesToMeters(29.125);
   public static final double stageThickness = Units.inchesToMeters(1.0);
-  public static final double dispenserToTop = Units.inchesToMeters(5.50);
-  public static final double dispenserToBottom = Units.inchesToMeters(6.50);
+  public static final double dispenserToTop = Units.inchesToMeters(4.75);
+  public static final double dispenserToBottom = Units.inchesToMeters(7.25);
   public static final double stageToStage = Units.inchesToMeters(4.0);
 
   // 2d position of both superstructure and dispenser origin on robot (x forward from center, y off
@@ -36,17 +36,18 @@ public class SuperstructureConstants {
   public static final Translation3d dispenserOrigin3d =
       new Translation3d(dispenserOrigin2d.getX(), 0.0, dispenserOrigin2d.getY());
 
-  // Height from superstructure origin to bottom face of first stage at maxed height
-  // minus the difference from superstructure origin to dispenser origin and from the topped out
-  // position to the dispenser
   public static final double elevatorMaxTravel = 1.8;
 
   public static final double stage1ToStage2Height = 0.80;
   public static final double stage2ToStage3Height = 1.37;
 
-  public static final Rotation2d pivotSafeAngle = Rotation2d.fromDegrees(-25.0);
-  public static final LoggedTunableNumber throwHeight =
-      new LoggedTunableNumber("Superstructure/Throw/Height", elevatorMaxTravel);
-  public static final LoggedTunableNumber throwVelocity =
-      new LoggedTunableNumber("Superstructure/Throw/Velocity", 3.0);
+  // Min and max safe angles for passing through cross members
+  public static final LoggedTunableNumber pivotMinSafeAngleDeg =
+      new LoggedTunableNumber("Superstructure/PivotMinSafeAngleDegrees", -55.0);
+  public static final LoggedTunableNumber pivotMaxSafeAngleDeg =
+      new LoggedTunableNumber("Superstructure/PivotMaxSafeAngleDegrees", 5.0);
+  public static final LoggedTunableNumber elevatorL4ClearHeight =
+      new LoggedTunableNumber("Superstructure/ElevatorL4ClearHeight", 1.65);
+
+  public static final double chariotMaxExtension = 0.442630;
 }

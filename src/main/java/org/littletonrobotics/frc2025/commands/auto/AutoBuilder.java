@@ -173,7 +173,8 @@ public class AutoBuilder {
                                                     + intakeTimeSeconds)))
                         : superstructure
                             .runGoal(
-                                Superstructure.getScoringState(coralObjective.reefLevel(), false))
+                                Superstructure.getScoringState(
+                                    coralObjective.reefLevel(), false, false))
                             .until(() -> autoTimer.hasElapsed(15.3)))
                 .deadlineFor(
                     // Drive sequence
@@ -210,7 +211,9 @@ public class AutoBuilder {
         .andThen(
             new DriveToPose(
                     drive,
-                    () -> AutoScoreCommands.getCoralScorePose(MirrorUtil.apply(coralObjectives[0])),
+                    () ->
+                        AutoScoreCommands.getCoralScorePose(
+                            MirrorUtil.apply(coralObjectives[0]), false),
                     () -> RobotState.getInstance().getEstimatedPose(),
                     () -> AllianceFlipUtil.apply(new Translation2d(-3.0, 0.0)),
                     () -> 0.0)
@@ -240,7 +243,8 @@ public class AutoBuilder {
                                           drive,
                                           () ->
                                               AutoScoreCommands.getCoralScorePose(
-                                                      MirrorUtil.apply(coralObjectives[index]))
+                                                      MirrorUtil.apply(coralObjectives[index]),
+                                                      false)
                                                   .getTranslation()
                                                   .minus(FieldConstants.Reef.center)
                                                   .times(
@@ -250,7 +254,9 @@ public class AutoBuilder {
                                       .alongWith(
                                           superstructure.runGoal(
                                               Superstructure.getScoringState(
-                                                  coralObjectives[index].reefLevel(), false)))
+                                                  coralObjectives[index].reefLevel(),
+                                                  false,
+                                                  false)))
                                       .withTimeout(driveToStationBiasSeconds),
                                   driveToStation
                                       .alongWith(IntakeCommands.intake(superstructure, funnel))
@@ -289,12 +295,12 @@ public class AutoBuilder {
             new DriveToPose(
                     drive,
                     () ->
-                        AutoScoreCommands.getCoralScorePose(objective)
+                        AutoScoreCommands.getCoralScorePose(objective, false)
                             .plus(new Transform2d(-0.5, 0.0, Rotation2d.kZero)))
                 .withTimeout(3.0)
                 .deadlineFor(
                     superstructure.runGoal(
-                        Superstructure.getScoringState(objective.reefLevel(), false))));
+                        Superstructure.getScoringState(objective.reefLevel(), false, false))));
   }
 
   public Command upInTheInspirationalAuto() {

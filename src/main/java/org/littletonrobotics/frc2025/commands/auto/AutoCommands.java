@@ -50,7 +50,7 @@ public class AutoCommands {
         trajectory,
         () ->
             AutoScoreCommands.getRobotPose(
-                mirror ? MirrorUtil.apply(coralObjective) : coralObjective),
+                mirror ? MirrorUtil.apply(coralObjective) : coralObjective, false),
         mirror);
   }
 
@@ -64,7 +64,7 @@ public class AutoCommands {
                                 AutoScoreCommands.getBranchPose(coralObjective.get()))
                             .getTranslation()
                             .minus(
-                                AutoScoreCommands.getRobotPose(coralObjective.get())
+                                AutoScoreCommands.getRobotPose(coralObjective.get(), false)
                                     .getTranslation())
                             .getAngle())))
         .finallyDo(() -> trajectoryCommand.setOverrideRotation(Optional.empty()));

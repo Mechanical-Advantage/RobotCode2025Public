@@ -121,6 +121,7 @@ public class Elevator {
   @Getter private boolean shouldEStop = false;
   @Setter private boolean isEStopped = false;
   @Setter private boolean hasAlgae = false;
+  @Setter private boolean forceFastConstraints = false;
 
   @AutoLogOutput(key = "Elevator/HomedPositionRad")
   private double homedPosition = 0.0;
@@ -195,7 +196,7 @@ public class Elevator {
               goal.get().velocity);
       double previousVelocity = setpoint.velocity;
       setpoint =
-          (hasAlgae ? algaeProfile : profile)
+          (hasAlgae && !forceFastConstraints ? algaeProfile : profile)
               .calculate(Constants.loopPeriodSecs, setpoint, goalState);
       if (setpoint.position < 0.0
           || setpoint.position > SuperstructureConstants.elevatorMaxTravel) {

@@ -60,7 +60,7 @@ public class DriveTrajectories {
           .mapToObj(
               i ->
                   AutoScoreCommands.getCoralScorePose(
-                      new CoralObjective(i == 4 ? 0 : i + 8, ReefLevel.L4)))
+                      new CoralObjective(i == 4 ? 0 : i + 8, ReefLevel.L4), false))
           .toArray(Pose2d[]::new);
 
   // Super up in the water auto

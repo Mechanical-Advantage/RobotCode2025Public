@@ -26,7 +26,7 @@ import edu.wpi.first.units.measure.*;
 import org.littletonrobotics.frc2025.util.PhoenixUtil;
 
 public class PivotIOTalonFX implements PivotIO {
-  public static final double reduction = (72.0 / 12.0) * (44.0 / 19.0) * (74.0 / 24.0);
+  public static final double reduction = (80.0 / 10.0) * (82.0 / 20.0);
 
   // Hardware
   private final TalonFX talon;

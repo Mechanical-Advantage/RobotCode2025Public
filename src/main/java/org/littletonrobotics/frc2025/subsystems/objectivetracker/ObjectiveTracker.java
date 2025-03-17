@@ -17,13 +17,11 @@ import edu.wpi.first.networktables.StringPublisher;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.MatchType;
 import java.util.*;
-import java.util.function.BooleanSupplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import org.littletonrobotics.frc2025.FieldConstants;
 import org.littletonrobotics.frc2025.FieldConstants.AlgaeObjective;
 import org.littletonrobotics.frc2025.FieldConstants.CoralObjective;
@@ -89,8 +87,6 @@ public class ObjectiveTracker extends VirtualSubsystem {
 
   @AutoLogOutput(key = "ObjectiveTracker/PredictedPose")
   private Pose2d predictedRobot = Pose2d.kZero;
-
-  @Setter private BooleanSupplier forceReefBlocked = () -> false;
 
   public ObjectiveTracker(ReefControlsIO io) {
     this.io = io;
@@ -382,11 +378,9 @@ public class ObjectiveTracker extends VirtualSubsystem {
 
     // Calculate the unblocked nearby branches
     nearbyUnblockedBranches.clear();
-    if (!forceReefBlocked.getAsBoolean()) {
-      nearbyBranches.stream()
-          .filter(availableUnblockedBranches::contains)
-          .forEach(nearbyUnblockedBranches::add);
-    }
+    nearbyBranches.stream()
+        .filter(availableUnblockedBranches::contains)
+        .forEach(nearbyUnblockedBranches::add);
 
     // Show strategy on LEDs
     Leds.getInstance().firstPriorityLevel = firstLevel;
@@ -450,6 +444,14 @@ public class ObjectiveTracker extends VirtualSubsystem {
     return nearbyUnblockedBranches.stream()
         .filter(objective -> objective.reefLevel() == level)
         .min(nearestCoralObjectiveComparator(predictedRobot));
+  }
+
+  public Optional<CoralObjective> getSuperCoralObjective(ReefLevel level) {
+    return algaeObjective.flatMap(
+        value ->
+            nearbyUnblockedBranches.stream()
+                .filter(objective -> objective.branchId() / 2 == value.id())
+                .min(nearestCoralObjectiveComparator(predictedRobot)));
   }
 
   private static final Set<Character> allowedCharacters = Set.of('1', '2', '3', '4', '5');
@@ -558,7 +560,8 @@ public class ObjectiveTracker extends VirtualSubsystem {
         (CoralObjective coralObjective) ->
             robot
                 .getTranslation()
-                .getDistance(AutoScoreCommands.getCoralScorePose(coralObjective).getTranslation()));
+                .getDistance(
+                    AutoScoreCommands.getCoralScorePose(coralObjective, false).getTranslation()));
   }
 
   private record ReefState(boolean[][] coral, boolean[] algae, int troughCount) {

@@ -15,7 +15,6 @@ import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import org.littletonrobotics.frc2025.Constants;
 import org.littletonrobotics.frc2025.Constants.Mode;
-import org.littletonrobotics.frc2025.FieldConstants;
 import org.littletonrobotics.frc2025.RobotState;
 import org.littletonrobotics.frc2025.util.EqualsUtil;
 import org.littletonrobotics.junction.Logger;
@@ -24,9 +23,8 @@ import org.littletonrobotics.junction.mechanism.LoggedMechanismLigament2d;
 import org.littletonrobotics.junction.mechanism.LoggedMechanismRoot2d;
 
 public class SuperstructureVisualizer {
-  private static final double modelToRealDispenserRotation = 5.0;
-  private static final Translation3d intakeOrigin3d = new Translation3d(0.341630, 0.0, 0.287234);
-  private static final double intakeAngleDeg = 14.010320;
+  private static final Translation2d dispenserOriginToAlgaeOrigin =
+      new Translation2d(Units.inchesToMeters(14.157458), Rotation2d.fromDegrees(60.0));
 
   private final String name;
   private final LoggedMechanism2d mechanism =
@@ -59,11 +57,7 @@ public class SuperstructureVisualizer {
   }
 
   public void update(
-      double elevatorHeightMeters,
-      Rotation2d pivotFinalAngle,
-      double algaeIntakePosition,
-      boolean hasAlgae,
-      boolean hasCoral) {
+      double elevatorHeightMeters, Rotation2d pivotFinalAngle, boolean hasAlgae, boolean hasCoral) {
     if (Constants.getMode() != Mode.REAL) {
       elevatorMechanism.setLength(
           EqualsUtil.epsilonEquals(elevatorHeightMeters, 0.0)
@@ -91,8 +85,7 @@ public class SuperstructureVisualizer {
             new Rotation3d(
                 0.0,
                 // Have to invert angle due to CAD??
-                -(pivotFinalAngle.getRadians()
-                    + Units.degreesToRadians(modelToRealDispenserRotation)),
+                -pivotFinalAngle.getRadians(),
                 0.0));
 
     Logger.recordOutput(
@@ -108,13 +101,7 @@ public class SuperstructureVisualizer {
                     firstStageHeight, new Rotation3d(0.0, -elevatorAngle.getRadians(), 0.0))),
             Rotation3d.kZero),
         new Pose3d(pivotPose3d.getTranslation(), Rotation3d.kZero),
-        pivotPose3d,
-        new Pose3d(
-            intakeOrigin3d.plus(
-                new Translation3d(
-                    algaeIntakePosition,
-                    new Rotation3d(0.0, Units.degreesToRadians(-intakeAngleDeg), 0.0))),
-            Rotation3d.kZero));
+        pivotPose3d);
     if (hasAlgae) {
       Logger.recordOutput(
           "Mechanism3d/" + name + "/Algae",
@@ -122,9 +109,9 @@ public class SuperstructureVisualizer {
               .transformBy(new Transform3d(Pose3d.kZero, pivotPose3d))
               .transformBy(
                   new Transform3d(
-                      pivotToTunnelFront + FieldConstants.algaeDiameter / 2.0,
+                      dispenserOriginToAlgaeOrigin.getX(),
                       0.0,
-                      0.0,
+                      dispenserOriginToAlgaeOrigin.getY(),
                       Rotation3d.kZero))
               .getTranslation());
     } else {
@@ -140,11 +127,5 @@ public class SuperstructureVisualizer {
     } else {
       Logger.recordOutput("Mechanism3d/" + name + "/Coral", new Pose3d[] {});
     }
-  }
-
-  public static void updateSimIntake(double angleRad) {
-    Logger.recordOutput(
-        "Mechanism3d/AlgaeIntakeSim",
-        new Pose3d(intakeOrigin3d, new Rotation3d(0.0, Math.PI / 2.0 - angleRad, 0.0)));
   }
 }

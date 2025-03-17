@@ -95,6 +95,7 @@ public class RobotState {
   private ChassisSpeeds robotVelocity = new ChassisSpeeds();
 
   @Getter @Setter private OptionalDouble distanceToBranch = OptionalDouble.empty();
+  @Getter @Setter private OptionalDouble distanceToReefAlgae = OptionalDouble.empty();
 
   private RobotState() {
     for (int i = 0; i < 3; ++i) {

@@ -268,7 +268,6 @@ public class RobotContainer {
         superstructureDisable,
         disableDispenserGamePieceDetection);
     climber.setCoastOverride(() -> superstructureCoastOverride);
-    objectiveTracker.setForceReefBlocked(superstructure::hasAlgae);
 
     // Configure the button bindings
     configureButtonBindings();
@@ -293,14 +292,15 @@ public class RobotContainer {
 
     // ***** DRIVER CONTROLLER *****
 
-    // Auto score coral
+    // Bind coral score function
     BiConsumer<Trigger, Boolean> bindAutoScore =
         (trigger, firstPriority) -> {
           Container<ReefLevel> lockedReefLevel = new Container<>();
-          Container<Boolean> running = new Container<>(false);
           Supplier<Optional<ReefLevel>> levelSupplier =
               firstPriority ? objectiveTracker::getFirstLevel : objectiveTracker::getSecondLevel;
-          Trigger blocked =
+          // Normal auto score
+          Container<Boolean> autoScoreRunning = new Container<>(false);
+          Trigger autoScoreAvailable =
               new Trigger(
                   () ->
                       levelSupplier
@@ -308,9 +308,10 @@ public class RobotContainer {
                           .filter(
                               reefLevel ->
                                   objectiveTracker.getCoralObjective(reefLevel).isPresent())
-                          .isEmpty());
+                          .isPresent());
           trigger
-              .and(blocked.negate())
+              .and(trigger.doublePress().negate())
+              .and(autoScoreAvailable)
               .onTrue(Commands.runOnce(() -> lockedReefLevel.value = levelSupplier.get().get()))
               .whileTrue(
                   AutoScoreCommands.autoScore(
@@ -323,15 +324,70 @@ public class RobotContainer {
                           driverY,
                           driverOmega,
                           joystickDriveCommandFactory.get(),
+                          Commands.none(),
+                          () -> false,
                           disableReefAutoAlign,
                           driver.b())
                       .deadlineFor(
                           Commands.startEnd(
-                              () -> running.value = true, () -> running.value = false))
+                              () -> autoScoreRunning.value = true,
+                              () -> autoScoreRunning.value = false))
                       .withName("Auto Score Priority #" + (firstPriority ? 1 : 2)));
           trigger
-              .and(blocked)
-              .and(() -> !running.value)
+              .and(trigger.doublePress().negate())
+              .and(autoScoreAvailable.negate())
+              .and(() -> !autoScoreRunning.value)
+              .onTrue(
+                  Commands.sequence(
+                      controllerRumbleCommand().withTimeout(0.1),
+                      Commands.waitSeconds(0.1),
+                      controllerRumbleCommand().withTimeout(0.1)));
+          // Super auto score
+          Container<Boolean> superAutoScoreRunning = new Container<>(false);
+          Container<Boolean> hasAlgae = new Container<>(false);
+          Trigger superScoreAvailable =
+              new Trigger(
+                  () ->
+                      levelSupplier
+                          .get()
+                          .filter(
+                              reefLevel ->
+                                  objectiveTracker.getSuperCoralObjective(reefLevel).isPresent())
+                          .isPresent());
+          trigger
+              .doublePress()
+              .and(superScoreAvailable)
+              .onTrue(
+                  Commands.runOnce(
+                      () -> {
+                        lockedReefLevel.value = levelSupplier.get().get();
+                        hasAlgae.value = superstructure.hasAlgae();
+                      }))
+              .and(() -> !hasAlgae.value)
+              .whileTrue(
+                  AutoScoreCommands.superAutoScore(
+                          drive,
+                          superstructure,
+                          funnel,
+                          () -> lockedReefLevel.value,
+                          () -> objectiveTracker.getSuperCoralObjective(lockedReefLevel.value),
+                          driverX,
+                          driverY,
+                          driverOmega,
+                          joystickDriveCommandFactory,
+                          this::controllerRumbleCommand,
+                          robotRelative,
+                          disableReefAutoAlign,
+                          driver.b())
+                      .deadlineFor(
+                          Commands.startEnd(
+                              () -> superAutoScoreRunning.value = true,
+                              () -> superAutoScoreRunning.value = false))
+                      .withName("Super Auto Score Priority #" + (firstPriority ? 1 : 2)));
+          trigger
+              .doublePress()
+              .and(superScoreAvailable.negate())
+              .and(() -> !superAutoScoreRunning.value)
               .onTrue(
                   Commands.sequence(
                       controllerRumbleCommand().withTimeout(0.1),
@@ -417,7 +473,7 @@ public class RobotContainer {
         new Trigger(
             () ->
                 AllianceFlipUtil.applyY(RobotState.getInstance().getEstimatedPose().getY())
-                        < FieldConstants.fieldWidth / 2
+                        < FieldConstants.fieldWidth / 2 + DriveConstants.robotWidth
                     || onOpposingSide.getAsBoolean());
     Container<Boolean> hasAlgae = new Container<>(false);
     driver.leftBumper().onTrue(Commands.runOnce(() -> hasAlgae.value = superstructure.hasAlgae()));
@@ -435,6 +491,8 @@ public class RobotContainer {
                     driverY,
                     driverOmega,
                     joystickDriveCommandFactory.get(),
+                    Commands.none(),
+                    () -> false,
                     disableReefAutoAlign)
                 .deadlineFor(
                     Commands.startEnd(
@@ -498,7 +556,7 @@ public class RobotContainer {
         .onTrue(Commands.runOnce(() -> Leds.getInstance().autoScoring = true))
         .onFalse(Commands.runOnce(() -> Leds.getInstance().autoScoring = false))
         // Indicate ready for score
-        .and(() -> superstructure.getState() == SuperstructureState.PRE_THROWN)
+        .and(() -> superstructure.getState() == SuperstructureState.PRE_THROW)
         .whileTrue(
             controllerRumbleCommand()
                 .withTimeout(0.1)
@@ -544,13 +602,12 @@ public class RobotContainer {
     // Force net
     driver
         .povLeft()
-        .whileTrue(superstructure.runGoal(SuperstructureState.THROWN).withName("Force Net"));
+        .whileTrue(superstructure.runGoal(SuperstructureState.THROW).withName("Force Net"));
 
     // Force processor
     driver
         .povRight()
-        .whileTrue(
-            superstructure.runGoal(SuperstructureState.PROCESSED).withName("Force Processor"));
+        .whileTrue(superstructure.runGoal(SuperstructureState.PROCESS).withName("Force Processor"));
 
     // Raise elevator
     driver
@@ -599,14 +656,14 @@ public class RobotContainer {
     operator
         .povLeft()
         .whileTrue(
-            superstructure.runGoal(SuperstructureState.THROWN).withName("Operator Force Net"));
+            superstructure.runGoal(SuperstructureState.THROW).withName("Operator Force Net"));
 
     // Force processor
     operator
         .povRight()
         .whileTrue(
             superstructure
-                .runGoal(SuperstructureState.PROCESSED)
+                .runGoal(SuperstructureState.PROCESS)
                 .withName("Operator Force Processor"));
 
     // Algae eject
@@ -624,13 +681,18 @@ public class RobotContainer {
         (faceButton, height) -> {
           faceButton.whileTrueContinuous(
               superstructure
-                  .runGoal(() -> Superstructure.getScoringState(height, false))
+                  .runGoal(
+                      () ->
+                          Superstructure.getScoringState(height, superstructure.hasAlgae(), false))
                   .withName("Operator Score on " + height));
           faceButton
               .and(operator.rightTrigger())
               .whileTrueContinuous(
                   superstructure
-                      .runGoal(() -> Superstructure.getScoringState(height, true))
+                      .runGoal(
+                          () ->
+                              Superstructure.getScoringState(
+                                  height, superstructure.hasAlgae(), true))
                       .withName("Operator Score & Eject On " + height));
         };
     bindOperatorCoralScore.accept(operator.a(), ReefLevel.L1);

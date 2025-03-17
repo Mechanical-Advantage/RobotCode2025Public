@@ -20,7 +20,6 @@ import org.littletonrobotics.frc2025.subsystems.drive.Drive;
 import org.littletonrobotics.frc2025.subsystems.drive.DriveConstants;
 import org.littletonrobotics.frc2025.subsystems.leds.Leds;
 import org.littletonrobotics.frc2025.subsystems.superstructure.Superstructure;
-import org.littletonrobotics.frc2025.subsystems.superstructure.SuperstructureConstants;
 import org.littletonrobotics.frc2025.subsystems.superstructure.SuperstructureState;
 import org.littletonrobotics.frc2025.util.AllianceFlipUtil;
 import org.littletonrobotics.frc2025.util.Container;
@@ -32,20 +31,22 @@ public class AlgaeScoreCommands {
       new LoggedTunableNumber("AlgaeScoreCommands/ProcessLineupXOffset", 0.12);
   private static final LoggedTunableNumber processLineupYOffset =
       new LoggedTunableNumber("AlgaeScoreCommands/ProcessLineupYOffset", 0.1);
+  private static final LoggedTunableNumber processLineupClear =
+      new LoggedTunableNumber("AlgaeScoreCommands/ProcessLineupClear", 0.3);
   private static final LoggedTunableNumber processEjectDegOffset =
       new LoggedTunableNumber("AlgaeScoreCommands/ProcessEjectDegreeOffset", 15.0);
   private static final LoggedTunableNumber throwLineupDistance =
       new LoggedTunableNumber("AlgaeScoreCommands/ThrowLineupDistance", 0.6);
   private static final LoggedTunableNumber throwDriveDistance =
-      new LoggedTunableNumber("AlgaeScoreCommands/ThrowDriveDistance", 0.4);
+      new LoggedTunableNumber("AlgaeScoreCommands/ThrowDriveDistance", 0.15);
   private static final LoggedTunableNumber throwDriveVelocity =
       new LoggedTunableNumber("AlgaeScoreCommands/ThrowDriveVelocity", 1.5);
   public static final LoggedTunableNumber throwGripperEjectTime =
-      new LoggedTunableNumber("AlgaeScoreCommands/ThrowGripperEjectTime", 0.5);
+      new LoggedTunableNumber("AlgaeScoreCommands/ThrowGripperEjectTime", 0.3);
   private static final LoggedTunableNumber throwReadyLinearTolerance =
-      new LoggedTunableNumber("AlgaeScoreCommands/ThrowReadyLinearTolerance", 0.4);
+      new LoggedTunableNumber("AlgaeScoreCommands/ThrowReadyLinearTolerance", 4.0);
   private static final LoggedTunableNumber throwReadyThetaToleranceDeg =
-      new LoggedTunableNumber("AlgaeScoreCommands/ThrowReadyThetaToleranceDegrees", 10.0);
+      new LoggedTunableNumber("AlgaeScoreCommands/ThrowReadyThetaToleranceDegrees", 40.0);
 
   public static Command process(
       Drive drive,
@@ -71,7 +72,12 @@ public class AlgaeScoreCommands {
                                 .transformBy(
                                     GeomUtil.toTransform2d(
                                         DriveConstants.robotWidth / 2.0
-                                            + processLineupXOffset.get(),
+                                            + processLineupXOffset.get()
+                                            + (!eject
+                                                    && superstructure.getState()
+                                                        != SuperstructureState.PRE_PROCESS
+                                                ? processLineupClear.get()
+                                                : 0.0),
                                         processLineupYOffset.get()))
                                 .transformBy(
                                     GeomUtil.toTransform2d(
@@ -91,8 +97,8 @@ public class AlgaeScoreCommands {
             disableAlgaeScoreAutoAlign)
         .alongWith(
             eject
-                ? superstructure.runGoal(SuperstructureState.PROCESSED)
-                : superstructure.runGoal(SuperstructureState.ALGAE_STOW));
+                ? superstructure.runGoal(SuperstructureState.PROCESS)
+                : superstructure.runGoal(SuperstructureState.PRE_PROCESS));
   }
 
   public static Command netThrowLineup(
@@ -107,20 +113,9 @@ public class AlgaeScoreCommands {
             () ->
                 new Pose2d(
                     AllianceFlipUtil.applyX(
-                        FieldConstants.fieldLength / 2.0
-                            - FieldConstants.Barge.netWidth / 2.0
-                            - FieldConstants.algaeDiameter
-                            - SuperstructureConstants.pivotToTunnelFront
-                                * Math.cos(20.5 / 180.0 * Math.PI)
-                            - SuperstructureConstants.elevatorMaxTravel
-                                * SuperstructureConstants.elevatorAngle.getCos()
-                            - SuperstructureConstants.dispenserOrigin2d.getX()
-                            // Get Position of robot with algae up against the net rim
-                            - AlgaeScoreCommands.throwLineupDistance
-                                .get() // Move back by lineup distance
-                        ),
+                        FieldConstants.fieldLength / 2.0 - throwLineupDistance.get()),
                     RobotState.getInstance().getEstimatedPose().getY(),
-                    AllianceFlipUtil.apply(Rotation2d.kZero)),
+                    AllianceFlipUtil.apply(Rotation2d.kPi)),
             RobotState.getInstance()::getEstimatedPose,
             () ->
                 DriveCommands.getLinearVelocityFromJoysticks(0, driverY.getAsDouble())
@@ -136,7 +131,7 @@ public class AlgaeScoreCommands {
                                 && autoAlignCommand.withinTolerance(
                                     throwReadyLinearTolerance.get(),
                                     Rotation2d.fromDegrees(throwReadyThetaToleranceDeg.get()))))
-                .andThen(superstructure.runGoal(SuperstructureState.PRE_THROWN)));
+                .andThen(superstructure.runGoal(SuperstructureState.PRE_THROW)));
   }
 
   public static Command netThrowScore(Drive drive, Superstructure superstructure) {
@@ -153,10 +148,10 @@ public class AlgaeScoreCommands {
                     () ->
                         startPose.value.transformBy(
                             GeomUtil.toTransform2d(
-                                Math.min(
+                                -Math.min(
                                     driveTimer.get() * throwDriveVelocity.get(),
                                     throwDriveDistance.get()),
                                 0)))
-                .alongWith(superstructure.runGoal(SuperstructureState.THROWN)));
+                .alongWith(superstructure.runGoal(SuperstructureState.THROW)));
   }
 }

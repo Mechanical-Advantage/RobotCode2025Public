@@ -15,7 +15,6 @@ import edu.wpi.first.math.system.NumericalIntegration;
 import edu.wpi.first.math.system.plant.DCMotor;
 import org.littletonrobotics.frc2025.Constants;
 import org.littletonrobotics.frc2025.subsystems.superstructure.SuperstructureConstants;
-import org.littletonrobotics.frc2025.subsystems.superstructure.SuperstructureVisualizer;
 
 public class ClimberIOSim implements ClimberIO {
   private static final double moi = 0.0;
@@ -44,7 +43,6 @@ public class ClimberIOSim implements ClimberIO {
   @Override
   public void updateInputs(ClimberIOInputs inputs) {
     update(Constants.loopPeriodSecs);
-    SuperstructureVisualizer.updateSimIntake(simState.get(0));
 
     inputs.data =
         new ClimberIOData(

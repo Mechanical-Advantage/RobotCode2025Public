@@ -41,7 +41,7 @@ import org.littletonrobotics.junction.Logger;
 
 public class Dispenser {
   public static final Rotation2d minAngle = Rotation2d.fromDegrees(-90.0);
-  public static final Rotation2d maxAngle = Rotation2d.fromDegrees(20.5);
+  public static final Rotation2d maxAngle = Rotation2d.fromDegrees(30.0);
 
   // Tunable numbers
   private static final LoggedTunableNumber kP = new LoggedTunableNumber("Dispenser/kP");
@@ -144,6 +144,7 @@ public class Dispenser {
   @Getter private boolean shouldEStop = false;
   @Setter private boolean isEStopped = false;
   @Setter private boolean isIntaking = false;
+  @Setter private boolean forceFastConstraints = false;
   private final Timer intakingReverseTimer = new Timer();
 
   @Getter
@@ -263,7 +264,7 @@ public class Dispenser {
               MathUtil.clamp(goal.getAsDouble(), minAngle.getRadians(), maxAngle.getRadians()),
               0.0);
       setpoint =
-          (hasAlgae() ? algaeProfile : profile)
+          (hasAlgae() && !forceFastConstraints ? algaeProfile : profile)
               .calculate(Constants.loopPeriodSecs, setpoint, goalState);
       pivotIO.runPosition(
           Rotation2d.fromRadians(
