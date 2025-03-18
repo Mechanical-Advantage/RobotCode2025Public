@@ -28,6 +28,7 @@ public class DriveConstants {
   public static final double driveBaseRadius = Math.hypot(trackWidthX / 2, trackWidthY / 2);
   public static final double maxLinearSpeed = 4.69;
   public static final double maxAngularSpeed = 4.69 / driveBaseRadius;
+  public static final double maxLinearAcceleration = 22.0;
 
   /** Includes bumpers! */
   public static final double robotWidth =
@@ -43,7 +44,7 @@ public class DriveConstants {
   public static final double wheelRadius = Units.inchesToMeters(2.000);
 
   public static final ModuleLimits moduleLimitsFree =
-      new ModuleLimits(maxLinearSpeed, maxAngularSpeed, Units.degreesToRadians(1080.0));
+      new ModuleLimits(maxLinearSpeed, maxLinearAcceleration, Units.degreesToRadians(1080.0));
 
   public static final ModuleConfig[] moduleConfigsComp = {
     // FL

@@ -162,7 +162,8 @@ public class Superstructure extends SubsystemBase {
             SuperstructureState.L4_CORAL,
             SuperstructureState.ALGAE_STOW_INTAKE,
             SuperstructureState.ALGAE_L2_INTAKE,
-            SuperstructureState.ALGAE_L3_INTAKE);
+            SuperstructureState.ALGAE_L3_INTAKE,
+            SuperstructureState.ALGAE_ICE_CREAM_INTAKE);
 
     final Set<SuperstructureState> freeAlgaeStates =
         Set.of(
@@ -180,7 +181,8 @@ public class Superstructure extends SubsystemBase {
         Set.of(
             SuperstructureState.ALGAE_STOW_INTAKE,
             SuperstructureState.ALGAE_L2_INTAKE,
-            SuperstructureState.ALGAE_L3_INTAKE);
+            SuperstructureState.ALGAE_L3_INTAKE,
+            SuperstructureState.ALGAE_ICE_CREAM_INTAKE);
 
     // Add all free edges
     for (var from : freeNoAlgaeStates) {
@@ -683,7 +685,8 @@ public class Superstructure extends SubsystemBase {
                                   >= to.getValue().getHeight().getPosition())
                           || elevator.isAtGoal()),
               runSuperstructurePose(to.getValue().getPose()),
-              Commands.waitUntil(this::mechanismsAtGoal));
+              Commands.waitUntil(this::mechanismsAtGoal))
+          .deadlineFor(runSuperstructureExtras(to));
     } else {
       return runSuperstructurePose(to.getValue().getPose())
           .andThen(Commands.waitUntil(this::mechanismsAtGoal))

@@ -59,10 +59,8 @@ public class PivotIOTalonFX implements PivotIO {
     Config.Slot0 = new Slot0Configs().withKP(0).withKI(0).withKD(0);
     Config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
     Config.Feedback.SensorToMechanismRatio = reduction;
-    Config.TorqueCurrent.PeakForwardTorqueCurrent = 40.0;
-    Config.TorqueCurrent.PeakReverseTorqueCurrent = -40.0;
-    Config.CurrentLimits.StatorCurrentLimit = 40.0;
-    Config.CurrentLimits.StatorCurrentLimitEnable = true;
+    Config.CurrentLimits.SupplyCurrentLimit = 40.0;
+    Config.CurrentLimits.SupplyCurrentLimitEnable = true;
     Config.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
     tryUntilOk(5, () -> talon.getConfigurator().apply(Config, 0.25));
 

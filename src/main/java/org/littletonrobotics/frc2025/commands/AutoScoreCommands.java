@@ -13,11 +13,11 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.ScheduleCommand;
-import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import java.util.List;
 import java.util.Optional;
@@ -194,7 +194,6 @@ public class AutoScoreCommands {
 
     // Schedule get back command
     new Trigger(() -> hasEnded.value && needsToGetBack.value)
-        .and(RobotModeTriggers.teleop())
         .and(() -> !disableReefAutoAlign.getAsBoolean())
         .onTrue(
             getBackCorrectiveMeasure(drive, driverX, driverY, driverOmega, robotRelative)
@@ -244,7 +243,8 @@ public class AutoScoreCommands {
                   // Get back!
                   if (ready
                       && reefLevel.get() == ReefLevel.L4
-                      && !disableReefAutoAlign.getAsBoolean()) {
+                      && !disableReefAutoAlign.getAsBoolean()
+                      && DriverStation.isTeleopEnabled()) {
                     needsToGetBack.value = true;
                     superstructure.setReefDangerState(
                         Optional.of(
@@ -396,7 +396,6 @@ public class AutoScoreCommands {
     // Schedule get back command
     if (funnel.isEmpty()) {
       new Trigger(() -> hasEnded.value && needsToGetBack.value)
-          .and(RobotModeTriggers.teleop())
           .and(() -> !disableReefAutoAlign.getAsBoolean())
           .onTrue(
               getBackCorrectiveMeasure(drive, driverX, driverY, driverOmega, robotRelative)
@@ -511,7 +510,7 @@ public class AutoScoreCommands {
                                   Logger.recordOutput("AutoScore/AllowPreReady", ready);
 
                                   // Get back!
-                                  if (ready) {
+                                  if (ready && DriverStation.isTeleopEnabled()) {
                                     needsToGetBack.value = true;
                                   }
                                   return ready;

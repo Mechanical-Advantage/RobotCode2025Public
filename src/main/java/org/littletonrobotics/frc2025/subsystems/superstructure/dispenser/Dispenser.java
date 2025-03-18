@@ -40,8 +40,8 @@ import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
 public class Dispenser {
-  public static final Rotation2d minAngle = Rotation2d.fromDegrees(-90.0);
-  public static final Rotation2d maxAngle = Rotation2d.fromDegrees(30.0);
+  public static final Rotation2d minAngle = Rotation2d.fromDegrees(-56.5);
+  public static final Rotation2d maxAngle = Rotation2d.fromDegrees(4.5);
 
   // Tunable numbers
   private static final LoggedTunableNumber kP = new LoggedTunableNumber("Dispenser/kP");
@@ -65,7 +65,7 @@ public class Dispenser {
   private static final LoggedTunableNumber coralProxThreshold =
       new LoggedTunableNumber("Dispenser/CoralProxThresh", 0.06);
   public static final LoggedTunableNumber gripperHoldVolts =
-      new LoggedTunableNumber("Dispenser/GripperHoldVolts", 5.0);
+      new LoggedTunableNumber("Dispenser/GripperHoldVolts", 1.5);
   public static final LoggedTunableNumber gripperIntakeVolts =
       new LoggedTunableNumber("Dispenser/GripperIntakeVolts", 5.0);
   public static final LoggedTunableNumber gripperEjectVolts =
@@ -75,7 +75,7 @@ public class Dispenser {
   public static final LoggedTunableNumber gripperCurrentLimit =
       new LoggedTunableNumber("Dispenser/GripperCurrentLimit", 50.0);
   public static final LoggedTunableNumber tunnelDispenseVolts =
-      new LoggedTunableNumber("Dispenser/TunnelDispenseVolts", 6.0);
+      new LoggedTunableNumber("Dispenser/TunnelDispenseVolts", 3.0);
   public static final LoggedTunableNumber tunnelL1DispenseVolts =
       new LoggedTunableNumber("Dispenser/TunnelL1DispenseVolts", 5.0);
   public static final LoggedTunableNumber tunnelIntakeVolts =
@@ -85,7 +85,7 @@ public class Dispenser {
   public static final LoggedTunableNumber intakeReverseVolts =
       new LoggedTunableNumber("Dispenser/IntakeReverseVolts", -1.8);
   public static final LoggedTunableNumber intakeReverseTime =
-      new LoggedTunableNumber("Dispenser/IntakeReverseTime", 0.1);
+      new LoggedTunableNumber("Dispenser/IntakeReverseTime", 0.0);
   public static final LoggedTunableNumber homingTimeSecs =
       new LoggedTunableNumber("Dispenser/HomingTimeSecs", 0.2);
   public static final LoggedTunableNumber homingVolts =

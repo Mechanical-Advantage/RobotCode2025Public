@@ -265,8 +265,14 @@ public class ObjectiveTracker extends VirtualSubsystem {
                       .transformBy(
                           GeomUtil.toTransform3d(
                               new Pose3d(
-                                  new Translation3d(-Units.inchesToMeters(11.875) / 2.5, 0.0, 0.0),
-                                  Rotation3d.kZero)))));
+                                  level == 2
+                                      ? new Translation3d(
+                                          -Units.inchesToMeters(7.2), 0, Units.inchesToMeters(1.3))
+                                      : new Translation3d(
+                                          -Units.inchesToMeters(11.875) / 2.5, 0.0, 0.0),
+                                  level == 2
+                                      ? new Rotation3d(0, Units.degreesToRadians(25), 0)
+                                      : Rotation3d.kZero)))));
         }
       }
       Logger.recordOutput("ObjectiveTracker/3DView/Coral", coralPoses.toArray(Pose3d[]::new));

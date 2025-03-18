@@ -104,6 +104,11 @@ public enum SuperstructureState {
           .gripperGoal(Dispenser.GripperGoal.GRIP)
           .height(Height.FIRST_STAGE)
           .build()),
+  ALGAE_ICE_CREAM_INTAKE(
+      SuperstructureStateData.builder()
+          .pose(Preset.ALGAE_ICE_CREAM_INTAKE.getPose())
+          .gripperGoal(Dispenser.GripperGoal.GRIP)
+          .build()),
   PRE_THROW(
       SuperstructureStateData.builder()
           .pose(Preset.PRE_THROW.getPose())

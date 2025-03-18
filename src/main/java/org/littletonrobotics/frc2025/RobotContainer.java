@@ -127,7 +127,7 @@ public class RobotContainer {
               new Dispenser(
                   new PivotIOTalonFX(),
                   new RollerSystemIOTalonFX(6, "", 40, true, false, 3.0),
-                  new RollerSystemIOTalonFX(7, "", 40, true, false, (30 / 12) * (48 / 18)),
+                  new RollerSystemIOTalonFX(7, "", 40, false, false, (30 / 12) * (48 / 18)),
                   new CoralSensorIOLaserCan());
           funnel =
               new RollerSystem("Funnel", new RollerSystemIOTalonFX(2, "", 30, true, false, 1.0));
@@ -500,6 +500,14 @@ public class RobotContainer {
                         () -> Leds.getInstance().autoScoring = false))
                 .onlyIf(() -> objectiveTracker.getAlgaeObjective().isPresent())
                 .withName("Algae Reef Intake"));
+
+    // Algae ice cream intake
+    driver
+        .rightStick()
+        .whileTrue(
+            superstructure
+                .runGoal(SuperstructureState.ALGAE_ICE_CREAM_INTAKE)
+                .withName("Algae Ice Cream Intake"));
 
     // Algae pre-processor
     driver

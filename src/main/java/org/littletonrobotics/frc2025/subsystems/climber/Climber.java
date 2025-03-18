@@ -25,11 +25,11 @@ public class Climber extends SubsystemBase {
   private static final LoggedTunableNumber deployAngle =
       new LoggedTunableNumber("Climber/DeployAngle", 130);
   private static final LoggedTunableNumber undeployAngle =
-      new LoggedTunableNumber("Climber/UndeployAngle", 140);
+      new LoggedTunableNumber("Climber/UndeployAngle", 135);
   private static final LoggedTunableNumber climbCurrent =
       new LoggedTunableNumber("Climber/ClimbCurrent", 65);
   private static final LoggedTunableNumber climbCurrentRampRate =
-      new LoggedTunableNumber("Climber/ClimbCurrentRampRate", 80);
+      new LoggedTunableNumber("Climber/ClimbCurrentRampRate", 120);
   static final LoggedTunableNumber climbStopAngle =
       new LoggedTunableNumber("Climber/ClimbStopAngle", 220);
 

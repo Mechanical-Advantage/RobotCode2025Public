@@ -365,14 +365,4 @@ public class Drive extends SubsystemBase {
   public Rotation2d getGyroRotation() {
     return gyroInputs.data.yawPosition();
   }
-
-  /** Returns the maximum linear speed in meters per sec. */
-  public double getMaxLinearSpeedMetersPerSec() {
-    return DriveConstants.maxLinearSpeed;
-  }
-
-  /** Returns the maximum angular speed in radians per sec. */
-  public double getMaxAngularSpeedRadPerSec() {
-    return getMaxLinearSpeedMetersPerSec() / DriveConstants.driveBaseRadius;
-  }
 }

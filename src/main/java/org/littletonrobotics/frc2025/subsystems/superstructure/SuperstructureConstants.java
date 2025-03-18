@@ -36,16 +36,16 @@ public class SuperstructureConstants {
   public static final Translation3d dispenserOrigin3d =
       new Translation3d(dispenserOrigin2d.getX(), 0.0, dispenserOrigin2d.getY());
 
-  public static final double elevatorMaxTravel = 1.8;
+  public static final double elevatorMaxTravel = 1.83;
 
   public static final double stage1ToStage2Height = 0.80;
   public static final double stage2ToStage3Height = 1.37;
 
   // Min and max safe angles for passing through cross members
   public static final LoggedTunableNumber pivotMinSafeAngleDeg =
-      new LoggedTunableNumber("Superstructure/PivotMinSafeAngleDegrees", -55.0);
+      new LoggedTunableNumber("Superstructure/PivotMinSafeAngleDegrees", -56.5);
   public static final LoggedTunableNumber pivotMaxSafeAngleDeg =
-      new LoggedTunableNumber("Superstructure/PivotMaxSafeAngleDegrees", 5.0);
+      new LoggedTunableNumber("Superstructure/PivotMaxSafeAngleDegrees", -6.5);
   public static final LoggedTunableNumber elevatorL4ClearHeight =
       new LoggedTunableNumber("Superstructure/ElevatorL4ClearHeight", 1.65);
 
