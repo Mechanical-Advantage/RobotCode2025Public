@@ -207,7 +207,6 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
         () -> l3ReefIntakeHeight.get() + getReefIntakeAdjustment(),
         new LoggedTunableNumber("Superstructure/AlgaeIntake/L3/Pivot", -55.0)),
     ALGAE_ICE_CREAM_INTAKE("AlgaeIceCreamIntake", 0.05, -25.0),
-    PRE_THROW("PreThrow", elevatorMaxTravel, -15.0),
     THROW("Throw", elevatorMaxTravel, 0.0),
     ALGAE_STOW("AlgaeStow", intakeHeightBaseline.get(), -5.0),
     PROCESS("Processed", 0.15, -70.0);

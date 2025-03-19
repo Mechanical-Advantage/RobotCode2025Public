@@ -15,6 +15,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
@@ -77,6 +78,8 @@ public class DriveToPose extends Command {
           0.0, 0.0, 0.0, new TrapezoidProfile.Constraints(0.0, 0.0), Constants.loopPeriodSecs);
 
   private Translation2d lastSetpointTranslation = Translation2d.kZero;
+  private Rotation2d lastSetpointRotation = Rotation2d.kZero;
+  private double lastTime = 0.0;
   private double driveErrorAbs = 0.0;
   private double thetaErrorAbs = 0.0;
   @Getter private boolean running = false;
@@ -133,6 +136,8 @@ public class DriveToPose extends Command {
     thetaController.reset(
         currentPose.getRotation().getRadians(), fieldVelocity.omegaRadiansPerSecond);
     lastSetpointTranslation = currentPose.getTranslation();
+    lastSetpointRotation = target.get().getRotation();
+    lastTime = Timer.getTimestamp();
   }
 
   @Override
@@ -179,8 +184,8 @@ public class DriveToPose extends Command {
         lastSetpointTranslation.getDistance(targetPose.getTranslation()),
         driveController.getSetpoint().velocity);
     double driveVelocityScalar =
-        driveController.getSetpoint().velocity * ffScaler
-            + driveController.calculate(driveErrorAbs, 0.0);
+        driveController.calculate(driveErrorAbs, 0.0)
+            + driveController.getSetpoint().velocity * ffScaler;
     if (currentDistance < driveController.getPositionTolerance()) driveVelocityScalar = 0.0;
     lastSetpointTranslation =
         new Pose2d(
@@ -194,13 +199,17 @@ public class DriveToPose extends Command {
 
     // Calculate theta speed
     double thetaVelocity =
-        thetaController.getSetpoint().velocity * ffScaler
-            + thetaController.calculate(
-                currentPose.getRotation().getRadians(), targetPose.getRotation().getRadians());
+        thetaController.calculate(
+                currentPose.getRotation().getRadians(),
+                new TrapezoidProfile.State(
+                    targetPose.getRotation().getRadians(),
+                    (targetPose.getRotation().minus(lastSetpointRotation)).getRadians()
+                        / (Timer.getTimestamp() - lastTime)))
+            + thetaController.getSetpoint().velocity * ffScaler;
     thetaErrorAbs =
         Math.abs(currentPose.getRotation().minus(targetPose.getRotation()).getRadians());
     if (thetaErrorAbs < thetaController.getPositionTolerance()) thetaVelocity = 0.0;
-
+    lastSetpointRotation = targetPose.getRotation();
     Translation2d driveVelocity =
         new Pose2d(
                 Translation2d.kZero,
@@ -210,6 +219,7 @@ public class DriveToPose extends Command {
                         currentPose.getTranslation().getX() - targetPose.getTranslation().getX())))
             .transformBy(GeomUtil.toTransform2d(driveVelocityScalar, 0.0))
             .getTranslation();
+    lastTime = Timer.getTimestamp();
 
     // Scale feedback velocities by input ff
     final double linearS = linearFF.get().getNorm() * 3.0;

@@ -111,16 +111,11 @@ public enum SuperstructureState {
           .build()),
   PRE_THROW(
       SuperstructureStateData.builder()
-          .pose(Preset.PRE_THROW.getPose())
+          .pose(Preset.THROW.getPose())
           .gripperGoal(Dispenser.GripperGoal.GRIP)
           .height(Height.SECOND_STAGE)
           .build()),
-  THROW(
-      SuperstructureStateData.builder()
-          .pose(Preset.THROW.getPose())
-          .gripperGoal(Dispenser.GripperGoal.EJECT)
-          .height(Height.SECOND_STAGE)
-          .build()),
+  THROW(PRE_THROW.getValue().toBuilder().gripperGoal(Dispenser.GripperGoal.EJECT).build()),
   TOSS(
       SuperstructureState.ALGAE_STOW.getValue().toBuilder()
           .gripperGoal(Dispenser.GripperGoal.EJECT)

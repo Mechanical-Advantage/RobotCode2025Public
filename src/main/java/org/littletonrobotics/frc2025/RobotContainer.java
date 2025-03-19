@@ -77,7 +77,7 @@ public class RobotContainer {
   private final Trigger robotRelative = overrides.driverSwitch(0);
   private final Trigger superstructureDisable = overrides.driverSwitch(1);
   private final Trigger superstructureCoast = overrides.driverSwitch(2);
-  private final Trigger disableAutoCoralStationIntake = overrides.operatorSwitch(0).negate();
+  private final Trigger disableAutoCoralStationIntake = new Trigger(() -> true);
   private final Trigger disableReefAutoAlign = overrides.operatorSwitch(1);
   private final Trigger disableCoralStationAutoAlign = overrides.operatorSwitch(2);
   private final Trigger disableAlgaeScoreAutoAlign = overrides.operatorSwitch(3);

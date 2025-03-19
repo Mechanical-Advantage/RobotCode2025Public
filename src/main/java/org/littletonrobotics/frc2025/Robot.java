@@ -28,17 +28,18 @@ import java.util.function.BiConsumer;
 import org.littletonrobotics.frc2025.Constants.RobotType;
 import org.littletonrobotics.frc2025.subsystems.leds.Leds;
 import org.littletonrobotics.frc2025.util.CanivoreReader;
+import org.littletonrobotics.frc2025.util.DummyLogReceiver;
 import org.littletonrobotics.frc2025.util.LoggedTracer;
 import org.littletonrobotics.frc2025.util.NTClientLogger;
 import org.littletonrobotics.frc2025.util.PhoenixUtil;
 import org.littletonrobotics.frc2025.util.SystemTimeValidReader;
 import org.littletonrobotics.frc2025.util.VirtualSubsystem;
-import org.littletonrobotics.frc2025.util.rlog.RLOGServer;
 import org.littletonrobotics.junction.AutoLogOutputManager;
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.inputs.LoggedPowerDistribution;
+import org.littletonrobotics.junction.rlog.RLOGServer;
 import org.littletonrobotics.junction.wpilog.WPILOGReader;
 import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 
@@ -133,6 +134,9 @@ public class Robot extends LoggedRobot {
     // Set up auto logging for RobotState
     AutoLogOutputManager.addObject(RobotState.getInstance());
 
+    // Add dummy log receiver to adjust thread priority
+    Logger.addDataReceiver(new DummyLogReceiver());
+
     // Start AdvantageKit logger
     Logger.start();
 
@@ -145,6 +149,7 @@ public class Robot extends LoggedRobot {
     } catch (Exception e) {
       DriverStation.reportWarning("Failed to disable loop overrun warnings.", false);
     }
+    CommandScheduler.getInstance().setPeriod(loopOverrunWarningTimeout);
 
     // Start system time valid reader
     SystemTimeValidReader.start();

@@ -16,7 +16,6 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.*;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import java.util.*;
@@ -35,7 +34,6 @@ import org.littletonrobotics.frc2025.Constants.Mode;
 import org.littletonrobotics.frc2025.Constants.RobotType;
 import org.littletonrobotics.frc2025.FieldConstants;
 import org.littletonrobotics.frc2025.RobotState;
-import org.littletonrobotics.frc2025.commands.AlgaeScoreCommands;
 import org.littletonrobotics.frc2025.commands.AutoScoreCommands;
 import org.littletonrobotics.frc2025.subsystems.leds.Leds;
 import org.littletonrobotics.frc2025.subsystems.superstructure.dispenser.Dispenser;
@@ -272,17 +270,27 @@ public class Superstructure extends SubsystemBase {
     setDefaultCommand(
         runGoal(
                 () -> {
+                  final Pose2d robot = RobotState.getInstance().getEstimatedPose();
+                  final Pose2d flippedRobot = AllianceFlipUtil.apply(robot);
+
                   // Check danger state
                   if (reefDangerState.isPresent()
                       && AutoScoreCommands.withinDistanceToReef(
-                          RobotState.getInstance().getEstimatedPose(),
+                          robot,
                           hasAlgae()
                               ? AutoScoreCommands.minDistanceReefClearAlgaeL4.get()
-                              : AutoScoreCommands.minDistanceReefClearL4.get())) {
-                    if (reefDangerState.isPresent()
-                        && (goal != reefDangerState.get()
-                            && !(coralEjectPairs.containsKey(reefDangerState.get())
-                                && goal == coralEjectPairs.get(reefDangerState.get())))) {
+                              : AutoScoreCommands.minDistanceReefClearL4.get())
+                      && Math.abs(
+                              FieldConstants.Reef.center
+                                  .minus(flippedRobot.getTranslation())
+                                  .getAngle()
+                                  .minus(flippedRobot.getRotation())
+                                  .getDegrees())
+                          <= AutoScoreCommands.minAngleReefClear.get()) {
+                    // Reset reef danger state when new goal requested
+                    if (goal != reefDangerState.get()
+                        && !(coralEjectPairs.containsKey(reefDangerState.get())
+                            && goal == coralEjectPairs.get(reefDangerState.get()))) {
                       reefDangerState = Optional.empty();
                     } else {
                       return reefDangerState.get();
@@ -292,10 +300,7 @@ public class Superstructure extends SubsystemBase {
                   }
 
                   // Check if should intake
-                  Pose2d robot =
-                      AllianceFlipUtil.apply(RobotState.getInstance().getEstimatedPose());
-                  if (!dispenser.hasCoral()
-                      && !dispenser.hasAlgae()
+                  if (!hasCoral()
                       && robot.getX() < FieldConstants.fieldLength / 5.0
                       && (robot.getY() < FieldConstants.fieldWidth / 5.0
                           || robot.getY() > FieldConstants.fieldWidth * 4.0 / 5.0)
@@ -304,7 +309,9 @@ public class Superstructure extends SubsystemBase {
                         || state == SuperstructureState.ALGAE_CORAL_INTAKE) {
                       requestFunnelIntake = true;
                     }
-                    return SuperstructureState.CORAL_INTAKE;
+                    return hasAlgae()
+                        ? SuperstructureState.ALGAE_CORAL_INTAKE
+                        : SuperstructureState.CORAL_INTAKE;
                   }
                   requestFunnelIntake = false;
                   return dispenser.hasAlgae()
@@ -609,22 +616,6 @@ public class Superstructure extends SubsystemBase {
           SuperstructureState.ALGAE_L4_CORAL, SuperstructureState.ALGAE_L4_CORAL_EJECT);
 
   private Command getEdgeCommand(SuperstructureState from, SuperstructureState to) {
-    if (from == SuperstructureState.PRE_THROW && to == SuperstructureState.THROW) {
-      Timer algaeEjectTimer = new Timer();
-      return Commands.runOnce(
-              () -> {
-                algaeEjectTimer.restart();
-                forceFastConstraints = true;
-                elevator.setGoal(to.getValue().getPose().elevatorHeight());
-                dispenser.setGoal(to.getValue().getPose().pivotAngle());
-              })
-          .andThen(
-              Commands.waitUntil(
-                  () -> algaeEjectTimer.hasElapsed(AlgaeScoreCommands.throwGripperEjectTime.get())),
-              runSuperstructureExtras(SuperstructureState.THROW),
-              Commands.runOnce(() -> forceFastConstraints = false));
-    }
-
     if (from == SuperstructureState.ALGAE_STOW && to == SuperstructureState.PRE_PROCESS) {
       return runElevator(to.getValue().getPose().elevatorHeight())
           .andThen(

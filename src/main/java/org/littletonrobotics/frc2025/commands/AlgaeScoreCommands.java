@@ -115,7 +115,7 @@ public class AlgaeScoreCommands {
                     AllianceFlipUtil.applyX(
                         FieldConstants.fieldLength / 2.0 - throwLineupDistance.get()),
                     RobotState.getInstance().getEstimatedPose().getY(),
-                    AllianceFlipUtil.apply(Rotation2d.kPi)),
+                    AllianceFlipUtil.apply(Rotation2d.kZero)),
             RobotState.getInstance()::getEstimatedPose,
             () ->
                 DriveCommands.getLinearVelocityFromJoysticks(0, driverY.getAsDouble())
@@ -148,7 +148,7 @@ public class AlgaeScoreCommands {
                     () ->
                         startPose.value.transformBy(
                             GeomUtil.toTransform2d(
-                                -Math.min(
+                                Math.min(
                                     driveTimer.get() * throwDriveVelocity.get(),
                                     throwDriveDistance.get()),
                                 0)))

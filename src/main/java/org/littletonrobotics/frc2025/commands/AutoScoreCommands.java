@@ -54,6 +54,8 @@ public class AutoScoreCommands {
       new LoggedTunableNumber("AutoScore/MinDistanceReefClear", Units.inchesToMeters(6.0));
   public static final LoggedTunableNumber minDistanceReefClearAlgaeL4 =
       new LoggedTunableNumber("AutoScore/MinDistanceReefClearAlgae", Units.inchesToMeters(8.0));
+  public static final LoggedTunableNumber minAngleReefClear =
+      new LoggedTunableNumber("AutoScore/MinAngleReefClear", 60.0);
   public static final LoggedTunableNumber algaeBackupTime =
       new LoggedTunableNumber("AutoScore/AlgaeBackupTime", 0.5);
   private static final LoggedTunableNumber distanceSuperstructureReady =
@@ -765,20 +767,37 @@ public class AutoScoreCommands {
 
   /** Get drive target. */
   public static Pose2d getDriveTarget(Pose2d robot, Pose2d goal) {
-    var offset = robot.relativeTo(goal);
-    double yDistance = Math.abs(offset.getY());
-    double xDistance = Math.abs(offset.getX());
-    double shiftXT =
-        MathUtil.clamp(
-            (yDistance / (Reef.faceLength * 2)) + ((xDistance - 0.3) / (Reef.faceLength * 4)),
-            0.0,
-            1.0);
-    double shiftYT =
-        MathUtil.clamp(yDistance <= 0.2 ? 0.0 : offset.getX() / Reef.faceLength, 0.0, 1.0);
+    Rotation2d angleToGoal =
+        robot
+            .getTranslation()
+            .minus(AllianceFlipUtil.apply(Reef.center))
+            .getAngle()
+            .minus(goal.getTranslation().minus(AllianceFlipUtil.apply(Reef.center)).getAngle());
+    Logger.recordOutput("AutoScore/AngleToGoal", angleToGoal);
+    if (Math.abs(angleToGoal.getDegrees()) >= 30.0 && withinDistanceToReef(robot, 1)) {
+      var offset = robot.relativeTo(goal);
+      double yDistance = Math.abs(offset.getY());
+      double xDistance = Math.abs(offset.getX());
+      double shiftXT =
+          MathUtil.clamp(
+              (yDistance / (Reef.faceLength * 2)) + ((xDistance - 0.3) / (Reef.faceLength * 4)),
+              0.0,
+              1.0);
+      double shiftYT =
+          MathUtil.clamp(yDistance <= 0.2 ? 0.0 : offset.getX() / Reef.faceLength, 0.0, 1.0);
+      return goal.transformBy(
+          GeomUtil.toTransform2d(
+              -shiftXT * maxDistanceReefLineup.get(),
+              Math.copySign(shiftYT * maxDistanceReefLineup.get() * 0.8, offset.getY())));
+    }
     return goal.transformBy(
         GeomUtil.toTransform2d(
-            -shiftXT * maxDistanceReefLineup.get(),
-            Math.copySign(shiftYT * maxDistanceReefLineup.get() * 0.8, offset.getY())));
+            -MathUtil.clamp(
+                    (robot.getTranslation().getDistance(goal.getTranslation()) - 1.0) / 1.2,
+                    0.0,
+                    1.0)
+                * 0.7,
+            0.0));
   }
 
   /** Get position of robot aligned with branch for selected objective. */
