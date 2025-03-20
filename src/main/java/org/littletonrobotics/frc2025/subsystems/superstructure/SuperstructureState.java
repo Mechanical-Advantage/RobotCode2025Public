@@ -19,6 +19,7 @@ public enum SuperstructureState {
   START(SuperstructureStateData.builder().build()),
   AUTO_START(SuperstructureStateData.builder().build()),
   CHARACTERIZATION(SuperstructureStateData.builder().build()),
+  SAFETY(SuperstructureStateData.builder().build()),
   STOW(SuperstructureStateData.builder().pose(Preset.STOW.getPose()).build()),
   CORAL_INTAKE(
       SuperstructureStateData.builder()

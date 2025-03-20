@@ -68,6 +68,7 @@ public class Superstructure extends SubsystemBase {
   private SuperstructureState lastState = SuperstructureState.START;
   private SuperstructureState sourceState = SuperstructureState.START;
   @Getter private SuperstructureState goal = SuperstructureState.START;
+  private boolean wasDisabled = false;
   private boolean hasHomedDispenser = false;
   private final Command homeDispenser;
 
@@ -143,6 +144,26 @@ public class Superstructure extends SubsystemBase {
                         Commands.waitUntil(this::mechanismsAtGoal),
                         runSuperstructureExtras(SuperstructureState.STOW)))
             .build());
+
+    graph.addEdge(
+        SuperstructureState.SAFETY,
+        SuperstructureState.STOW,
+        EdgeCommand.builder()
+            .command(
+                runDispenserPivot(
+                        () ->
+                            Rotation2d.fromDegrees(
+                                MathUtil.clamp(
+                                    dispenser.getPivotAngle().getDegrees(),
+                                    pivotMinSafeAngleDeg.get(),
+                                    pivotMaxSafeAngleDeg.get())))
+                    .andThen(
+                        runSuperstructureExtras(SuperstructureState.STOW),
+                        Commands.waitUntil(dispenser::isAtGoal),
+                        runSuperstructurePose(SuperstructureState.STOW.getValue().getPose()),
+                        Commands.waitUntil(this::mechanismsAtGoal)))
+            .build());
+
     graph.addEdge(
         SuperstructureState.CHARACTERIZATION,
         SuperstructureState.STOW,
@@ -335,6 +356,11 @@ public class Superstructure extends SubsystemBase {
       Leds.getInstance().characterizationMode = false;
     }
 
+    if ((DriverStation.isDisabled() || isEStopped) && !wasDisabled && elevator.isHomed()) {
+      state = SuperstructureState.SAFETY;
+    }
+    wasDisabled = DriverStation.isDisabled() || isEStopped;
+
     if (DriverStation.isDisabled()) {
       next = null;
     } else if (edgeCommand == null || !edgeCommand.getCommand().isScheduled()) {
@@ -464,11 +490,11 @@ public class Superstructure extends SubsystemBase {
   }
 
   public void resetHasCoral() {
-    dispenser.resetHasCoral();
+    dispenser.resetHasCoral(false);
   }
 
   public void resetHasAlgae() {
-    dispenser.resetHasAlgae();
+    dispenser.resetHasAlgae(false);
   }
 
   private void setGoal(SuperstructureState goal) {
@@ -525,7 +551,7 @@ public class Superstructure extends SubsystemBase {
     if (edgeCommand != null) {
       edgeCommand.getCommand().cancel();
     }
-    dispenser.setHasCoral(true);
+    dispenser.resetHasCoral(true);
   }
 
   private Optional<SuperstructureState> bfs(SuperstructureState start, SuperstructureState goal) {

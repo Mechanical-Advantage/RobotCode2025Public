@@ -17,6 +17,7 @@ import edu.wpi.first.networktables.StringPublisher;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.MatchType;
 import java.util.*;
+import java.util.function.BooleanSupplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -44,6 +45,7 @@ public class ObjectiveTracker extends VirtualSubsystem {
   private static final String completeColor = "#00ff00";
   private static final String incompleteColor = "#ff0000";
   private static final String skipColor = "#ffff00";
+  private static final String simpleStrategy = "4321";
 
   private static final Set<CoralObjective> l1CoralObjectives =
       IntStream.rangeClosed(0, 11)
@@ -85,6 +87,9 @@ public class ObjectiveTracker extends VirtualSubsystem {
   private final LoggedDashboardChooser<String> dashboardLevelChooser =
       new LoggedDashboardChooser<>("Reef Level");
 
+  // Override (s)
+  private BooleanSupplier forceSimpleCoralStrategy = () -> false;
+
   @AutoLogOutput(key = "ObjectiveTracker/PredictedPose")
   private Pose2d predictedRobot = Pose2d.kZero;
 
@@ -124,7 +129,7 @@ public class ObjectiveTracker extends VirtualSubsystem {
 
     // Update strategy when input changed
     boolean strategyChanged = false;
-    if (!strategyInput.get().equals(previousStrategy)) {
+    if (!getStrategyString().equals(previousStrategy)) {
       strategyChanged = true;
       parseStrategy();
     }
@@ -427,9 +432,20 @@ public class ObjectiveTracker extends VirtualSubsystem {
         () ->
             Logger.recordOutput(
                 "ObjectiveTracker/Strategy/AlgaeObjective", new AlgaeObjective[] {}));
+    // Log override(s)
+    Logger.recordOutput(
+        "ObjectiveTracker/ForceSimpleStrategy", forceSimpleCoralStrategy.getAsBoolean());
 
     // Record cycle time
     LoggedTracer.record("ObjectiveTracker");
+  }
+
+  private String getStrategyString() {
+    if (forceSimpleCoralStrategy.getAsBoolean()) {
+      return simpleStrategy;
+    } else {
+      return strategyInput.get();
+    }
   }
 
   private Optional<ReefLevel> getLevel(boolean secondPriority) {
@@ -463,11 +479,10 @@ public class ObjectiveTracker extends VirtualSubsystem {
   private static final Set<Character> allowedCharacters = Set.of('1', '2', '3', '4', '5');
 
   private void parseStrategy() {
-    previousStrategy = strategyInput.get();
+    previousStrategy = getStrategyString();
     fullStrategy.clear();
     String filtered =
-        strategyInput
-            .get()
+        getStrategyString()
             .chars()
             .mapToObj(chr -> (char) chr)
             .filter(allowedCharacters::contains)
@@ -507,6 +522,10 @@ public class ObjectiveTracker extends VirtualSubsystem {
       strategyNamesPublishers[i].set("");
       strategyCompletedPublishers[i].set(inactiveColor);
     }
+  }
+
+  public void setOverrides(BooleanSupplier forceSimpleCoralStrategy) {
+    this.forceSimpleCoralStrategy = forceSimpleCoralStrategy;
   }
 
   @Getter

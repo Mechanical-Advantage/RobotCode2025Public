@@ -37,6 +37,7 @@ public class Leds extends VirtualSubsystem {
   public boolean endgameAlert = false;
   public boolean autoScoringReef = false;
   public boolean autoScoring = false;
+  public boolean superAutoScoring = false;
   public boolean superstructureCoast = false;
   public boolean superstructureEstopped = false;
   public boolean lowBatteryAlert = false;
@@ -78,6 +79,7 @@ public class Leds extends VirtualSubsystem {
   private static final double breathSlowDuration = 1.0;
   private static final double rainbowCycleLength = 25.0;
   private static final double rainbowDuration = 0.25;
+  private static final double rainbowStrobeDuration = 0.2;
   private static final double waveExponent = 0.4;
   private static final double waveFastCycleLength = 25.0;
   private static final double waveFastDuration = 0.25;
@@ -224,6 +226,11 @@ public class Leds extends VirtualSubsystem {
               case L3 -> l3PriorityColor;
               case L4 -> l4PriorityColor;
             });
+
+        // Super auto scoring
+        if (superAutoScoring) {
+          strobe(topThreeQuartSection, Color.kBlack, null, rainbowStrobeDuration);
+        }
       }
 
       // Auto scoring
@@ -279,6 +286,7 @@ public class Leds extends VirtualSubsystem {
 
   private Color strobe(Section section, Color c1, Color c2, double duration) {
     boolean c1On = ((Timer.getTimestamp() % duration) / duration) > 0.5;
+    if ((c1On && c1 == null) || (!c1On && c2 == null)) return null;
     return solid(section, c1On ? c1 : c2);
   }
 

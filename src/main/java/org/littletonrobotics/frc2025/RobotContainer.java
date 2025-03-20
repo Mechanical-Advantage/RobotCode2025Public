@@ -81,7 +81,7 @@ public class RobotContainer {
   private final Trigger disableReefAutoAlign = overrides.operatorSwitch(1);
   private final Trigger disableCoralStationAutoAlign = overrides.operatorSwitch(2);
   private final Trigger disableAlgaeScoreAutoAlign = overrides.operatorSwitch(3);
-  private final Trigger disableDispenserGamePieceDetection = overrides.operatorSwitch(4);
+  private final Trigger forceSimpleCoralStrategy = overrides.operatorSwitch(4);
 
   private final Trigger aprilTagsReef = overrides.multiDirectionSwitchLeft();
   private final Trigger aprilTagFieldBorder = overrides.multiDirectionSwitchRight();
@@ -121,7 +121,8 @@ public class RobotContainer {
               new Vision(
                   this::getSelectedAprilTagLayout,
                   new VisionIONorthstar(this::getSelectedAprilTagLayout, 0),
-                  new VisionIONorthstar(this::getSelectedAprilTagLayout, 1));
+                  new VisionIONorthstar(this::getSelectedAprilTagLayout, 1),
+                  new VisionIONorthstar(this::getSelectedAprilTagLayout, 2));
           elevator = new Elevator(new ElevatorIOTalonFX());
           dispenser =
               new Dispenser(
@@ -192,7 +193,11 @@ public class RobotContainer {
       switch (Constants.getRobot()) {
         case COMPBOT ->
             vision =
-                new Vision(this::getSelectedAprilTagLayout, new VisionIO() {}, new VisionIO() {});
+                new Vision(
+                    this::getSelectedAprilTagLayout,
+                    new VisionIO() {},
+                    new VisionIO() {},
+                    new VisionIO() {});
         case DEVBOT -> vision = new Vision(this::getSelectedAprilTagLayout, new VisionIO() {});
         default -> vision = new Vision(this::getSelectedAprilTagLayout);
       }
@@ -263,11 +268,9 @@ public class RobotContainer {
     // Set up overrides
     superstructure.setOverrides(superstructureDisable, disableAutoCoralStationIntake);
     elevator.setOverrides(() -> superstructureCoastOverride, superstructureDisable);
-    dispenser.setOverrides(
-        () -> superstructureCoastOverride,
-        superstructureDisable,
-        disableDispenserGamePieceDetection);
+    dispenser.setOverrides(() -> superstructureCoastOverride, superstructureDisable);
     climber.setCoastOverride(() -> superstructureCoastOverride);
+    objectiveTracker.setOverrides(forceSimpleCoralStrategy);
 
     // Configure the button bindings
     configureButtonBindings();

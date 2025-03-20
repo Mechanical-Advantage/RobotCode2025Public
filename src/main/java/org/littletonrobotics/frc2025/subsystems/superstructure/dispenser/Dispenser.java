@@ -25,6 +25,7 @@ import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.experimental.Accessors;
 import org.littletonrobotics.frc2025.Constants;
 import org.littletonrobotics.frc2025.Constants.RobotType;
 import org.littletonrobotics.frc2025.Robot;
@@ -131,7 +132,6 @@ public class Dispenser {
   // Overrides
   private BooleanSupplier coastOverride = () -> false;
   private BooleanSupplier disabledOverride = () -> false;
-  private BooleanSupplier disableGamePieceDetectionOverride = () -> false;
 
   @AutoLogOutput(key = "Dispenser/PivotBrakeModeEnabled")
   private boolean brakeModeEnabled = true;
@@ -154,8 +154,16 @@ public class Dispenser {
   @Setter private double tunnelVolts = 0.0;
   @AutoLogOutput @Setter private GripperGoal gripperGoal = GripperGoal.IDLE;
 
-  @Setter private boolean hasCoral = false;
+  @AutoLogOutput
+  @Accessors(fluent = true)
+  @Getter()
+  private boolean hasCoral = false;
+
+  @AutoLogOutput
+  @Accessors(fluent = true)
+  @Getter()
   private boolean hasAlgae = false;
+
   @Getter private boolean doNotStopIntaking = false;
 
   private static final double coralDebounceTime = 0.1;
@@ -264,7 +272,7 @@ public class Dispenser {
               MathUtil.clamp(goal.getAsDouble(), minAngle.getRadians(), maxAngle.getRadians()),
               0.0);
       setpoint =
-          (hasAlgae() && !forceFastConstraints ? algaeProfile : profile)
+          (hasAlgae && !forceFastConstraints ? algaeProfile : profile)
               .calculate(Constants.loopPeriodSecs, setpoint, goalState);
       pivotIO.runPosition(
           Rotation2d.fromRadians(
@@ -356,8 +364,8 @@ public class Dispenser {
     }
 
     // Display hasCoral & hasAlgae
-    SmartDashboard.putBoolean("Has Coral?", hasCoral());
-    SmartDashboard.putBoolean("Has Algae?", hasAlgae());
+    SmartDashboard.putBoolean("Has Coral?", hasCoral);
+    SmartDashboard.putBoolean("Has Algae?", hasAlgae);
 
     // Display coral threshold offset
     SmartDashboard.putString("Coral Threshold Offset", String.format("%.1f", coralThresholdOffset));
@@ -380,40 +388,26 @@ public class Dispenser {
     return goal.getAsDouble();
   }
 
-  @AutoLogOutput
-  public boolean hasAlgae() {
-    return hasAlgae && !disableGamePieceDetectionOverride.getAsBoolean();
-  }
-
-  @AutoLogOutput
-  public boolean hasCoral() {
-    return hasCoral || disableGamePieceDetectionOverride.getAsBoolean();
-  }
-
   @AutoLogOutput(key = "Dispenser/MeasuredAngle")
   public Rotation2d getPivotAngle() {
     return pivotInputs.data.position().plus(maxAngle).minus(homingOffset);
   }
 
-  public void resetHasCoral() {
-    hasCoral = false;
+  public void resetHasCoral(boolean value) {
+    hasCoral = value;
     coralDebouncer = new Debouncer(coralDebounceTime, DebounceType.kRising);
-    coralDebouncer.calculate(false);
+    coralDebouncer.calculate(value);
   }
 
-  public void resetHasAlgae() {
-    hasAlgae = false;
+  public void resetHasAlgae(boolean value) {
+    hasAlgae = value;
     algaeDebouncer = new Debouncer(algaeDebounceTime, DebounceType.kRising);
-    algaeDebouncer.calculate(false);
+    algaeDebouncer.calculate(value);
   }
 
-  public void setOverrides(
-      BooleanSupplier coastOverride,
-      BooleanSupplier disabledOverride,
-      BooleanSupplier disableGamePieceDetectionOverride) {
+  public void setOverrides(BooleanSupplier coastOverride, BooleanSupplier disabledOverride) {
     this.coastOverride = coastOverride;
     this.disabledOverride = disabledOverride;
-    this.disableGamePieceDetectionOverride = disableGamePieceDetectionOverride;
   }
 
   private void setBrakeMode(boolean enabled) {

@@ -617,7 +617,13 @@ public class AutoScoreCommands {
         .beforeStarting(
             () -> {
               Leds.getInstance().autoScoringReef = true;
+              Leds.getInstance().superAutoScoring = true;
               Leds.getInstance().autoScoringLevel = reefLevel.get();
+            })
+        .finallyDo(
+            () -> {
+              Leds.getInstance().autoScoringReef = false;
+              Leds.getInstance().superAutoScoring = true;
             });
   }
 

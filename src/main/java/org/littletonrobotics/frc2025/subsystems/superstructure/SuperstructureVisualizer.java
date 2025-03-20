@@ -105,17 +105,19 @@ public class SuperstructureVisualizer {
     if (hasAlgae) {
       Logger.recordOutput(
           "Mechanism3d/" + name + "/Algae",
-          new Pose3d(RobotState.getInstance().getEstimatedPose())
-              .transformBy(new Transform3d(Pose3d.kZero, pivotPose3d))
-              .transformBy(
-                  new Transform3d(
-                      dispenserOriginToAlgaeOrigin.getX(),
-                      0.0,
-                      dispenserOriginToAlgaeOrigin.getY(),
-                      Rotation3d.kZero))
-              .getTranslation());
+          new Translation3d[] {
+            new Pose3d(RobotState.getInstance().getEstimatedPose())
+                .transformBy(new Transform3d(Pose3d.kZero, pivotPose3d))
+                .transformBy(
+                    new Transform3d(
+                        dispenserOriginToAlgaeOrigin.getX(),
+                        0.0,
+                        dispenserOriginToAlgaeOrigin.getY(),
+                        Rotation3d.kZero))
+                .getTranslation()
+          });
     } else {
-      Logger.recordOutput("Mechanism3d/" + name + "/Algae", new Pose3d[] {});
+      Logger.recordOutput("Mechanism3d/" + name + "/Algae", new Translation3d[] {});
     }
 
     if (hasCoral) {

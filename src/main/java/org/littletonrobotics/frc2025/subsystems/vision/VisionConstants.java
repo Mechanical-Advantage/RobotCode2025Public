@@ -17,7 +17,7 @@ import org.littletonrobotics.frc2025.Constants.Mode;
 import org.littletonrobotics.frc2025.util.LoggedTunableNumber;
 
 public class VisionConstants {
-  private static final boolean forceEnableInstanceLogging = true;
+  private static final boolean forceEnableInstanceLogging = false;
   public static final boolean enableInstanceLogging =
       forceEnableInstanceLogging || Constants.getMode() == Mode.REPLAY;
 
@@ -31,10 +31,10 @@ public class VisionConstants {
   public static final LoggedTunableNumber timestampOffset =
       new LoggedTunableNumber("AprilTagVision/TimestampOffset", 0.0);
 
-  private static int monoExposure = 12000;
-  private static int colorExposure = 12000;
-  private static double monoGain = 0.3;
-  private static double colorGain = 0.3;
+  private static int monoExposure = 1500;
+  private static double monoGain = 15.0;
+  //   private static int colorExposure = 1500;
+  //   private static double colorGain = 15.0;
 
   public static LoggedTunableNumber[] pitchAdjustments =
       switch (Constants.getRobot()) {
@@ -48,7 +48,6 @@ public class VisionConstants {
               new LoggedTunableNumber("Vision/PitchAdjust0", 0.0),
               new LoggedTunableNumber("Vision/PitchAdjust1", 0.0),
               new LoggedTunableNumber("Vision/PitchAdjust2", 0.0),
-              new LoggedTunableNumber("Vision/PitchAdjust3", 0.0)
             };
         default -> new LoggedTunableNumber[] {};
       };
@@ -100,14 +99,14 @@ public class VisionConstants {
                   .pose(
                       () ->
                           new Pose3d(
-                              Units.inchesToMeters(10),
-                              Units.inchesToMeters(10),
-                              Units.inchesToMeters(18.5),
+                              0.2794,
+                              0.2286,
+                              0.21113,
                               new Rotation3d(
                                   0.0,
-                                  Units.degreesToRadians(29 + pitchAdjustments[0].get()),
-                                  Units.degreesToRadians(-23.31))))
-                  .id("40552080")
+                                  Units.degreesToRadians(-25.0 + pitchAdjustments[0].get()),
+                                  Units.degreesToRadians(-20.0))))
+                  .id("40530395")
                   .width(1600)
                   .height(1200)
                   .exposure(monoExposure)
@@ -119,13 +118,13 @@ public class VisionConstants {
                   .pose(
                       () ->
                           new Pose3d(
-                              Units.inchesToMeters(10),
-                              Units.inchesToMeters(-10.0),
-                              Units.inchesToMeters(18.5),
+                              0.2794,
+                              -0.2286,
+                              0.21113,
                               new Rotation3d(
                                   0.0,
-                                  Units.degreesToRadians(29 + pitchAdjustments[1].get()),
-                                  Units.degreesToRadians(23.31))))
+                                  Units.degreesToRadians(-25.0 + pitchAdjustments[1].get()),
+                                  Units.degreesToRadians(20.0))))
                   .id("40552081")
                   .width(1600)
                   .height(1200)
@@ -152,25 +151,6 @@ public class VisionConstants {
                   .gain(monoGain)
                   .stdDevFactor(1.0)
                   .build(),
-              // Front Up Color
-              CameraConfig.builder()
-                  .pose(
-                      () ->
-                          new Pose3d(
-                              Units.inchesToMeters(9),
-                              Units.inchesToMeters(10),
-                              Units.inchesToMeters(25),
-                              new Rotation3d(
-                                  0.0,
-                                  Units.degreesToRadians(pitchAdjustments[3].get()),
-                                  Units.degreesToRadians(-15))))
-                  .id("24737133")
-                  .width(1280)
-                  .height(960)
-                  .exposure(colorExposure)
-                  .gain(colorGain)
-                  .stdDevFactor(1.25)
-                  .build()
             };
         default -> new CameraConfig[] {};
       };
