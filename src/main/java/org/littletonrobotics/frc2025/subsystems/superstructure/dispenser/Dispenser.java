@@ -41,8 +41,8 @@ import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
 public class Dispenser {
-  public static final Rotation2d minAngle = Rotation2d.fromDegrees(-56.5);
-  public static final Rotation2d maxAngle = Rotation2d.fromDegrees(4.5);
+  public static final Rotation2d minAngle = Rotation2d.fromDegrees(-76.0);
+  public static final Rotation2d maxAngle = Rotation2d.fromDegrees(13.7);
 
   // Tunable numbers
   private static final LoggedTunableNumber kP = new LoggedTunableNumber("Dispenser/kP");
@@ -66,9 +66,9 @@ public class Dispenser {
   private static final LoggedTunableNumber coralProxThreshold =
       new LoggedTunableNumber("Dispenser/CoralProxThresh", 0.06);
   public static final LoggedTunableNumber gripperHoldVolts =
-      new LoggedTunableNumber("Dispenser/GripperHoldVolts", 1.5);
+      new LoggedTunableNumber("Dispenser/GripperHoldVolts", 1.0);
   public static final LoggedTunableNumber gripperIntakeVolts =
-      new LoggedTunableNumber("Dispenser/GripperIntakeVolts", 5.0);
+      new LoggedTunableNumber("Dispenser/GripperIntakeVolts", 8.0);
   public static final LoggedTunableNumber gripperEjectVolts =
       new LoggedTunableNumber("Dispenser/GripperEjectVolts", -12.0);
   public static final LoggedTunableNumber gripperL1EjectVolts =
@@ -171,14 +171,14 @@ public class Dispenser {
   private Debouncer coralDebouncer = new Debouncer(coralDebounceTime, DebounceType.kRising);
   private Debouncer algaeDebouncer = new Debouncer(algaeDebounceTime, DebounceType.kRising);
   private Debouncer toleranceDebouncer = new Debouncer(0.25, DebounceType.kRising);
-  private Debouncer homingDebouncer = new Debouncer(0.25);
 
   @Setter @Getter @AutoLogOutput private double coralThresholdOffset = 0.0;
-  @AutoLogOutput private Rotation2d homingOffset = Rotation2d.kZero;
 
   // Disconnected alerts
   private final Alert pivotMotorDisconnectedAlert =
       new Alert("Dispenser pivot motor disconnected!", Alert.AlertType.kWarning);
+  private final Alert pivotEncoderDisconnectedAlert =
+      new Alert("Dispenser pivot encoder disconnected!", Alert.AlertType.kWarning);
   private final Alert tunnelDisconnectedAlert =
       new Alert("Dispenser tunnel disconnected!", Alert.AlertType.kWarning);
   private final Alert gripperDisconnectedAlert =
@@ -217,6 +217,10 @@ public class Dispenser {
 
     pivotMotorDisconnectedAlert.set(
         !pivotInputs.data.motorConnected()
+            && Constants.getRobot() == RobotType.COMPBOT
+            && !Robot.isJITing());
+    pivotEncoderDisconnectedAlert.set(
+        !pivotInputs.data.encoderConnected()
             && Constants.getRobot() == RobotType.COMPBOT
             && !Robot.isJITing());
     tunnelDisconnectedAlert.set(!tunnelInputs.data.connected() && !Robot.isJITing());
@@ -263,7 +267,8 @@ public class Dispenser {
 
     // Check if out of tolerance
     boolean outOfTolerance =
-        Math.abs(getPivotAngle().getRadians() - setpoint.position) > tolerance.get();
+        Math.abs(pivotInputs.data.internalPosition().getRadians() - setpoint.position)
+            > tolerance.get();
     shouldEStop = toleranceDebouncer.calculate(outOfTolerance && shouldRunProfile);
     if (shouldRunProfile) {
       // Clamp goal
@@ -275,10 +280,9 @@ public class Dispenser {
           (hasAlgae && !forceFastConstraints ? algaeProfile : profile)
               .calculate(Constants.loopPeriodSecs, setpoint, goalState);
       pivotIO.runPosition(
-          Rotation2d.fromRadians(
-              setpoint.position - maxAngle.getRadians() + homingOffset.getRadians()),
+          Rotation2d.fromRadians(setpoint.position),
           kS.get() * Math.signum(setpoint.velocity) // Magnitude irrelevant
-              + kG.get() * getPivotAngle().getCos());
+              + kG.get() * pivotInputs.data.internalPosition().getCos());
       // Check at goal
       atGoal =
           EqualsUtil.epsilonEquals(setpoint.position, goalState.position)
@@ -290,7 +294,7 @@ public class Dispenser {
       Logger.recordOutput("Dispenser/Profile/GoalAngleRad", goalState.position);
     } else {
       // Reset setpoint
-      setpoint = new State(getPivotAngle().getRadians(), 0.0);
+      setpoint = new State(pivotInputs.data.internalPosition().getRadians(), 0.0);
 
       // Clear logs
       Logger.recordOutput("Dispenser/Profile/SetpointAngleRad", 0.0);
@@ -390,7 +394,7 @@ public class Dispenser {
 
   @AutoLogOutput(key = "Dispenser/MeasuredAngle")
   public Rotation2d getPivotAngle() {
-    return pivotInputs.data.position().plus(maxAngle).minus(homingOffset);
+    return pivotInputs.data.internalPosition();
   }
 
   public void resetHasCoral(boolean value) {
@@ -440,35 +444,6 @@ public class Dispenser {
               stopProfile = false;
               timer.stop();
               Logger.recordOutput("Dispenser/CharacterizationOutput", state.characterizationOutput);
-            });
-  }
-
-  public Command homingSequence() {
-    return Commands.startRun(
-            () -> {
-              stopProfile = true;
-              homingDebouncer = new Debouncer(homingTimeSecs.get(), DebounceType.kRising);
-              homingDebouncer.calculate(false);
-            },
-            () -> {
-              if (disabledOverride.getAsBoolean() || coastOverride.getAsBoolean()) return;
-              pivotIO.runVolts(homingVolts.get());
-            })
-        .raceWith(
-            Commands.runOnce(() -> {})
-                .andThen(
-                    Commands.waitUntil(
-                        () ->
-                            homingDebouncer.calculate(
-                                Math.abs(pivotInputs.data.velocityRadPerSec())
-                                    <= homingVelocityThresh.get()))))
-        .andThen(
-            () -> {
-              homingOffset = pivotInputs.data.position();
-            })
-        .finallyDo(
-            () -> {
-              stopProfile = false;
             });
   }
 

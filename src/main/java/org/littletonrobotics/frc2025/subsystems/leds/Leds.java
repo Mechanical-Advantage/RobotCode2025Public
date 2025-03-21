@@ -44,6 +44,7 @@ public class Leds extends VirtualSubsystem {
   public boolean characterizationMode = false;
   public boolean visionDisconnected = false;
   public boolean ready = false;
+  public boolean superClimbed = false;
   public boolean coralGrabbed = false;
   public Optional<ReefLevel> firstPriorityLevel = Optional.empty();
   public Optional<ReefLevel> secondPriorityLevel = Optional.empty();
@@ -190,6 +191,8 @@ public class Leds extends VirtualSubsystem {
                 new Color(0.15, 0.3, 1.0)),
             3,
             5.0);
+      } else if (superClimbed) {
+        wave(fullSection, Color.kGold, Color.kDarkBlue, waveFastCycleLength, waveFastDuration);
       } else {
         // Default pattern
         wave(

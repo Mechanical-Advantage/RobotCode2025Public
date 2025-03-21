@@ -11,7 +11,7 @@ import org.littletonrobotics.junction.AutoLog;
 
 public interface RollerSystemIO {
   @AutoLog
-  static class RollerSystemIOInputs {
+  class RollerSystemIOInputs {
     public RollerSystemIOData data = new RollerSystemIOData(0, 0, 0, 0, 0, 0, false, false);
   }
 
@@ -29,6 +29,8 @@ public interface RollerSystemIO {
 
   /* Run rollers at volts */
   default void runVolts(double volts) {}
+
+  default void runTorqueCurrent(double amps) {}
 
   /* Stop rollers */
   default void stop() {}

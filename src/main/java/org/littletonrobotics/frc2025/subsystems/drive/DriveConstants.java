@@ -61,7 +61,7 @@ public class DriveConstants {
         .driveMotorId(10)
         .turnMotorId(11)
         .encoderChannel(42)
-        .encoderOffset(Rotation2d.fromRadians(-1.872990542008368))
+        .encoderOffset(Rotation2d.fromRadians(-2.932971266437346))
         .turnInverted(true)
         .encoderInverted(false)
         .build(),

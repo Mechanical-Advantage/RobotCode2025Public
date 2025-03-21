@@ -206,17 +206,22 @@ public class Elevator {
                 0.0);
       }
 
-      double accel = (setpoint.velocity - previousVelocity) / Constants.loopPeriodSecs;
-      io.runPosition(
-          setpoint.position / drumRadius + homedPosition,
-          kS[getStage()].get() * Math.signum(setpoint.velocity) // Magnitude irrelevant
-              + kG[getStage()].get()
-              + kA[getStage()].get() * accel);
-
       // Check at goal
       atGoal =
           EqualsUtil.epsilonEquals(setpoint.position, goalState.position)
               && EqualsUtil.epsilonEquals(setpoint.velocity, goalState.velocity);
+
+      // Run
+      if (stowed && atGoal) {
+        io.stop();
+      } else {
+        double accel = (setpoint.velocity - previousVelocity) / Constants.loopPeriodSecs;
+        io.runPosition(
+            setpoint.position / drumRadius + homedPosition,
+            kS[getStage()].get() * Math.signum(setpoint.velocity) // Magnitude irrelevant
+                + kG[getStage()].get()
+                + kA[getStage()].get() * accel);
+      }
 
       // Log state
       Logger.recordOutput("Elevator/Profile/SetpointPositionMeters", setpoint.position);

@@ -36,6 +36,7 @@ import org.littletonrobotics.frc2025.FieldConstants;
 import org.littletonrobotics.frc2025.RobotState;
 import org.littletonrobotics.frc2025.commands.AutoScoreCommands;
 import org.littletonrobotics.frc2025.subsystems.leds.Leds;
+import org.littletonrobotics.frc2025.subsystems.superstructure.SuperstructureStateData.Height;
 import org.littletonrobotics.frc2025.subsystems.superstructure.dispenser.Dispenser;
 import org.littletonrobotics.frc2025.subsystems.superstructure.elevator.Elevator;
 import org.littletonrobotics.frc2025.util.AllianceFlipUtil;
@@ -65,12 +66,8 @@ public class Superstructure extends SubsystemBase {
 
   @Getter private SuperstructureState state = SuperstructureState.START;
   private SuperstructureState next = null;
-  private SuperstructureState lastState = SuperstructureState.START;
-  private SuperstructureState sourceState = SuperstructureState.START;
   @Getter private SuperstructureState goal = SuperstructureState.START;
   private boolean wasDisabled = false;
-  private boolean hasHomedDispenser = false;
-  private final Command homeDispenser;
 
   @AutoLogOutput(key = "Superstructure/EStopped")
   private boolean isEStopped = false;
@@ -102,7 +99,6 @@ public class Superstructure extends SubsystemBase {
   public Superstructure(Elevator elevator, Dispenser dispenser) {
     this.elevator = elevator;
     this.dispenser = dispenser;
-    homeDispenser = dispenser.homingSequence();
 
     // Updating E Stop based on disabled override
     new Trigger(() -> disableOverride.getAsBoolean())
@@ -122,8 +118,14 @@ public class Superstructure extends SubsystemBase {
             .command(
                 runSuperstructureExtras(SuperstructureState.STOW)
                     .andThen(
+                        runDispenserPivot(
+                            () ->
+                                Rotation2d.fromDegrees(
+                                    MathUtil.clamp(
+                                        dispenser.getPivotAngle().getDegrees(),
+                                        pivotMinSafeAngleDeg.get(),
+                                        pivotMaxSafeAngleDeg.get()))),
                         Commands.parallel(
-                                dispenser.homingSequence(),
                                 Commands.waitSeconds(0.2).andThen(elevator.homingSequence()))
                             .deadlineFor(
                                 Commands.startEnd(
@@ -379,26 +381,6 @@ public class Superstructure extends SubsystemBase {
                   edgeCommand = graph.getEdge(state, next);
                   edgeCommand.getCommand().schedule();
                 });
-      }
-
-      // Update last state
-      if (state != lastState) {
-        sourceState = lastState;
-        lastState = state;
-      }
-
-      // Auto home dispenser when stowing
-      if (state == SuperstructureState.STOW
-          && goal == SuperstructureState.STOW
-          && sourceState != SuperstructureState.CORAL_INTAKE
-          && !hasCoral()
-          && !hasAlgae()) {
-        if (!hasHomedDispenser) {
-          homeDispenser.schedule();
-          hasHomedDispenser = true;
-        }
-      } else {
-        hasHomedDispenser = false;
       }
     }
 
@@ -667,7 +649,9 @@ public class Superstructure extends SubsystemBase {
               Commands.waitUntil(this::mechanismsAtGoal));
     }
 
-    boolean passesThroughCrossMember = from.getValue().getHeight() != to.getValue().getHeight();
+    boolean passesThroughCrossMember =
+        from.getValue().getHeight().equals(Height.BOTTOM)
+            != to.getValue().getHeight().equals(Height.BOTTOM);
     if (passesThroughCrossMember) {
       boolean isGoingDown = to.getValue().getHeight().lowerThan(from.getValue().getHeight());
       SuperstructurePose safeSuperstructureSetpoint =

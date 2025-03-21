@@ -38,8 +38,8 @@ public class SuperstructureConstants {
 
   public static final double elevatorMaxTravel = 1.83;
 
-  public static final double stage1ToStage2Height = 0.80;
-  public static final double stage2ToStage3Height = 1.37;
+  public static final double stage1ToStage2Height = 0.57;
+  public static final double stage2ToStage3Height = 1.18;
 
   // Min and max safe angles for passing through cross members
   public static final LoggedTunableNumber pivotMinSafeAngleDeg =

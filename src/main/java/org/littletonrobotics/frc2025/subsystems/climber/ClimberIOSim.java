@@ -8,17 +8,14 @@
 package org.littletonrobotics.frc2025.subsystems.climber;
 
 import edu.wpi.first.math.*;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N2;
 import edu.wpi.first.math.system.NumericalIntegration;
 import edu.wpi.first.math.system.plant.DCMotor;
 import org.littletonrobotics.frc2025.Constants;
-import org.littletonrobotics.frc2025.subsystems.superstructure.SuperstructureConstants;
 
 public class ClimberIOSim implements ClimberIO {
-  private static final double moi = 0.0;
-  private static final double cgRadius = 0.2;
+  private static final double moi = 1.2;
   private static final DCMotor gearbox =
       DCMotor.getKrakenX60Foc(1).withReduction(ClimberIOTalonFX.reduction);
   private static final Matrix<N2, N2> A =
@@ -37,7 +34,7 @@ public class ClimberIOSim implements ClimberIO {
   private double appliedVolts = 0.0;
 
   public ClimberIOSim() {
-    simState = VecBuilder.fill(Math.PI / 2.0, 0.0);
+    simState = VecBuilder.fill(0.0, 0.0);
   }
 
   @Override
@@ -72,14 +69,7 @@ public class ClimberIOSim implements ClimberIO {
         MathUtil.clamp(inputTorqueCurrent, -gearbox.stallCurrentAmps, gearbox.stallCurrentAmps);
     Matrix<N2, N1> updatedState =
         NumericalIntegration.rkdp(
-            (Matrix<N2, N1> x, Matrix<N1, N1> u) ->
-                A.times(x)
-                    .plus(B.times(u))
-                    .plus(
-                        -SuperstructureConstants.G
-                            * cgRadius
-                            * Rotation2d.fromRadians(simState.get(0)).getCos()
-                            / moi),
+            (Matrix<N2, N1> x, Matrix<N1, N1> u) -> A.times(x).plus(B.times(u)),
             simState,
             VecBuilder.fill(inputTorqueCurrent * 15), // Magic constant of doom
             dt);

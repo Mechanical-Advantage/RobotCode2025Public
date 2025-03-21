@@ -32,7 +32,6 @@ import org.littletonrobotics.frc2025.FieldConstants.ReefLevel;
 import org.littletonrobotics.frc2025.commands.*;
 import org.littletonrobotics.frc2025.commands.auto.AutoBuilder;
 import org.littletonrobotics.frc2025.subsystems.climber.Climber;
-import org.littletonrobotics.frc2025.subsystems.climber.Climber.ClimbState;
 import org.littletonrobotics.frc2025.subsystems.climber.ClimberIO;
 import org.littletonrobotics.frc2025.subsystems.climber.ClimberIOSim;
 import org.littletonrobotics.frc2025.subsystems.climber.ClimberIOTalonFX;
@@ -128,11 +127,13 @@ public class RobotContainer {
               new Dispenser(
                   new PivotIOTalonFX(),
                   new RollerSystemIOTalonFX(6, "", 40, true, false, 3.0),
-                  new RollerSystemIOTalonFX(7, "", 40, false, false, (30 / 12) * (48 / 18)),
+                  new RollerSystemIOTalonFX(7, "", 40, false, false, (30.0 / 12.0) * (48.0 / 18.0)),
                   new CoralSensorIOLaserCan());
           funnel =
               new RollerSystem("Funnel", new RollerSystemIOTalonFX(2, "", 30, true, false, 1.0));
-          climber = new Climber(new ClimberIOTalonFX());
+          climber =
+              new Climber(
+                  new ClimberIOTalonFX(), new RollerSystemIOTalonFX(3, "", 60, false, false, 3.4));
         }
         case DEVBOT -> {
           drive =
@@ -171,7 +172,9 @@ public class RobotContainer {
                   new RollerSystemIOSim(DCMotor.getKrakenX60Foc(1), 1.0, 0.2),
                   new RollerSystemIOSim(DCMotor.getKrakenX60Foc(1), 1.0, 0.2),
                   new CoralSensorIO() {});
-          climber = new Climber(new ClimberIOSim());
+          climber =
+              new Climber(
+                  new ClimberIOSim(), new RollerSystemIOSim(DCMotor.getKrakenX60Foc(1), 3.4, 0.05));
           funnel =
               new RollerSystem(
                   "Funnel", new RollerSystemIOSim(DCMotor.getKrakenX60Foc(1), 1.0, 0.02));
@@ -217,7 +220,7 @@ public class RobotContainer {
       funnel = new RollerSystem("Funnel", new RollerSystemIO() {});
     }
     if (climber == null) {
-      climber = new Climber(new ClimberIO() {});
+      climber = new Climber(new ClimberIO() {}, new RollerSystemIO() {});
     }
     objectiveTracker =
         new ObjectiveTracker(
@@ -403,51 +406,7 @@ public class RobotContainer {
     bindAutoScore.accept(driver.rightBumper(), false);
 
     // Climbing controls
-    Container<ClimbState> climbState = new Container<>(ClimbState.START);
-    driver
-        .y()
-        .and(() -> climbState.value == ClimbState.START)
-        .doublePress()
-        .onTrue(
-            climber
-                .deploy()
-                .andThen(
-                    () -> {
-                      climbState.value = ClimbState.DEPLOYED;
-                      Leds.getInstance().ready = true;
-                    })
-                .withName("Deploy Climber"));
-    driver
-        .y()
-        .and(() -> climbState.value == ClimbState.DEPLOYED)
-        .doublePress()
-        .onTrue(
-            climber
-                .climb()
-                .alongWith(Commands.runOnce(() -> climbState.value = ClimbState.CLIMBING))
-                .finallyDo(() -> Leds.getInstance().ready = false)
-                .withName("Climb Climber"));
-    driver
-        .y()
-        .and(() -> climbState.value == ClimbState.CLIMBING)
-        .doublePress()
-        .onTrue(
-            climber
-                .undeploy()
-                .andThen(
-                    () -> {
-                      climbState.value = ClimbState.DEPLOYED;
-                      Leds.getInstance().ready = true;
-                    })
-                .withName("Undeploy Climber"));
-    RobotModeTriggers.disabled()
-        .onTrue(
-            Commands.runOnce(
-                    () -> {
-                      climbState.value = ClimbState.START;
-                      Leds.getInstance().ready = false;
-                    })
-                .ignoringDisable(true));
+    driver.y().doublePress().onTrue(climber.readyClimb().withName("Ready Climber"));
 
     // Coral intake
     driver

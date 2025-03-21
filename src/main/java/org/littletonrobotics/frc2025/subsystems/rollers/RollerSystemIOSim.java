@@ -51,6 +51,11 @@ public class RollerSystemIOSim implements RollerSystemIO {
   }
 
   @Override
+  public void runTorqueCurrent(double amps) {
+    runVolts(gearbox.getVoltage(gearbox.getTorque(amps), sim.getAngularVelocityRadPerSec()));
+  }
+
+  @Override
   public void stop() {
     runVolts(0.0);
   }

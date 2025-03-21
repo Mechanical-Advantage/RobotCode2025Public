@@ -7,7 +7,6 @@
 
 package org.littletonrobotics.frc2025;
 
-import com.ctre.phoenix6.hardware.TalonFX;
 import edu.wpi.first.hal.AllianceStationID;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
@@ -74,13 +73,6 @@ public class Robot extends LoggedRobot {
       new Alert("Please wait to enable, JITing in progress.", AlertType.kWarning);
 
   public Robot() {
-    // Reset encoder on pivot
-    if (Constants.getRobot() == RobotType.COMPBOT) {
-      var pivotTalon = new TalonFX(5);
-      PhoenixUtil.tryUntilOk(15, () -> pivotTalon.setPosition(0.0));
-      pivotTalon.close();
-    }
-
     // Start loading animation
     Leds.getInstance();
 

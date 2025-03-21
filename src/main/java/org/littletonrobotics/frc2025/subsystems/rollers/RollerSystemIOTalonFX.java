@@ -14,6 +14,7 @@ import com.ctre.phoenix6.CANBus;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.NeutralOut;
+import com.ctre.phoenix6.controls.TorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
@@ -41,6 +42,7 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
 
   // Single shot for voltage mode, robot loop will call continuously
   private final VoltageOut voltageOut = new VoltageOut(0.0).withUpdateFreqHz(0);
+  private final TorqueCurrentFOC torqueCurrentOut = new TorqueCurrentFOC(0.0).withUpdateFreqHz(0);
   private final NeutralOut neutralOut = new NeutralOut();
 
   private final TalonFXConfiguration config = new TalonFXConfiguration();
@@ -121,6 +123,11 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
   @Override
   public void runVolts(double volts) {
     talon.setControl(voltageOut.withOutput(volts));
+  }
+
+  @Override
+  public void runTorqueCurrent(double amps) {
+    talon.setControl(torqueCurrentOut.withOutput(amps));
   }
 
   @Override

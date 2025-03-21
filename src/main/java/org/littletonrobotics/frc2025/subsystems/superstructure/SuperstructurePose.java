@@ -42,7 +42,7 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
   private static final LoggedTunableNumber l1LaunchAdjustment =
       new LoggedTunableNumber("Superstructure/L1/LaunchAdjustment", 0.0);
   public static final LoggedTunableNumber algaeSuperPositionDeg =
-      new LoggedTunableNumber("Superstructure/ReefScore/AlgaeSuperPositionDegrees", 0.0);
+      new LoggedTunableNumber("Superstructure/ReefScore/AlgaeSuperPositionDegrees", -10.0);
   private static final LoggedTunableNumber l2ReefIntakeHeight =
       new LoggedTunableNumber("Superstructure/AlgaeIntake/L2/Elevator", 0.65);
   private static final LoggedTunableNumber l3ReefIntakeHeight =
