@@ -66,9 +66,9 @@ public class Elevator {
   private static final LoggedTunableNumber maxAccelerationMetersPerSec2 =
       new LoggedTunableNumber("Elevator/MaxAccelerationMetersPerSec2", 8.0);
   private static final LoggedTunableNumber algaeMaxVelocityMetersPerSec =
-      new LoggedTunableNumber("Elevator/AlgaeMaxVelocityMetersPerSec", 2.0);
+      new LoggedTunableNumber("Elevator/AlgaeMaxVelocityMetersPerSec", 2.5);
   private static final LoggedTunableNumber algaeMaxAccelerationMetersPerSec2 =
-      new LoggedTunableNumber("Elevator/AlgaeMaxAccelerationMetersPerSec2", 6.0);
+      new LoggedTunableNumber("Elevator/AlgaeMaxAccelerationMetersPerSec2", 8.0);
   private static final LoggedTunableNumber homingVolts =
       new LoggedTunableNumber("Elevator/HomingVolts", -2.0);
   private static final LoggedTunableNumber homingTimeSecs =
@@ -81,8 +81,8 @@ public class Elevator {
   static {
     switch (Constants.getRobot()) {
       case COMPBOT, DEVBOT -> {
-        kP.initDefault(600);
-        kD.initDefault(10);
+        kP.initDefault(1400);
+        kD.initDefault(18);
         for (int stage = 0; stage < 3; stage++) {
           kS[stage].initDefault(0);
           kG[stage].initDefault(0);
@@ -181,7 +181,7 @@ public class Elevator {
         !stopProfile
             && !coastOverride.getAsBoolean()
             && !disabledOverride.getAsBoolean()
-            && homed
+            && (homed || Constants.getRobot() == Constants.RobotType.SIMBOT)
             && !isEStopped
             && DriverStation.isEnabled();
     Logger.recordOutput("Elevator/RunningProfile", shouldRunProfile);

@@ -175,6 +175,8 @@ public class Drive extends SubsystemBase {
     }
 
     RobotState.getInstance().addDriveSpeeds(getChassisSpeeds());
+    RobotState.getInstance().setPitch(gyroInputs.data.pitchPosition());
+    RobotState.getInstance().setRoll(gyroInputs.data.rollPosition());
 
     // Update brake mode
     // Reset movement timer if velocity above threshold

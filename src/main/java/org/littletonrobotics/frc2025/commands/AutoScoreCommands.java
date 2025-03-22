@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.function.*;
-import org.littletonrobotics.frc2025.FieldConstants;
 import org.littletonrobotics.frc2025.FieldConstants.AlgaeObjective;
 import org.littletonrobotics.frc2025.FieldConstants.CoralObjective;
 import org.littletonrobotics.frc2025.FieldConstants.Reef;
@@ -53,7 +52,7 @@ public class AutoScoreCommands {
   public static final LoggedTunableNumber minDistanceReefClearL4 =
       new LoggedTunableNumber("AutoScore/MinDistanceReefClear", Units.inchesToMeters(6.0));
   public static final LoggedTunableNumber minDistanceReefClearAlgaeL4 =
-      new LoggedTunableNumber("AutoScore/MinDistanceReefClearAlgae", Units.inchesToMeters(8.0));
+      new LoggedTunableNumber("AutoScore/MinDistanceReefClearAlgae", 0.35);
   public static final LoggedTunableNumber minAngleReefClear =
       new LoggedTunableNumber("AutoScore/MinAngleReefClear", 60.0);
   public static final LoggedTunableNumber algaeBackupTime =
@@ -62,21 +61,21 @@ public class AutoScoreCommands {
       new LoggedTunableNumber("AutoScore/DistanceSuperstructureReady", 3);
   private static final LoggedTunableNumber[] linearXToleranceEject = {
     new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L1", 0.03),
-    new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L2", 0.15),
-    new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L3", 0.15),
-    new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L4", 0.025)
+    new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L2", 0.18),
+    new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L3", 0.18),
+    new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L4", 0.05)
   };
   private static final LoggedTunableNumber[] linearYToleranceEject = {
-    new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L1", 0.03),
-    new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L2", 0.015),
-    new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L3", 0.015),
-    new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L4", 0.01)
+    new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L1", 0.05),
+    new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L2", 0.18),
+    new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L3", 0.18),
+    new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L4", 0.025)
   };
   private static final LoggedTunableNumber[] maxLinearVel = {
     new LoggedTunableNumber("AutoScore/MaxLinearVel/L1", 0.1),
     new LoggedTunableNumber("AutoScore/MaxLinearVel/L2", 0.1),
     new LoggedTunableNumber("AutoScore/MaxLinearVel/L3", 0.1),
-    new LoggedTunableNumber("AutoScore/MaxLinearVel/L4", 0.1)
+    new LoggedTunableNumber("AutoScore/MaxLinearVel/L4", 0.05)
   };
   private static final LoggedTunableNumber[] maxAngularVel = {
     new LoggedTunableNumber("AutoScore/MaxAngularVel/L1", 1),
@@ -84,10 +83,18 @@ public class AutoScoreCommands {
     new LoggedTunableNumber("AutoScore/MaxAngularVel/L3", 1),
     new LoggedTunableNumber("AutoScore/MaxAngularVel/L4", 1)
   };
+  private static final LoggedTunableNumber[] thetaToleranceEject = {
+    new LoggedTunableNumber("AutoScore/ThetaToleranceEject/L1", 5),
+    new LoggedTunableNumber("AutoScore/ThetaToleranceEject/L2", 12),
+    new LoggedTunableNumber("AutoScore/ThetaToleranceEject/L3", 12),
+    new LoggedTunableNumber("AutoScore/ThetaToleranceEject/L4", 3)
+  };
+  private static final LoggedTunableNumber l4EjectDelay =
+      new LoggedTunableNumber("AutoScore/L4EjectDelay", 0.2);
+  private static final LoggedTunableNumber l4EjectDelayAuto =
+      new LoggedTunableNumber("AutoScore/L4EjectDelayAuto", 0.05);
   private static final LoggedTunableNumber thetaToleranceReady =
       new LoggedTunableNumber("AutoScore/ThetaToleranceReady", 35.0);
-  private static final LoggedTunableNumber thetaToleranceEject =
-      new LoggedTunableNumber("AutoScore/ThetaToleranceEject", 2.0);
   private static final LoggedTunableNumber l2ReefIntakeDistance =
       new LoggedTunableNumber("AutoScore/L2ReefIntakeDistance", 0.12);
   private static final LoggedTunableNumber l3ReefIntakeDistance =
@@ -95,9 +102,7 @@ public class AutoScoreCommands {
   private static final LoggedTunableNumber l1AlignOffsetX =
       new LoggedTunableNumber("AutoScore/L1AlignOffsetX", 0.45);
   private static final LoggedTunableNumber l1AlignOffsetY =
-      new LoggedTunableNumber(
-          "AutoScore/L1AlignOffsetY",
-          FieldConstants.Reef.faceLength / 2.0 - Units.inchesToMeters(2.5));
+      new LoggedTunableNumber("AutoScore/L1AlignOffsetY", 0.0);
   private static final LoggedTunableNumber minDistanceAim =
       new LoggedTunableNumber("AutoScore/MinDistanceAim", 0.2);
   private static final LoggedTunableNumber ejectTimeSeconds =
@@ -178,13 +183,17 @@ public class AutoScoreCommands {
                                         0.0));
                           }
                           Logger.recordOutput("AutoScore/Goal", AllianceFlipUtil.apply(goalPose));
-                          return new Pose2d(
-                              getDriveTarget(robot.get(), AllianceFlipUtil.apply(goalPose))
-                                  .getTranslation(),
-                              AllianceFlipUtil.apply(getBranchPose(objective))
-                                  .getTranslation()
-                                  .minus(robot.get().getTranslation())
-                                  .getAngle());
+                          if (DriverStation.isAutonomousEnabled()) {
+                            return getDriveTarget(robot.get(), AllianceFlipUtil.apply(goalPose));
+                          } else {
+                            return new Pose2d(
+                                getDriveTarget(robot.get(), AllianceFlipUtil.apply(goalPose))
+                                    .getTranslation(),
+                                AllianceFlipUtil.apply(getBranchPose(objective))
+                                    .getTranslation()
+                                    .minus(robot.get().getTranslation())
+                                    .getAngle());
+                          }
                         })
                     .orElseGet(() -> RobotState.getInstance().getEstimatedPose()),
             robot,
@@ -202,6 +211,8 @@ public class AutoScoreCommands {
                 .finallyDo(() -> needsToGetBack.value = false)
                 .withName("Corrective Measure"));
 
+    Timer l4EjectTimer = new Timer();
+    l4EjectTimer.start();
     return Commands.runOnce(
             () -> {
               // Start LEDs
@@ -244,7 +255,7 @@ public class AutoScoreCommands {
 
                   // Get back!
                   if (ready
-                      && reefLevel.get() == ReefLevel.L4
+                      && (reefLevel.get() == ReefLevel.L4 || superstructure.hasAlgae())
                       && !disableReefAutoAlign.getAsBoolean()
                       && DriverStation.isTeleopEnabled()) {
                     needsToGetBack.value = true;
@@ -285,10 +296,21 @@ public class AutoScoreCommands {
                                               .omegaRadiansPerSecond)
                                       <= maxAngularVel[intReefLevel].get()
                                   && Math.abs(poseError.getRotation().getDegrees())
-                                      <= thetaToleranceEject.get()
+                                      <= thetaToleranceEject[intReefLevel].get()
                                   && superstructure.atGoal()
                                   && !disableReefAutoAlign.getAsBoolean())
                               || manualEject.getAsBoolean();
+                      if (reefLevel.get() == ReefLevel.L4) {
+                        if (!ready) {
+                          l4EjectTimer.restart();
+                        }
+                        ready =
+                            ready
+                                && l4EjectTimer.hasElapsed(
+                                    DriverStation.isAutonomous()
+                                        ? l4EjectDelayAuto.get()
+                                        : l4EjectDelay.get());
+                      }
                       Logger.recordOutput("AutoScore/AllowEject", ready);
                       if (ready) {
                         coralObjectiveScored.value = coralObjective.get().get();
@@ -716,14 +738,13 @@ public class AutoScoreCommands {
       Supplier<Pose2d> robot,
       BooleanSupplier shouldClearReef,
       BooleanSupplier disableReefAutoAlign) {
-    return IntakeCommands.intake(superstructure, funnel)
-        .until(superstructure::hasCoral)
-        .onlyIf(
+    return Commands.waitUntil(
             () ->
-                !superstructure.hasCoral()
-                    && ((outOfDistanceToReef(robot.get(), minDistanceReefClearL4.get())
-                            && shouldClearReef.getAsBoolean())
-                        || disableReefAutoAlign.getAsBoolean()));
+                outOfDistanceToReef(robot.get(), minDistanceReefClearL4.get())
+                    || !shouldClearReef.getAsBoolean()
+                    || disableReefAutoAlign.getAsBoolean())
+        .andThen(IntakeCommands.intake(superstructure, funnel).until(superstructure::hasCoral))
+        .onlyIf(() -> !superstructure.hasCoral());
   }
 
   private static Command getBackCorrectiveMeasure(

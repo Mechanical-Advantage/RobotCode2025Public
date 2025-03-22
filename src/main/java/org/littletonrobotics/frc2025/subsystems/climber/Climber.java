@@ -39,9 +39,9 @@ public class Climber extends SubsystemBase {
   private static final LoggedTunableNumber climbCurrentRampRate =
       new LoggedTunableNumber("Climber/ClimbCurrentRampRate", 120);
   static final LoggedTunableNumber climbStopAngle =
-      new LoggedTunableNumber("Climber/ClimbStopAngle", 220);
+      new LoggedTunableNumber("Climber/ClimbStopAngle", 230);
   private static final LoggedTunableNumber gripVolts =
-      new LoggedTunableNumber("Climber/GripVolts", 6);
+      new LoggedTunableNumber("Climber/GripVolts", 12.0);
 
   private static final Translation3d climberOrigin3d =
       new Translation3d(Units.inchesToMeters(-12.0), 0.0, Units.inchesToMeters(14.875));

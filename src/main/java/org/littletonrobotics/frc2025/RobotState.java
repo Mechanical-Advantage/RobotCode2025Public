@@ -96,6 +96,8 @@ public class RobotState {
 
   @Getter @Setter private OptionalDouble distanceToBranch = OptionalDouble.empty();
   @Getter @Setter private OptionalDouble distanceToReefAlgae = OptionalDouble.empty();
+  @Getter @Setter private Rotation2d pitch = Rotation2d.kZero;
+  @Getter @Setter private Rotation2d roll = Rotation2d.kZero;
 
   private RobotState() {
     for (int i = 0; i < 3; ++i) {

@@ -126,8 +126,8 @@ public class RobotContainer {
           dispenser =
               new Dispenser(
                   new PivotIOTalonFX(),
-                  new RollerSystemIOTalonFX(6, "", 40, true, false, 3.0),
-                  new RollerSystemIOTalonFX(7, "", 40, false, false, (30.0 / 12.0) * (48.0 / 18.0)),
+                  new RollerSystemIOTalonFX(6, "", 40, false, true, 3.0),
+                  new RollerSystemIOTalonFX(7, "", 40, false, true, (30.0 / 12.0) * (48.0 / 18.0)),
                   new CoralSensorIOLaserCan());
           funnel =
               new RollerSystem("Funnel", new RollerSystemIOTalonFX(2, "", 30, true, false, 1.0));
@@ -169,8 +169,8 @@ public class RobotContainer {
           dispenser =
               new Dispenser(
                   new PivotIOSim(),
-                  new RollerSystemIOSim(DCMotor.getKrakenX60Foc(1), 1.0, 0.2),
-                  new RollerSystemIOSim(DCMotor.getKrakenX60Foc(1), 1.0, 0.2),
+                  new RollerSystemIOSim(DCMotor.getKrakenX60Foc(1), 3.0, 0.01),
+                  new RollerSystemIOSim(DCMotor.getKrakenX60Foc(1), 2.9, 0.01),
                   new CoralSensorIO() {});
           climber =
               new Climber(
@@ -234,16 +234,16 @@ public class RobotContainer {
     LoggedDashboardChooser<Boolean> mirror = new LoggedDashboardChooser<>("Processor Side?");
     mirror.addDefaultOption("Yes", false);
     mirror.addOption("No", true);
+    LoggedDashboardChooser<Boolean> upInThePush = new LoggedDashboardChooser<>("Up In The Push?");
+    upInThePush.addDefaultOption("No", false);
+    upInThePush.addOption("Yes", true);
     MirrorUtil.setMirror(mirror::get);
 
     // Set up characterization routines
-    var autoBuilder = new AutoBuilder(drive, superstructure, funnel);
+    var autoBuilder = new AutoBuilder(drive, superstructure, funnel, upInThePush::get);
     autoChooser.addDefaultOption("Dead In The Water Auto", Commands.none());
-    // autoChooser.addOption(
-    //     "Super Up In The Water Auto", autoBuilder.superUpInTheWaterAuto());
-    // autoChooser.addOption("Up In The Water Auto", autoBuilder.upInTheWaterAuto());
-    autoChooser.addOption("Up In The Weeds Auto", autoBuilder.upInTheWeedsAuto(false));
-    autoChooser.addOption("Up In The Elimination Auto", autoBuilder.upInTheWeedsAuto(true));
+    autoChooser.addOption("Up In The Water Auto", autoBuilder.upInTheWaterAuto(false));
+    autoChooser.addOption("Super Up In The Water Auto", autoBuilder.upInTheWaterAuto(true));
     autoChooser.addOption("Up In The Simplicity Auto", autoBuilder.upInTheSimplicityAuto());
     autoChooser.addOption("Up In The Inspirational Auto", autoBuilder.upInTheInspirationalAuto());
     autoChooser.addOption(
@@ -333,7 +333,7 @@ public class RobotContainer {
                           Commands.none(),
                           () -> false,
                           disableReefAutoAlign,
-                          driver.b())
+                          driver.b().doublePress())
                       .deadlineFor(
                           Commands.startEnd(
                               () -> autoScoreRunning.value = true,
@@ -384,7 +384,7 @@ public class RobotContainer {
                           this::controllerRumbleCommand,
                           robotRelative,
                           disableReefAutoAlign,
-                          driver.b())
+                          driver.b().doublePress())
                       .deadlineFor(
                           Commands.startEnd(
                               () -> superAutoScoreRunning.value = true,
@@ -465,10 +465,11 @@ public class RobotContainer {
 
     // Algae ice cream intake
     driver
-        .rightStick()
-        .whileTrue(
+        .x()
+        .toggleOnTrue(
             superstructure
                 .runGoal(SuperstructureState.ALGAE_ICE_CREAM_INTAKE)
+                .until(superstructure::hasAlgae)
                 .withName("Algae Ice Cream Intake"));
 
     // Algae pre-processor
@@ -477,6 +478,7 @@ public class RobotContainer {
         .and(shouldProcess)
         .and(() -> hasAlgae.value)
         .and(driver.a().negate())
+        .or(AlgaeScoreCommands::shouldForceProcess)
         .whileTrueContinuous(
             AlgaeScoreCommands.process(
                     drive,
@@ -484,8 +486,9 @@ public class RobotContainer {
                     driverX,
                     driverY,
                     driverOmega,
-                    joystickDriveCommandFactory.get(),
+                    joystickDriveCommandFactory,
                     onOpposingSide,
+                    driver.leftBumper(),
                     false,
                     disableAlgaeScoreAutoAlign)
                 .withName("Algae Pre-Processor"));
@@ -503,8 +506,9 @@ public class RobotContainer {
                     driverX,
                     driverY,
                     driverOmega,
-                    joystickDriveCommandFactory.get(),
+                    joystickDriveCommandFactory,
                     onOpposingSide,
+                    driver.leftBumper(),
                     true,
                     disableAlgaeScoreAutoAlign)
                 .withName("Algae Processing"));
@@ -552,7 +556,7 @@ public class RobotContainer {
 
     // Strobe LEDs at human player
     driver
-        .x()
+        .leftStick()
         .whileTrue(
             Commands.startEnd(
                     () -> leds.hpAttentionAlert = true, () -> leds.hpAttentionAlert = false)

@@ -141,6 +141,7 @@ public class Superstructure extends SubsystemBase {
         EdgeCommand.builder()
             .command(
                 Commands.runOnce(elevator::setHome)
+                    .onlyIf(() -> Constants.getRobot() != RobotType.SIMBOT)
                     .andThen(
                         runSuperstructurePose(SuperstructurePose.Preset.STOW.getPose()),
                         Commands.waitUntil(this::mechanismsAtGoal),
@@ -196,6 +197,7 @@ public class Superstructure extends SubsystemBase {
             SuperstructureState.ALGAE_STOW_INTAKE,
             SuperstructureState.ALGAE_L2_INTAKE,
             SuperstructureState.ALGAE_L3_INTAKE,
+            SuperstructureState.ALGAE_ICE_CREAM_INTAKE,
             SuperstructureState.PRE_THROW);
 
     final Set<SuperstructureState> algaeIntakeStates =
@@ -385,7 +387,7 @@ public class Superstructure extends SubsystemBase {
     }
 
     // Tell elevator we are stowed
-    elevator.setStowed(state == SuperstructureState.STOW);
+    elevator.setStowed(state == SuperstructureState.STOW && goal == SuperstructureState.STOW);
 
     // Tell elevator if we have algae
     elevator.setHasAlgae(dispenser.hasAlgae());

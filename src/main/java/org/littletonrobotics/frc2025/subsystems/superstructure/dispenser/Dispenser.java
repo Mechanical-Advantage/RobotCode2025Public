@@ -20,6 +20,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
@@ -28,12 +29,15 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.littletonrobotics.frc2025.Constants;
 import org.littletonrobotics.frc2025.Constants.RobotType;
+import org.littletonrobotics.frc2025.FieldConstants;
 import org.littletonrobotics.frc2025.Robot;
+import org.littletonrobotics.frc2025.RobotState;
 import org.littletonrobotics.frc2025.subsystems.leds.Leds;
 import org.littletonrobotics.frc2025.subsystems.rollers.RollerSystemIO;
 import org.littletonrobotics.frc2025.subsystems.rollers.RollerSystemIOInputsAutoLogged;
 import org.littletonrobotics.frc2025.subsystems.superstructure.sensors.CoralSensorIO;
 import org.littletonrobotics.frc2025.subsystems.superstructure.sensors.CoralSensorIOInputsAutoLogged;
+import org.littletonrobotics.frc2025.util.AllianceFlipUtil;
 import org.littletonrobotics.frc2025.util.EqualsUtil;
 import org.littletonrobotics.frc2025.util.LoggedTracer;
 import org.littletonrobotics.frc2025.util.LoggedTunableNumber;
@@ -54,21 +58,21 @@ public class Dispenser {
   private static final LoggedTunableNumber maxAccelerationDegPerSec2 =
       new LoggedTunableNumber("Dispenser/MaxAccelerationDegreesPerSec2", 2500.0);
   private static final LoggedTunableNumber algaeMaxVelocityDegPerSec =
-      new LoggedTunableNumber("Dispenser/AlgaeMaxVelocityDegreesPerSec", 300.0);
+      new LoggedTunableNumber("Dispenser/AlgaeMaxVelocityDegreesPerSec", 1500.0);
   private static final LoggedTunableNumber algaeMaxAccelerationDegPerSec2 =
-      new LoggedTunableNumber("Dispenser/AlgaeMaxAccelerationDegreesPerSec2", 400.0);
+      new LoggedTunableNumber("Dispenser/AlgaeMaxAccelerationDegreesPerSec2", 2500.0);
   private static final LoggedTunableNumber staticCharacterizationVelocityThresh =
       new LoggedTunableNumber("Dispenser/StaticCharacterizationVelocityThresh", 0.1);
   private static final LoggedTunableNumber staticCharacterizationRampRate =
       new LoggedTunableNumber("Dispenser/StaticCharacterizationRampRate", 0.2);
-  private static final LoggedTunableNumber algaeVelocityThresh =
-      new LoggedTunableNumber("Dispenser/AlgaeVelocityThreshold", 45.0);
+  private static final LoggedTunableNumber algaeCurrentThresh =
+      new LoggedTunableNumber("Dispenser/AlgaeCurrentThreshold", 20.0);
   private static final LoggedTunableNumber coralProxThreshold =
       new LoggedTunableNumber("Dispenser/CoralProxThresh", 0.06);
   public static final LoggedTunableNumber gripperHoldVolts =
       new LoggedTunableNumber("Dispenser/GripperHoldVolts", 1.0);
   public static final LoggedTunableNumber gripperIntakeVolts =
-      new LoggedTunableNumber("Dispenser/GripperIntakeVolts", 8.0);
+      new LoggedTunableNumber("Dispenser/GripperIntakeVolts", 12.0);
   public static final LoggedTunableNumber gripperEjectVolts =
       new LoggedTunableNumber("Dispenser/GripperEjectVolts", -12.0);
   public static final LoggedTunableNumber gripperL1EjectVolts =
@@ -76,23 +80,25 @@ public class Dispenser {
   public static final LoggedTunableNumber gripperCurrentLimit =
       new LoggedTunableNumber("Dispenser/GripperCurrentLimit", 50.0);
   public static final LoggedTunableNumber tunnelDispenseVolts =
-      new LoggedTunableNumber("Dispenser/TunnelDispenseVolts", 3.0);
+      new LoggedTunableNumber("Dispenser/TunnelDispenseVolts", 10.0);
   public static final LoggedTunableNumber tunnelL1DispenseVolts =
-      new LoggedTunableNumber("Dispenser/TunnelL1DispenseVolts", 5.0);
+      new LoggedTunableNumber("Dispenser/TunnelL1DispenseVolts", 2.5);
   public static final LoggedTunableNumber tunnelIntakeVolts =
       new LoggedTunableNumber("Dispenser/TunnelIntakeVolts", 3.0);
   public static final LoggedTunableNumber tolerance =
       new LoggedTunableNumber("Dispenser/Tolerance", 0.4);
   public static final LoggedTunableNumber intakeReverseVolts =
-      new LoggedTunableNumber("Dispenser/IntakeReverseVolts", -1.8);
+      new LoggedTunableNumber("Dispenser/IntakeReverseVolts", -1.0);
   public static final LoggedTunableNumber intakeReverseTime =
-      new LoggedTunableNumber("Dispenser/IntakeReverseTime", 0.0);
+      new LoggedTunableNumber("Dispenser/IntakeReverseTime", 0.15);
   public static final LoggedTunableNumber homingTimeSecs =
       new LoggedTunableNumber("Dispenser/HomingTimeSecs", 0.2);
   public static final LoggedTunableNumber homingVolts =
       new LoggedTunableNumber("Dispenser/HomingVolts", 3.0);
   public static final LoggedTunableNumber homingVelocityThresh =
       new LoggedTunableNumber("Dispenser/HomingVelocityThreshold", 0.1);
+  public static final LoggedTunableNumber simIntakingTime =
+      new LoggedTunableNumber("Dispenser/SimIntakingTime", 0.5);
 
   static {
     switch (Constants.getRobot()) {
@@ -103,8 +109,8 @@ public class Dispenser {
         kG.initDefault(0.0);
       }
       default -> {
-        kP.initDefault(12000.0);
-        kD.initDefault(120.0);
+        kP.initDefault(10000);
+        kD.initDefault(35);
         kS.initDefault(0);
         kG.initDefault(0);
       }
@@ -184,6 +190,7 @@ public class Dispenser {
   private final Alert gripperDisconnectedAlert =
       new Alert("Dispenser gripper disconnected!", Alert.AlertType.kWarning);
 
+  private final Timer simIntakingTimer = new Timer();
   private boolean lastAlgaeButtonPressed = false;
   private boolean lastCoralButtonPressed = false;
 
@@ -336,10 +343,10 @@ public class Dispenser {
 
     // Check algae & coral states
     if (Constants.getRobot() != Constants.RobotType.SIMBOT) {
-      if (Math.abs(gripperInputs.data.torqueCurrentAmps()) >= 5.0) {
+      if (Math.abs(gripperInputs.data.appliedVoltage()) >= 0.5 || DriverStation.isDisabled()) {
         hasAlgae =
             algaeDebouncer.calculate(
-                Math.abs(gripperInputs.data.velocityRadsPerSec()) <= algaeVelocityThresh.get());
+                gripperInputs.data.torqueCurrentAmps() >= algaeCurrentThresh.get());
       } else {
         algaeDebouncer.calculate(hasAlgae);
       }
@@ -353,6 +360,25 @@ public class Dispenser {
                 : coralDebouncer.calculate(pivotInputs.data.velocityRadPerSec() < 1.0);
       } else {
         coralDebouncer.calculate(hasCoral);
+      }
+    } else if (DriverStation.isAutonomous()) {
+      var flippedRobot = AllianceFlipUtil.apply(RobotState.getInstance().getEstimatedPose());
+      var intakingError =
+          flippedRobot.relativeTo(
+              flippedRobot.nearest(
+                  List.of(
+                      FieldConstants.CoralStation.leftCenterFace,
+                      FieldConstants.CoralStation.rightCenterFace)));
+      if (isIntaking
+          && intakingError.getX() <= Units.inchesToMeters(48.0)
+          && Math.abs(intakingError.getY()) <= Units.inchesToMeters(48.0)) {
+        hasCoral = simIntakingTimer.hasElapsed(simIntakingTime.get());
+      } else {
+        simIntakingTimer.restart();
+      }
+
+      if (!isIntaking && tunnelInputs.data.velocityRadsPerSec() >= 50.0) {
+        hasCoral = false;
       }
     } else {
       boolean algaeButtonPressed = DriverStation.getStickButtonPressed(2, 1);

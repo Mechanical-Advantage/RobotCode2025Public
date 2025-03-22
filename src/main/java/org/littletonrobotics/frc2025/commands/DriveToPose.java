@@ -15,6 +15,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import java.util.function.DoubleSupplier;
@@ -35,14 +36,20 @@ public class DriveToPose extends Command {
   private static final LoggedTunableNumber thetakD = new LoggedTunableNumber("DriveToPose/ThetakD");
   private static final LoggedTunableNumber driveMaxVelocity =
       new LoggedTunableNumber("DriveToPose/DriveMaxVelocity");
-  private static final LoggedTunableNumber driveMaxVelocitySlow =
-      new LoggedTunableNumber("DriveToPose/DriveMaxVelocitySlow");
   private static final LoggedTunableNumber driveMaxAcceleration =
       new LoggedTunableNumber("DriveToPose/DriveMaxAcceleration");
+  private static final LoggedTunableNumber driveMaxVelocityAuto =
+      new LoggedTunableNumber("DriveToPose/DriveMaxVelocityAuto");
+  private static final LoggedTunableNumber driveMaxAccelerationAuto =
+      new LoggedTunableNumber("DriveToPose/DriveMaxAccelerationAuto");
   private static final LoggedTunableNumber thetaMaxVelocity =
       new LoggedTunableNumber("DriveToPose/ThetaMaxVelocity");
   private static final LoggedTunableNumber thetaMaxAcceleration =
       new LoggedTunableNumber("DriveToPose/ThetaMaxAcceleration");
+  private static final LoggedTunableNumber thetaMaxVelocityAuto =
+      new LoggedTunableNumber("DriveToPose/ThetaMaxVelocityAuto");
+  private static final LoggedTunableNumber thetaMaxAccelerationAuto =
+      new LoggedTunableNumber("DriveToPose/ThetaMaxAccelerationAuto");
   private static final LoggedTunableNumber driveTolerance =
       new LoggedTunableNumber("DriveToPose/DriveTolerance");
   private static final LoggedTunableNumber thetaTolerance =
@@ -59,8 +66,12 @@ public class DriveToPose extends Command {
     thetakD.initDefault(0.0);
     driveMaxVelocity.initDefault(3.8);
     driveMaxAcceleration.initDefault(3.0);
+    driveMaxVelocityAuto.initDefault(3.8);
+    driveMaxAccelerationAuto.initDefault(2.5);
     thetaMaxVelocity.initDefault(Units.degreesToRadians(360.0));
     thetaMaxAcceleration.initDefault(8.0);
+    thetaMaxVelocityAuto.initDefault(4.0);
+    thetaMaxAccelerationAuto.initDefault(4.0);
     driveTolerance.initDefault(0.01);
     thetaTolerance.initDefault(Units.degreesToRadians(1.0));
     ffMinRadius.initDefault(0.05);
@@ -146,7 +157,6 @@ public class DriveToPose extends Command {
 
     // Update from tunable numbers
     if (driveMaxVelocity.hasChanged(hashCode())
-        || driveMaxVelocitySlow.hasChanged(hashCode())
         || driveMaxAcceleration.hasChanged(hashCode())
         || driveTolerance.hasChanged(hashCode())
         || thetaMaxVelocity.hasChanged(hashCode())
@@ -158,15 +168,25 @@ public class DriveToPose extends Command {
         || thetakD.hasChanged(hashCode())) {
       driveController.setP(drivekP.get());
       driveController.setD(drivekD.get());
-      driveController.setConstraints(
-          new TrapezoidProfile.Constraints(driveMaxVelocity.get(), driveMaxAcceleration.get()));
       driveController.setTolerance(driveTolerance.get());
       thetaController.setP(thetakP.get());
       thetaController.setD(thetakD.get());
-      thetaController.setConstraints(
-          new TrapezoidProfile.Constraints(thetaMaxVelocity.get(), thetaMaxAcceleration.get()));
       thetaController.setTolerance(thetaTolerance.get());
     }
+
+    // Update constraints
+    driveController.setConstraints(
+        new TrapezoidProfile.Constraints(
+            DriverStation.isAutonomous() ? driveMaxVelocityAuto.get() : driveMaxVelocity.get(),
+            DriverStation.isAutonomous()
+                ? driveMaxAccelerationAuto.get()
+                : driveMaxAcceleration.get()));
+    thetaController.setConstraints(
+        new TrapezoidProfile.Constraints(
+            DriverStation.isAutonomous() ? thetaMaxVelocityAuto.get() : thetaMaxVelocity.get(),
+            DriverStation.isAutonomous()
+                ? thetaMaxAccelerationAuto.get()
+                : thetaMaxAcceleration.get()));
 
     // Get current pose and target pose
     Pose2d currentPose = robot.get();

@@ -14,6 +14,9 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
+import java.util.function.Supplier;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 import org.littletonrobotics.frc2025.FieldConstants;
 import org.littletonrobotics.frc2025.RobotState;
 import org.littletonrobotics.frc2025.subsystems.drive.Drive;
@@ -28,9 +31,9 @@ import org.littletonrobotics.frc2025.util.LoggedTunableNumber;
 
 public class AlgaeScoreCommands {
   private static final LoggedTunableNumber processLineupXOffset =
-      new LoggedTunableNumber("AlgaeScoreCommands/ProcessLineupXOffset", 0.12);
+      new LoggedTunableNumber("AlgaeScoreCommands/ProcessLineupXOffset", 0.1);
   private static final LoggedTunableNumber processLineupYOffset =
-      new LoggedTunableNumber("AlgaeScoreCommands/ProcessLineupYOffset", 0.1);
+      new LoggedTunableNumber("AlgaeScoreCommands/ProcessLineupYOffset", -0.1);
   private static final LoggedTunableNumber processLineupClear =
       new LoggedTunableNumber("AlgaeScoreCommands/ProcessLineupClear", 0.3);
   private static final LoggedTunableNumber processEjectDegOffset =
@@ -47,6 +50,12 @@ public class AlgaeScoreCommands {
       new LoggedTunableNumber("AlgaeScoreCommands/ThrowReadyLinearTolerance", 4.0);
   private static final LoggedTunableNumber throwReadyThetaToleranceDeg =
       new LoggedTunableNumber("AlgaeScoreCommands/ThrowReadyThetaToleranceDegrees", 40.0);
+  private static final LoggedTunableNumber forceProcessorMaxDistance =
+      new LoggedTunableNumber("AlgaeScoreCommands/ForceProcessorMaxDistance", 0.5);
+
+  @Accessors(fluent = true)
+  @Getter
+  private static boolean shouldForceProcess = false;
 
   public static Command process(
       Drive drive,
@@ -54,51 +63,68 @@ public class AlgaeScoreCommands {
       DoubleSupplier driverX,
       DoubleSupplier driverY,
       DoubleSupplier driverOmega,
-      Command joystickDrive,
+      Supplier<Command> joystickDrive,
       BooleanSupplier onOpposingSide,
+      BooleanSupplier holdingButton,
       boolean eject,
       BooleanSupplier disableAlgaeScoreAutoAlign) {
+    Container<Pose2d> goalPose = new Container<>(Pose2d.kZero);
     return Commands.either(
-            joystickDrive,
+            joystickDrive.get(),
             new DriveToPose(
                     drive,
-                    () ->
-                        AutoScoreCommands.getDriveTarget(
-                            RobotState.getInstance().getEstimatedPose(),
-                            AllianceFlipUtil.apply(
-                                    onOpposingSide.getAsBoolean()
-                                        ? FieldConstants.Processor.opposingCenterFace
-                                        : FieldConstants.Processor.centerFace)
-                                .transformBy(
-                                    GeomUtil.toTransform2d(
-                                        DriveConstants.robotWidth / 2.0
-                                            + processLineupXOffset.get()
-                                            + (!eject
-                                                    && superstructure.getState()
-                                                        != SuperstructureState.PRE_PROCESS
-                                                ? processLineupClear.get()
-                                                : 0.0),
-                                        processLineupYOffset.get()))
-                                .transformBy(
-                                    GeomUtil.toTransform2d(
-                                        Rotation2d.kPi.plus(
-                                            Rotation2d.fromDegrees(
-                                                eject ? processEjectDegOffset.get() : 0.0))))),
+                    () -> {
+                      goalPose.value =
+                          AllianceFlipUtil.apply(
+                                  onOpposingSide.getAsBoolean()
+                                      ? FieldConstants.Processor.opposingCenterFace
+                                      : FieldConstants.Processor.centerFace)
+                              .transformBy(
+                                  GeomUtil.toTransform2d(
+                                      DriveConstants.robotWidth / 2.0
+                                          + processLineupXOffset.get()
+                                          + (!eject
+                                                  && superstructure.getState()
+                                                      != SuperstructureState.PRE_PROCESS
+                                              ? processLineupClear.get()
+                                              : 0.0),
+                                      processLineupYOffset.get()))
+                              .transformBy(
+                                  GeomUtil.toTransform2d(
+                                      Rotation2d.kPi.plus(
+                                          Rotation2d.fromDegrees(
+                                              eject ? processEjectDegOffset.get() : 0.0))));
+                      return AutoScoreCommands.getDriveTarget(
+                          RobotState.getInstance().getEstimatedPose(), goalPose.value);
+                    },
                     RobotState.getInstance()::getEstimatedPose,
                     () ->
                         DriveCommands.getLinearVelocityFromJoysticks(
                                 driverX.getAsDouble(), driverY.getAsDouble())
                             .times(AllianceFlipUtil.shouldFlip() ? -1.0 : 1.0),
                     () -> DriveCommands.getOmegaFromJoysticks(driverOmega.getAsDouble()))
+                .onlyWhile(holdingButton)
                 .deadlineFor(
                     Commands.startEnd(
                         () -> Leds.getInstance().autoScoring = true,
-                        () -> Leds.getInstance().autoScoring = false)),
+                        () -> Leds.getInstance().autoScoring = false))
+                .andThen(joystickDrive.get()),
             disableAlgaeScoreAutoAlign)
         .alongWith(
             eject
                 ? superstructure.runGoal(SuperstructureState.PROCESS)
-                : superstructure.runGoal(SuperstructureState.PRE_PROCESS));
+                : superstructure.runGoal(SuperstructureState.PRE_PROCESS),
+            Commands.run(
+                () ->
+                    shouldForceProcess =
+                        !disableAlgaeScoreAutoAlign.getAsBoolean()
+                            && superstructure.getState() == SuperstructureState.PRE_PROCESS
+                            && RobotState.getInstance()
+                                    .getEstimatedPose()
+                                    .getTranslation()
+                                    .getDistance(goalPose.value.getTranslation())
+                                < forceProcessorMaxDistance.get()))
+        .finallyDo(() -> shouldForceProcess = false);
   }
 
   public static Command netThrowLineup(

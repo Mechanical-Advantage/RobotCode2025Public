@@ -36,7 +36,7 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
   private static final LoggedTunableNumber intakeHeightTimeFactor =
       new LoggedTunableNumber("Superstructure/Intake/ElevatorTimeFactor", 25.0);
   private static final LoggedTunableNumber l1Height =
-      new LoggedTunableNumber("Superstructure/L1/Elevator", 0.3);
+      new LoggedTunableNumber("Superstructure/L1/Elevator", 0.48);
   private static final LoggedTunableNumber l1Pivot =
       new LoggedTunableNumber("Superstructure/L1/Pivot", 0.0);
   private static final LoggedTunableNumber l1LaunchAdjustment =
@@ -48,7 +48,7 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
   private static final LoggedTunableNumber l3ReefIntakeHeight =
       new LoggedTunableNumber("Superstructure/AlgaeIntake/L3/Elevator", 1.0);
   private static final LoggedTunableNumber reefIntakeHeightAdjustment =
-      new LoggedTunableNumber("Superstructure/AlgaeIntake/HeightAdjustment", 0.2);
+      new LoggedTunableNumber("Superstructure/AlgaeIntake/HeightAdjustment", 0.05);
   private static final LoggedTunableNumber reefIntakeMinDispenserDistance =
       new LoggedTunableNumber("Superstructure/AlgaeIntake/MinDispenserDistance", 0.18);
   private static final LoggedTunableNumber reefIntakeMaxDispenserDistance =
@@ -78,14 +78,9 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
 
   static {
     // Coral eject distance
-    addInitialValue(ejectDistance, ReefLevel.L2, Units.inchesToMeters(6.0), 0.24, "EjectDistance");
-    addInitialValue(ejectDistance, ReefLevel.L3, Units.inchesToMeters(5.5), 0.2, "EjectDistance");
-    addInitialValue(
-        ejectDistance,
-        ReefLevel.L4,
-        Units.inchesToMeters(3.0),
-        Units.inchesToMeters(3.0),
-        "EjectDistance");
+    addInitialValue(ejectDistance, ReefLevel.L2, 0.2, 0.24, "EjectDistance");
+    addInitialValue(ejectDistance, ReefLevel.L3, 0.18, 0.24, "EjectDistance");
+    addInitialValue(ejectDistance, ReefLevel.L4, 0.12, 0.12, "EjectDistance");
     // Coral eject angles
     addInitialValue(ejectAngles, ReefLevel.L2, -35.0, 0.0, "EjectAngles");
     addInitialValue(ejectAngles, ReefLevel.L3, -35.0, 0.0, "EjectAngles");
@@ -206,10 +201,10 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
     ALGAE_L3_INTAKE(
         () -> l3ReefIntakeHeight.get() + getReefIntakeAdjustment(),
         new LoggedTunableNumber("Superstructure/AlgaeIntake/L3/Pivot", -55.0)),
-    ALGAE_ICE_CREAM_INTAKE("AlgaeIceCreamIntake", 0.05, -25.0),
+    ALGAE_ICE_CREAM_INTAKE("AlgaeIceCreamIntake", 0.15, -45.0),
     THROW("Throw", elevatorMaxTravel, 0.0),
     ALGAE_STOW("AlgaeStow", intakeHeightBaseline.get(), -5.0),
-    PROCESS("Processed", 0.15, -70.0);
+    PROCESS("Processed", 0.21, -70.0);
 
     private final SuperstructurePose pose;
 

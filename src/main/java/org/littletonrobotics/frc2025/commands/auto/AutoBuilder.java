@@ -19,11 +19,10 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import java.util.Optional;
+import java.util.function.BooleanSupplier;
 import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
-import org.littletonrobotics.frc2025.Constants;
 import org.littletonrobotics.frc2025.FieldConstants;
 import org.littletonrobotics.frc2025.FieldConstants.CoralObjective;
 import org.littletonrobotics.frc2025.FieldConstants.ReefLevel;
@@ -31,7 +30,6 @@ import org.littletonrobotics.frc2025.RobotState;
 import org.littletonrobotics.frc2025.commands.*;
 import org.littletonrobotics.frc2025.subsystems.drive.Drive;
 import org.littletonrobotics.frc2025.subsystems.drive.DriveConstants;
-import org.littletonrobotics.frc2025.subsystems.drive.trajectory.HolonomicTrajectory;
 import org.littletonrobotics.frc2025.subsystems.rollers.RollerSystem;
 import org.littletonrobotics.frc2025.subsystems.superstructure.Superstructure;
 import org.littletonrobotics.frc2025.util.AllianceFlipUtil;
@@ -42,156 +40,20 @@ public class AutoBuilder {
   private final Drive drive;
   private final Superstructure superstructure;
   private final RollerSystem funnel;
+  private final BooleanSupplier upInThePush;
 
-  private final double intakeTimeSeconds = 0.35;
-  private final double coralEjectTimeSeconds = 0.3;
+  private final double upInThePushSecs = 0.5;
 
-  public Command superUpInTheWaterAuto() {
-    HolonomicTrajectory upInTheWater1Score = new HolonomicTrajectory("SuperUpInTheWater1Score");
-    HolonomicTrajectory upInTheWater1Intake = new HolonomicTrajectory("SuperUpInTheWater1Intake");
-
-    ReefLevel level =
-        Constants.getRobot() == Constants.RobotType.DEVBOT ? ReefLevel.L3 : ReefLevel.L4;
-    CoralObjective[] coralObjectives =
-        new CoralObjective[] {
-          new CoralObjective(9, level),
-          new CoralObjective(10, level),
-          new CoralObjective(11, level),
-          new CoralObjective(0, level),
-        };
-
-    final Timer autoTimer = new Timer();
-    return Commands.runOnce(
-            () -> {
-              AutoCommands.resetPose(upInTheWater1Score, true);
-              autoTimer.restart();
-              superstructure.setAutoStart();
-            })
-        .andThen(
-            // First score and intake
-            Commands.sequence(
-                    AutoCommands.coralScoringTrajectory(
-                        drive, upInTheWater1Score, coralObjectives[0], true),
-                    new DriveTrajectory(drive, upInTheWater1Intake, true))
-                .deadlineFor(
-                    Commands.sequence(
-                        AutoCommands.superstructureAimAndEjectCommand(
-                            superstructure,
-                            coralObjectives[0],
-                            true,
-                            () ->
-                                autoTimer.hasElapsed(
-                                    upInTheWater1Score.getDuration() - coralEjectTimeSeconds)),
-                        Commands.runOnce(
-                            () -> System.out.printf("Scored Coral #1 at %.2f\n", autoTimer.get())),
-                        IntakeCommands.intake(superstructure, funnel))),
-
-            // Rest of them
-            Commands.sequence(
-                IntStream.rangeClosed(2, 4)
-                    .mapToObj(
-                        coralScoreIndex ->
-                            getUpInTheWaterSequence(coralScoreIndex, coralObjectives, autoTimer))
-                    .toArray(Command[]::new)));
-  }
-
-  public Command upInTheWaterAuto() {
-    ReefLevel level =
-        Constants.getRobot() == Constants.RobotType.DEVBOT ? ReefLevel.L3 : ReefLevel.L4;
-    CoralObjective[] coralObjectives =
-        new CoralObjective[] {
-          new CoralObjective(9, level),
-          new CoralObjective(10, level),
-          new CoralObjective(11, level),
-          new CoralObjective(0, level),
-        };
-
-    final Timer autoTimer = new Timer();
-    return Commands.runOnce(
-            () -> {
-              AutoCommands.resetPose(new HolonomicTrajectory("UpInTheWater1Score"), true);
-              autoTimer.restart();
-              superstructure.setAutoStart();
-            })
-        .andThen(
-            Commands.sequence(
-                IntStream.rangeClosed(1, 4)
-                    .mapToObj(
-                        coralScoreIndex -> {
-                          return getUpInTheWaterSequence(
-                              coralScoreIndex, coralObjectives, autoTimer);
-                        })
-                    .toArray(Command[]::new)));
-  }
-
-  private SequentialCommandGroup getUpInTheWaterSequence(
-      int coralScoreIndex, CoralObjective[] coralObjectives, Timer autoTimer) {
-    CoralObjective coralObjective = coralObjectives[coralScoreIndex - 1];
-    HolonomicTrajectory coralScoringTrajectory =
-        new HolonomicTrajectory("UpInTheWater" + coralScoreIndex + "Score");
-    HolonomicTrajectory coralIntakingTrajectory =
-        coralScoreIndex != 4
-            ? new HolonomicTrajectory("UpInTheWater" + coralScoreIndex + "Intake")
-            : null;
-
-    DriveTrajectory driveScoringCommand =
-        AutoCommands.coralScoringTrajectory(drive, coralScoringTrajectory, coralObjective, true);
-    DriveTrajectory driveIntakingCommand =
-        coralScoreIndex != 4 ? new DriveTrajectory(drive, coralIntakingTrajectory, true) : null;
-
-    Timer timer = new Timer();
-    return Commands.runOnce(timer::restart)
-        .andThen(
-            Commands.sequence(
-                    IntakeCommands.intake(superstructure, funnel)
-                        .until(() -> timer.hasElapsed(coralScoringTrajectory.getDuration() - 1.6)),
-                    AutoCommands.superstructureAimAndEjectCommand(
-                        superstructure,
-                        coralObjective,
-                        true,
-                        () ->
-                            timer.hasElapsed(
-                                coralScoringTrajectory.getDuration()
-                                    - coralEjectTimeSeconds / 2.0)),
-                    Commands.runOnce(
-                        () ->
-                            System.out.printf(
-                                "Scored Coral #" + coralScoreIndex + " at %.2f\n",
-                                autoTimer.get())),
-                    coralScoreIndex != 4
-                        ? Commands.waitUntil(
-                                () ->
-                                    AutoScoreCommands.outOfDistanceToReef(
-                                        RobotState.getInstance().getEstimatedPose(), 0.10))
-                            .andThen(
-                                IntakeCommands.intake(superstructure, funnel)
-                                    .until(
-                                        () ->
-                                            timer.hasElapsed(
-                                                coralScoringTrajectory.getDuration()
-                                                    + coralIntakingTrajectory.getDuration()
-                                                    + intakeTimeSeconds)))
-                        : superstructure
-                            .runGoal(
-                                Superstructure.getScoringState(
-                                    coralObjective.reefLevel(), false, false))
-                            .until(() -> autoTimer.hasElapsed(15.3)))
-                .deadlineFor(
-                    // Drive sequence
-                    Commands.sequence(
-                        driveScoringCommand,
-                        coralScoreIndex != 4 ? driveIntakingCommand : Commands.none())));
-  }
-
-  public Command upInTheWeedsAuto(boolean isElims) {
+  public Command upInTheWaterAuto(boolean isSuper) {
     final double intakeTimeSeconds = 0.15;
     final double driveToStationBiasSeconds = 0.2;
 
     CoralObjective[] coralObjectives =
         new CoralObjective[] {
-          new CoralObjective(9, isElims ? ReefLevel.L4 : ReefLevel.L2),
+          new CoralObjective(8, isSuper ? ReefLevel.L4 : ReefLevel.L2),
           new CoralObjective(10, ReefLevel.L4),
-          new CoralObjective(0, ReefLevel.L2),
+          new CoralObjective(11, ReefLevel.L4),
+          new CoralObjective(0, ReefLevel.L2)
         };
 
     Timer autoTimer = new Timer();
@@ -209,17 +71,9 @@ public class AutoBuilder {
               autoTimer.restart();
             })
         .andThen(
-            new DriveToPose(
-                    drive,
-                    () ->
-                        AutoScoreCommands.getCoralScorePose(
-                            MirrorUtil.apply(coralObjectives[0]), false),
-                    () -> RobotState.getInstance().getEstimatedPose(),
-                    () -> AllianceFlipUtil.apply(new Translation2d(-3.0, 0.0)),
-                    () -> 0.0)
-                .until(() -> AutoCommands.isXCrossed(startingLineX - 0.5, true)),
+            getUpInThePush(),
             Commands.sequence(
-                IntStream.rangeClosed(0, 2)
+                IntStream.rangeClosed(0, 3)
                     .mapToObj(
                         index -> {
                           var driveToStation = new DriveToStation(drive, true);
@@ -286,6 +140,7 @@ public class AutoBuilder {
               superstructure.setAutoStart();
             })
         .andThen(
+            getUpInThePush(),
             AutoScoreCommands.autoScore(
                 drive,
                 superstructure,
@@ -321,5 +176,20 @@ public class AutoBuilder {
                         new Translation2d((AllianceFlipUtil.shouldFlip() ? -1.0 : 1.0) * -1.0, 0.0),
                     () -> 0.0)
                 .withTimeout(0.6));
+  }
+
+  private Command getUpInThePush() {
+    return new DriveToPose(
+            drive,
+            () -> {
+              Pose2d robot = RobotState.getInstance().getEstimatedPose();
+              return new Pose2d(
+                  robot
+                      .getTranslation()
+                      .plus(new Translation2d(AllianceFlipUtil.shouldFlip() ? -0.1 : 0.1, 0.0)),
+                  robot.getRotation());
+            })
+        .withTimeout(upInThePushSecs)
+        .onlyIf(upInThePush);
   }
 }

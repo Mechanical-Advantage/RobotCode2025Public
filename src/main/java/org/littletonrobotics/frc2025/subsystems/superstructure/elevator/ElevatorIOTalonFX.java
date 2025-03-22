@@ -51,6 +51,7 @@ public class ElevatorIOTalonFX implements ElevatorIO {
   private final StatusSignal<Temperature> followerTemp;
 
   private final Debouncer connectedDebouncer = new Debouncer(0.5);
+  private final Debouncer followerConnectedDebouncer = new Debouncer(0.5);
 
   private final TorqueCurrentFOC torqueCurrentRequest =
       new TorqueCurrentFOC(0.0).withUpdateFreqHz(0.0);
@@ -96,7 +97,7 @@ public class ElevatorIOTalonFX implements ElevatorIO {
         followerTorqueCurrent,
         followerSupplyCurrent,
         followerTemp);
-    torqueCurrent.setUpdateFrequency(1000);
+    torqueCurrent.setUpdateFrequency(250);
     ParentDevice.optimizeBusUtilizationForAll(talon, followerTalon);
 
     // Register signals for refresh
@@ -119,9 +120,9 @@ public class ElevatorIOTalonFX implements ElevatorIO {
     inputs.data =
         new ElevatorIOData(
             connectedDebouncer.calculate(
-                BaseStatusSignal.isAllGood(
-                    position, velocity, appliedVolts, torqueCurrent, supplyCurrent, temp)),
-            connectedDebouncer.calculate(
+                // Exclude torque-current b/c it's running at a much higher update rate
+                BaseStatusSignal.isAllGood(position, velocity, appliedVolts, supplyCurrent, temp)),
+            followerConnectedDebouncer.calculate(
                 BaseStatusSignal.isAllGood(
                     followerAppliedVolts,
                     followerTorqueCurrent,

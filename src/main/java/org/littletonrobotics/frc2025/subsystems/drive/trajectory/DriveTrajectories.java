@@ -54,7 +54,6 @@ public class DriveTrajectories {
                 .build()));
   }
 
-  public static final double upInTheWaterLineupDistance = 0.3;
   public static final Pose2d[] upInTheWaterScoringPoses =
       IntStream.rangeClosed(1, 4)
           .mapToObj(
@@ -66,24 +65,27 @@ public class DriveTrajectories {
   // Super up in the water auto
   static {
     final double coralScoringVelocity = 1.0;
-    final double elevatorUpVelocity = DriveConstants.maxLinearSpeed * 0.5;
-    final double elevatorDownVelocity = DriveConstants.maxLinearSpeed * 0.7;
-    final double movingCoralDegreeOffset = -8.0;
+    final double elevatorUpVelocity = DriveConstants.maxLinearSpeed * 0.65;
+    final double movingCoralDegreeOffset = -10.0;
+    final double coralLineup = Units.inchesToMeters(12.0);
     final double movingCoralLineup = 0.3;
+    final double transitionVelocity = 1.2;
 
-    upInTheWaterScoringPoses[0] =
+    final Pose2d movingScorePose =
         upInTheWaterScoringPoses[0].transformBy(
-            GeomUtil.toTransform2d(-Units.inchesToMeters(6.0), 0.0));
+            GeomUtil.toTransform2d(-Units.inchesToMeters(5.0), 0.0));
     final Pose2d preMovingScore =
         new Pose2d(
-            upInTheWaterScoringPoses[0]
-                .transformBy(GeomUtil.toTransform2d(0.0, -movingCoralLineup / 2.0))
+            movingScorePose
+                .transformBy(GeomUtil.toTransform2d(0.0, -movingCoralLineup))
                 .getTranslation(),
-            upInTheWaterScoringPoses[0]
-                .getRotation()
-                .plus(Rotation2d.fromDegrees(movingCoralDegreeOffset)));
+            movingScorePose.getRotation().plus(Rotation2d.fromDegrees(movingCoralDegreeOffset)));
     final Pose2d postMovingScore =
-        preMovingScore.transformBy(GeomUtil.toTransform2d(0.0, movingCoralLineup));
+        new Pose2d(
+            movingScorePose
+                .transformBy(GeomUtil.toTransform2d(0.0, movingCoralLineup))
+                .getTranslation(),
+            movingScorePose.getRotation().plus(Rotation2d.fromDegrees(movingCoralDegreeOffset)));
     paths.put(
         "SuperUpInTheWater1Score",
         List.of(
@@ -91,10 +93,9 @@ public class DriveTrajectories {
                 .addPoseWaypoint(
                     new Pose2d(
                         startingLineX - DriveConstants.robotWidth / 2.0,
-                        fieldWidth - Barge.closeCage.getY() + DriveConstants.robotWidth / 2.0,
+                        fieldWidth - Barge.closeCage.getY(),
                         Rotation2d.kCCW_Pi_2))
                 .addPoseWaypoint(preMovingScore)
-                .setMaxVelocity(elevatorUpVelocity * 0.7)
                 .build(),
             PathSegment.newBuilder()
                 .addWaypoints(
@@ -108,9 +109,8 @@ public class DriveTrajectories {
                                     .minus(preMovingScore.getTranslation())
                                     .getAngle()))
                         .build())
-                .setMaxVelocity(coralScoringVelocity)
                 .setStraightLine(true)
-                .setMaxOmega(0.0)
+                .setMaxVelocity(coralScoringVelocity)
                 .build()));
     paths.put(
         "SuperUpInTheWater1Intake",
@@ -119,7 +119,6 @@ public class DriveTrajectories {
                 .addWaypoints(getLastWaypoint("SuperUpInTheWater1Score"))
                 .addPoseWaypoint(
                     getNearestIntakingPose(getLastWaypoint("SuperUpInTheWater1Score").getPose()))
-                .setMaxVelocity(elevatorDownVelocity)
                 .build()));
     for (int i = 0; i < 4; i++) {
       Pose2d scoringPose = upInTheWaterScoringPoses[i];
@@ -129,33 +128,37 @@ public class DriveTrajectories {
             firstSegment.addPoseWaypoint(
                 new Pose2d(
                     startingLineX - DriveConstants.robotWidth / 2.0,
-                    fieldWidth - Barge.closeCage.getY() + DriveConstants.robotWidth / 2.0,
+                    fieldWidth - Barge.closeCage.getY(),
                     Rotation2d.kCCW_Pi_2));
       } else {
         firstSegment = firstSegment.addWaypoints(getLastWaypoint("UpInTheWater" + i + "Intake"));
       }
+      var lineupPose =
+          scoringPose.transformBy(
+              GeomUtil.toTransform2d(-coralLineup, i == 3 || i == 0 ? -0.2 : 0.0));
       paths.put(
           "UpInTheWater" + (i + 1) + "Score",
           List.of(
               firstSegment
-                  .addPoseWaypoint(
-                      scoringPose.transformBy(
-                          GeomUtil.toTransform2d(
-                              -upInTheWaterLineupDistance, i == 3 || i == 0 ? -0.2 : 0.0)))
+                  .addWaypoints(
+                      Waypoint.newBuilder()
+                          .withPose(lineupPose)
+                          .withLinearVelocity(
+                              new Translation2d(
+                                  transitionVelocity,
+                                  scoringPose
+                                      .getTranslation()
+                                      .minus(lineupPose.getTranslation())
+                                      .getAngle())))
                   .setMaxVelocity(elevatorUpVelocity)
-                  .build(),
-              PathSegment.newBuilder()
-                  .addPoseWaypoint(scoringPose)
-                  .setMaxVelocity(coralScoringVelocity)
                   .build()));
       if (i == 3) continue;
       paths.put(
           "UpInTheWater" + (i + 1) + "Intake",
           List.of(
               PathSegment.newBuilder()
-                  .addWaypoints(getLastWaypoint("UpInTheWater" + (i + 1) + "Score"))
+                  .addPoseWaypoint(scoringPose)
                   .addPoseWaypoint(getNearestIntakingPose(scoringPose))
-                  .setMaxVelocity(elevatorDownVelocity)
                   .build()));
     }
   }
@@ -163,7 +166,7 @@ public class DriveTrajectories {
   private static Pose2d getNearestIntakingPose(Pose2d pose) {
     return CoralStation.rightCenterFace.transformBy(
         GeomUtil.toTransform2d(
-            DriveConstants.robotWidth / 2.0 + Units.inchesToMeters(3.0),
+            DriveConstants.robotWidth / 2.0 + Units.inchesToMeters(7.0),
             MathUtil.clamp(
                 pose.relativeTo(CoralStation.rightCenterFace).getY(),
                 -FieldConstants.CoralStation.stationLength / 2 + Units.inchesToMeters(16),
