@@ -150,8 +150,9 @@ public class AutoBuilder {
             new DriveToPose(
                     drive,
                     () ->
-                        AutoScoreCommands.getCoralScorePose(objective, false)
-                            .plus(new Transform2d(-0.5, 0.0, Rotation2d.kZero)))
+                        AllianceFlipUtil.apply(
+                            AutoScoreCommands.getCoralScorePose(objective, false)
+                                .plus(new Transform2d(-0.5, 0.0, Rotation2d.kZero))))
                 .withTimeout(3.0)
                 .deadlineFor(
                     superstructure.runGoal(

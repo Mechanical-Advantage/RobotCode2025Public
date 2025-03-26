@@ -31,15 +31,15 @@ public class Climber extends SubsystemBase {
   private static final LoggedTunableNumber deployCurrent =
       new LoggedTunableNumber("Climber/DeployCurrent", 30);
   private static final LoggedTunableNumber deployAngle =
-      new LoggedTunableNumber("Climber/DeployAngle", 130);
+      new LoggedTunableNumber("Climber/DeployAngle", 135);
   private static final LoggedTunableNumber undeployAngle =
-      new LoggedTunableNumber("Climber/UndeployAngle", 135);
+      new LoggedTunableNumber("Climber/UndeployAngle", 145);
   private static final LoggedTunableNumber climbCurrent =
       new LoggedTunableNumber("Climber/ClimbCurrent", 65);
   private static final LoggedTunableNumber climbCurrentRampRate =
       new LoggedTunableNumber("Climber/ClimbCurrentRampRate", 120);
   static final LoggedTunableNumber climbStopAngle =
-      new LoggedTunableNumber("Climber/ClimbStopAngle", 230);
+      new LoggedTunableNumber("Climber/ClimbStopAngle", 220);
   private static final LoggedTunableNumber gripVolts =
       new LoggedTunableNumber("Climber/GripVolts", 12.0);
 
@@ -52,6 +52,7 @@ public class Climber extends SubsystemBase {
   private final RollerSystemIOInputsAutoLogged gripperInputs = new RollerSystemIOInputsAutoLogged();
 
   @Setter private BooleanSupplier coastOverride = () -> false;
+  @AutoLogOutput private double climbStopOffsetDegrees = 0.0;
 
   @AutoLogOutput(key = "Climber/BrakeModeEnabled")
   private boolean brakeModeEnabled = true;
@@ -62,8 +63,8 @@ public class Climber extends SubsystemBase {
 
   private final Alert climberDisconnected =
       new Alert("Climber motor disconnected!", Alert.AlertType.kWarning);
-  private final Alert climberGripperDisconnected =
-      new Alert("Climber gripper motor disconnected!", Alert.AlertType.kWarning);
+  // private final Alert climberGripperDisconnected =
+  //     new Alert("Climber gripper motor disconnected!", Alert.AlertType.kWarning);
   private final Alert climberGripperTempFault =
       new Alert("Climber gripper motor too hot! 🥵", Alert.AlertType.kWarning);
 
@@ -80,7 +81,7 @@ public class Climber extends SubsystemBase {
     Logger.processInputs("Climber/Gripper", gripperInputs);
 
     climberDisconnected.set(!climberInputs.data.motorConnected() && !Robot.isJITing());
-    climberGripperDisconnected.set(!gripperInputs.data.connected() && !Robot.isJITing());
+    // climberGripperDisconnected.set(!gripperInputs.data.connected() && !Robot.isJITing());
     climberGripperTempFault.set(gripperInputs.data.tempFault());
 
     // Stop when disabled
@@ -130,9 +131,10 @@ public class Climber extends SubsystemBase {
         Logger.recordOutput("Climber/GripperReady", gripperReady);
       }
       case PULL -> {
-        gripperIO.runVolts(gripVolts.get());
+        gripperIO.stop();
         boolean stopped =
-            climberInputs.data.positionRads() >= Units.degreesToRadians(climbStopAngle.get());
+            climberInputs.data.positionRads()
+                >= Units.degreesToRadians(climbStopAngle.get() + climbStopOffsetDegrees);
         Leds.getInstance().superClimbed = false;
         if (stopped) {
           climbTimer.restart();
@@ -159,6 +161,10 @@ public class Climber extends SubsystemBase {
             climbState = ClimbState.READY;
           }
         });
+  }
+
+  public void adjustClimbOffset(double offset) {
+    climbStopOffsetDegrees += offset;
   }
 
   private void setBrakeMode(boolean enabled) {

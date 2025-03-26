@@ -33,15 +33,15 @@ public class AlgaeScoreCommands {
   private static final LoggedTunableNumber processLineupXOffset =
       new LoggedTunableNumber("AlgaeScoreCommands/ProcessLineupXOffset", 0.1);
   private static final LoggedTunableNumber processLineupYOffset =
-      new LoggedTunableNumber("AlgaeScoreCommands/ProcessLineupYOffset", -0.1);
+      new LoggedTunableNumber("AlgaeScoreCommands/ProcessLineupYOffset", 0.0);
   private static final LoggedTunableNumber processLineupClear =
       new LoggedTunableNumber("AlgaeScoreCommands/ProcessLineupClear", 0.3);
   private static final LoggedTunableNumber processEjectDegOffset =
       new LoggedTunableNumber("AlgaeScoreCommands/ProcessEjectDegreeOffset", 15.0);
   private static final LoggedTunableNumber throwLineupDistance =
-      new LoggedTunableNumber("AlgaeScoreCommands/ThrowLineupDistance", 0.6);
+      new LoggedTunableNumber("AlgaeScoreCommands/ThrowLineupDistance", 1.2);
   private static final LoggedTunableNumber throwDriveDistance =
-      new LoggedTunableNumber("AlgaeScoreCommands/ThrowDriveDistance", 0.15);
+      new LoggedTunableNumber("AlgaeScoreCommands/ThrowDriveDistance", 0.2);
   private static final LoggedTunableNumber throwDriveVelocity =
       new LoggedTunableNumber("AlgaeScoreCommands/ThrowDriveVelocity", 1.5);
   public static final LoggedTunableNumber throwGripperEjectTime =
@@ -130,6 +130,7 @@ public class AlgaeScoreCommands {
   public static Command netThrowLineup(
       Drive drive,
       Superstructure superstructure,
+      DoubleSupplier driverX,
       DoubleSupplier driverY,
       Command joystickDrive,
       BooleanSupplier disableAlgaeScoreAutoAlign) {
@@ -144,7 +145,8 @@ public class AlgaeScoreCommands {
                     AllianceFlipUtil.apply(Rotation2d.kZero)),
             RobotState.getInstance()::getEstimatedPose,
             () ->
-                DriveCommands.getLinearVelocityFromJoysticks(0, driverY.getAsDouble())
+                DriveCommands.getLinearVelocityFromJoysticks(
+                        driverX.getAsDouble(), driverY.getAsDouble())
                     .times(AllianceFlipUtil.shouldFlip() ? -1.0 : 1.0),
             () -> 0);
 

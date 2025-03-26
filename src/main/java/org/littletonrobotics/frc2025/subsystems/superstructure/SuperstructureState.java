@@ -44,18 +44,18 @@ public enum SuperstructureState {
           .height(Height.SECOND_STAGE)
           .build()),
   GOODBYE_CORAL_EJECT(
-      GOODBYE_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts).build()),
+      GOODBYE_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts[3]).build()),
   L1_CORAL_EJECT(
       SuperstructureStateData.builder()
           .pose(Preset.L1_EJECT.getPose())
-          .tunnelVolts(Dispenser.tunnelL1DispenseVolts)
+          .tunnelVolts(Dispenser.tunnelDispenseVolts[0])
           .build()),
   L2_CORAL_EJECT(
-      L2_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts).build()),
+      L2_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts[1]).build()),
   L3_CORAL_EJECT(
-      L3_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts).build()),
+      L3_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts[2]).build()),
   L4_CORAL_EJECT(
-      L4_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts).build()),
+      L4_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts[3]).build()),
   ALGAE_STOW(
       SuperstructureStateData.builder()
           .pose(Preset.ALGAE_STOW.getPose())
@@ -85,14 +85,14 @@ public enum SuperstructureState {
           .build()),
   ALGAE_GOODBYE_CORAL_EJECT(
       ALGAE_GOODBYE_CORAL.getValue().toBuilder()
-          .tunnelVolts(Dispenser.tunnelDispenseVolts)
+          .tunnelVolts(Dispenser.tunnelDispenseVolts[3])
           .build()),
   ALGAE_L2_CORAL_EJECT(
-      ALGAE_L2_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts).build()),
+      ALGAE_L2_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts[1]).build()),
   ALGAE_L3_CORAL_EJECT(
-      ALGAE_L3_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts).build()),
+      ALGAE_L3_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts[2]).build()),
   ALGAE_L4_CORAL_EJECT(
-      ALGAE_L4_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts).build()),
+      ALGAE_L4_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts[3]).build()),
   ALGAE_L2_INTAKE(
       SuperstructureStateData.builder()
           .pose(Preset.ALGAE_L2_INTAKE.getPose())

@@ -89,8 +89,8 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
     addInitialValue(
         heightFudges,
         ReefLevel.L2,
-        Units.inchesToMeters(0.0),
-        Units.inchesToMeters(0.0),
+        Units.inchesToMeters(2.5),
+        Units.inchesToMeters(2.5),
         "HeightFudges");
     addInitialValue(
         heightFudges,
@@ -203,7 +203,7 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
         new LoggedTunableNumber("Superstructure/AlgaeIntake/L3/Pivot", -55.0)),
     ALGAE_ICE_CREAM_INTAKE("AlgaeIceCreamIntake", 0.15, -45.0),
     THROW("Throw", elevatorMaxTravel, 0.0),
-    ALGAE_STOW("AlgaeStow", intakeHeightBaseline.get(), -5.0),
+    ALGAE_STOW("AlgaeStow", intakeHeightBaseline.get(), -15.0),
     PROCESS("Processed", 0.21, -70.0);
 
     private final SuperstructurePose pose;

@@ -529,6 +529,11 @@ public class Superstructure extends SubsystemBase {
     return run(() -> setGoal(goal.get()));
   }
 
+  public Command forceEject() {
+    return startEnd(
+        () -> dispenser.setForceEjectAll(true), () -> dispenser.setForceEjectAll(false));
+  }
+
   public void setAutoStart() {
     state = SuperstructureState.AUTO_START;
     next = null;

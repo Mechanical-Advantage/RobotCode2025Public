@@ -19,7 +19,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.ScheduleCommand;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
-import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.function.*;
@@ -52,24 +51,26 @@ public class AutoScoreCommands {
   public static final LoggedTunableNumber minDistanceReefClearL4 =
       new LoggedTunableNumber("AutoScore/MinDistanceReefClear", Units.inchesToMeters(6.0));
   public static final LoggedTunableNumber minDistanceReefClearAlgaeL4 =
-      new LoggedTunableNumber("AutoScore/MinDistanceReefClearAlgae", 0.35);
+      new LoggedTunableNumber("AutoScore/MinDistanceReefClearAlgae", 0.45);
   public static final LoggedTunableNumber minAngleReefClear =
       new LoggedTunableNumber("AutoScore/MinAngleReefClear", 60.0);
   public static final LoggedTunableNumber algaeBackupTime =
       new LoggedTunableNumber("AutoScore/AlgaeBackupTime", 0.5);
   private static final LoggedTunableNumber distanceSuperstructureReady =
-      new LoggedTunableNumber("AutoScore/DistanceSuperstructureReady", 3);
+      new LoggedTunableNumber("AutoScore/DistanceSuperstructureReady", 2);
+  private static final LoggedTunableNumber distanceSuperstructureReadyAuto =
+      new LoggedTunableNumber("AutoScore/DistanceSuperstructureReadyAuto", 1.5);
   private static final LoggedTunableNumber[] linearXToleranceEject = {
     new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L1", 0.03),
-    new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L2", 0.18),
-    new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L3", 0.18),
+    new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L2", 0.1),
+    new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L3", 0.1),
     new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L4", 0.05)
   };
   private static final LoggedTunableNumber[] linearYToleranceEject = {
     new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L1", 0.05),
-    new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L2", 0.18),
-    new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L3", 0.18),
-    new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L4", 0.025)
+    new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L2", 0.12),
+    new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L3", 0.12),
+    new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L4", 0.08)
   };
   private static final LoggedTunableNumber[] maxLinearVel = {
     new LoggedTunableNumber("AutoScore/MaxLinearVel/L1", 0.1),
@@ -85,12 +86,12 @@ public class AutoScoreCommands {
   };
   private static final LoggedTunableNumber[] thetaToleranceEject = {
     new LoggedTunableNumber("AutoScore/ThetaToleranceEject/L1", 5),
-    new LoggedTunableNumber("AutoScore/ThetaToleranceEject/L2", 12),
-    new LoggedTunableNumber("AutoScore/ThetaToleranceEject/L3", 12),
-    new LoggedTunableNumber("AutoScore/ThetaToleranceEject/L4", 3)
+    new LoggedTunableNumber("AutoScore/ThetaToleranceEject/L2", 5),
+    new LoggedTunableNumber("AutoScore/ThetaToleranceEject/L3", 5),
+    new LoggedTunableNumber("AutoScore/ThetaToleranceEject/L4", 10)
   };
   private static final LoggedTunableNumber l4EjectDelay =
-      new LoggedTunableNumber("AutoScore/L4EjectDelay", 0.2);
+      new LoggedTunableNumber("AutoScore/L4EjectDelay", 0.05);
   private static final LoggedTunableNumber l4EjectDelayAuto =
       new LoggedTunableNumber("AutoScore/L4EjectDelayAuto", 0.05);
   private static final LoggedTunableNumber thetaToleranceReady =
@@ -99,10 +100,14 @@ public class AutoScoreCommands {
       new LoggedTunableNumber("AutoScore/L2ReefIntakeDistance", 0.12);
   private static final LoggedTunableNumber l3ReefIntakeDistance =
       new LoggedTunableNumber("AutoScore/L3ReefIntakeDistance", 0.14);
+  private static final LoggedTunableNumber maxAimingAngle =
+      new LoggedTunableNumber("AutoScore/MaxAimingAngle", 20.0);
   private static final LoggedTunableNumber l1AlignOffsetX =
       new LoggedTunableNumber("AutoScore/L1AlignOffsetX", 0.45);
   private static final LoggedTunableNumber l1AlignOffsetY =
       new LoggedTunableNumber("AutoScore/L1AlignOffsetY", 0.0);
+  private static final LoggedTunableNumber l1AlignOffsetTheta =
+      new LoggedTunableNumber("AutoScore/L1AlignOffsetTheta", 180.0);
   private static final LoggedTunableNumber minDistanceAim =
       new LoggedTunableNumber("AutoScore/MinDistanceAim", 0.2);
   private static final LoggedTunableNumber ejectTimeSeconds =
@@ -186,13 +191,23 @@ public class AutoScoreCommands {
                           if (DriverStation.isAutonomousEnabled()) {
                             return getDriveTarget(robot.get(), AllianceFlipUtil.apply(goalPose));
                           } else {
-                            return new Pose2d(
-                                getDriveTarget(robot.get(), AllianceFlipUtil.apply(goalPose))
-                                    .getTranslation(),
+                            Pose2d flippedGoalPose = AllianceFlipUtil.apply(goalPose);
+                            Rotation2d originalRotation = flippedGoalPose.getRotation();
+                            Rotation2d rotationAdjustment =
                                 AllianceFlipUtil.apply(getBranchPose(objective))
                                     .getTranslation()
                                     .minus(robot.get().getTranslation())
-                                    .getAngle());
+                                    .getAngle()
+                                    .minus(originalRotation);
+                            rotationAdjustment =
+                                Rotation2d.fromDegrees(
+                                    MathUtil.clamp(
+                                        rotationAdjustment.getDegrees(),
+                                        -maxAimingAngle.get(),
+                                        maxAimingAngle.get()));
+                            return new Pose2d(
+                                getDriveTarget(robot.get(), flippedGoalPose).getTranslation(),
+                                originalRotation.plus(rotationAdjustment));
                           }
                         })
                     .orElseGet(() -> RobotState.getInstance().getEstimatedPose()),
@@ -242,7 +257,11 @@ public class AutoScoreCommands {
             Commands.waitUntil(
                 () -> {
                   boolean ready =
-                      (withinDistanceToReef(robot.get(), distanceSuperstructureReady.get())
+                      (withinDistanceToReef(
+                                  robot.get(),
+                                  DriverStation.isAutonomous()
+                                      ? distanceSuperstructureReadyAuto.get()
+                                      : distanceSuperstructureReady.get())
                               && coralObjective.get().isPresent()
                               && Math.abs(
                                       AllianceFlipUtil.apply(robot.get())
@@ -645,7 +664,7 @@ public class AutoScoreCommands {
         .finallyDo(
             () -> {
               Leds.getInstance().autoScoringReef = false;
-              Leds.getInstance().superAutoScoring = true;
+              Leds.getInstance().superAutoScoring = false;
             });
   }
 
@@ -848,15 +867,11 @@ public class AutoScoreCommands {
   private static Pose2d getL1Pose(CoralObjective coralObjective) {
     Pose2d centerFace =
         Reef.centerFaces[coralObjective.branchId() / 2].transformBy(
-            new Transform2d(l1AlignOffsetX.get(), 0, Rotation2d.kPi));
-    return RobotState.getInstance()
-        .getEstimatedPose()
-        .nearest(
-            List.of(
-                centerFace.transformBy(new Transform2d(0, -l1AlignOffsetY.get(), Rotation2d.kZero)),
-                centerFace,
-                centerFace.transformBy(
-                    new Transform2d(0, l1AlignOffsetY.get(), Rotation2d.kZero))));
+            new Transform2d(
+                l1AlignOffsetX.get(),
+                l1AlignOffsetY.get(),
+                Rotation2d.fromDegrees(l1AlignOffsetTheta.get())));
+    return centerFace;
   }
 
   public static boolean withinDistanceToReef(Pose2d robot, double distance) {

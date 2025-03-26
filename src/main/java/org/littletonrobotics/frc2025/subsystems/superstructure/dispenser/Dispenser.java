@@ -72,17 +72,19 @@ public class Dispenser {
   public static final LoggedTunableNumber gripperHoldVolts =
       new LoggedTunableNumber("Dispenser/GripperHoldVolts", 1.0);
   public static final LoggedTunableNumber gripperIntakeVolts =
-      new LoggedTunableNumber("Dispenser/GripperIntakeVolts", 12.0);
+      new LoggedTunableNumber("Dispenser/GripperIntakeVolts", 9.0);
   public static final LoggedTunableNumber gripperEjectVolts =
       new LoggedTunableNumber("Dispenser/GripperEjectVolts", -12.0);
   public static final LoggedTunableNumber gripperL1EjectVolts =
       new LoggedTunableNumber("Dispenser/GripperL1EjectVolts", -5.0);
   public static final LoggedTunableNumber gripperCurrentLimit =
       new LoggedTunableNumber("Dispenser/GripperCurrentLimit", 50.0);
-  public static final LoggedTunableNumber tunnelDispenseVolts =
-      new LoggedTunableNumber("Dispenser/TunnelDispenseVolts", 10.0);
-  public static final LoggedTunableNumber tunnelL1DispenseVolts =
-      new LoggedTunableNumber("Dispenser/TunnelL1DispenseVolts", 2.5);
+  public static final LoggedTunableNumber[] tunnelDispenseVolts = {
+    new LoggedTunableNumber("Dispenser/TunnelDispenseVolts/L1", 1.5),
+    new LoggedTunableNumber("Dispenser/TunnelDispenseVolts/L2", 2.25),
+    new LoggedTunableNumber("Dispenser/TunnelDispenseVolts/L3", 2.25),
+    new LoggedTunableNumber("Dispenser/TunnelDispenseVolts/L4", 5.0)
+  };
   public static final LoggedTunableNumber tunnelIntakeVolts =
       new LoggedTunableNumber("Dispenser/TunnelIntakeVolts", 3.0);
   public static final LoggedTunableNumber tolerance =
@@ -151,6 +153,7 @@ public class Dispenser {
   @Setter private boolean isEStopped = false;
   @Setter private boolean isIntaking = false;
   @Setter private boolean forceFastConstraints = false;
+  @Setter private boolean forceEjectAll = false;
   private final Timer intakingReverseTimer = new Timer();
 
   @Getter
@@ -308,10 +311,16 @@ public class Dispenser {
       Logger.recordOutput("Dispenser/Profile/SetpointAngleRadPerSec", 0.0);
       Logger.recordOutput("Dispenser/Profile/GoalAngleRad", 0.0);
     }
+    if (isEStopped) {
+      pivotIO.stop();
+    }
 
     // Run tunnel and gripper
     Leds.getInstance().coralGrabbed = false;
-    if (!isEStopped) {
+    if (forceEjectAll) {
+      tunnelIO.runVolts(tunnelDispenseVolts[3].get());
+      gripperIO.runVolts(gripperEjectVolts.get());
+    } else if (!isEStopped) {
       double intakeVolts = tunnelVolts;
       if (isIntaking && !hasCoral) {
         intakingReverseTimer.restart();
@@ -336,7 +345,6 @@ public class Dispenser {
         case L1_EJECT -> gripperIO.runVolts(gripperL1EjectVolts.get());
       }
     } else {
-      pivotIO.stop();
       tunnelIO.stop();
       gripperIO.stop();
     }

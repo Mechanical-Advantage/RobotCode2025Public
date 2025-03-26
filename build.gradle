@@ -103,7 +103,7 @@ task(generateDriveTrajectories, dependsOn: "classes", type: JavaExec) {
     mainClass = "org.littletonrobotics.frc2025.subsystems.drive.trajectory.GenerateTrajectories"
     classpath = sourceSets.main.runtimeClasspath
 }
-compileJava.finalizedBy generateDriveTrajectories
+// compileJava.finalizedBy generateDriveTrajectories
 
 // Defining my dependencies. In this case, WPILib (+ friends), and vendor libraries.
 // Also defines JUnit 4.

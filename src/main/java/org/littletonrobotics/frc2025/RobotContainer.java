@@ -131,9 +131,7 @@ public class RobotContainer {
                   new CoralSensorIOLaserCan());
           funnel =
               new RollerSystem("Funnel", new RollerSystemIOTalonFX(2, "", 30, true, false, 1.0));
-          climber =
-              new Climber(
-                  new ClimberIOTalonFX(), new RollerSystemIOTalonFX(3, "", 60, false, false, 3.4));
+          climber = new Climber(new ClimberIOTalonFX(), new RollerSystemIO() {});
         }
         case DEVBOT -> {
           drive =
@@ -411,7 +409,7 @@ public class RobotContainer {
     // Coral intake
     driver
         .leftTrigger()
-        .whileTrueContinuous(
+        .whileTrue(
             Commands.either(
                     joystickDriveCommandFactory.get(),
                     new DriveToStation(drive, driverX, driverY, driverOmega, false),
@@ -435,7 +433,7 @@ public class RobotContainer {
         new Trigger(
             () ->
                 AllianceFlipUtil.applyY(RobotState.getInstance().getEstimatedPose().getY())
-                        < FieldConstants.fieldWidth / 2 + DriveConstants.robotWidth
+                        < FieldConstants.fieldWidth / 2 - DriveConstants.robotWidth
                     || onOpposingSide.getAsBoolean());
     Container<Boolean> hasAlgae = new Container<>(false);
     driver.leftBumper().onTrue(Commands.runOnce(() -> hasAlgae.value = superstructure.hasAlgae()));
@@ -523,6 +521,7 @@ public class RobotContainer {
             AlgaeScoreCommands.netThrowLineup(
                     drive,
                     superstructure,
+                    driverX,
                     driverY,
                     joystickDriveCommandFactory.get(),
                     disableAlgaeScoreAutoAlign)
@@ -573,21 +572,15 @@ public class RobotContainer {
                 .alongWith(funnel.runRoller(IntakeCommands.outtakeVolts))
                 .withName("Coral Eject"));
 
-    // Force net
-    driver
-        .povLeft()
-        .whileTrue(superstructure.runGoal(SuperstructureState.THROW).withName("Force Net"));
-
-    // Force processor
-    driver
-        .povRight()
-        .whileTrue(superstructure.runGoal(SuperstructureState.PROCESS).withName("Force Processor"));
+    // Nudge climber up and down
+    driver.povLeft().onTrue(Commands.runOnce(() -> climber.adjustClimbOffset(-5)));
+    driver.povRight().onTrue(Commands.runOnce(() -> climber.adjustClimbOffset(5)));
 
     // Raise elevator
     driver
         .povUp()
         .toggleOnTrue(
-            superstructure.runGoal(SuperstructureState.L2_CORAL).withName("Force Raise Elevator"));
+            superstructure.runGoal(SuperstructureState.L3_CORAL).withName("Force Raise Elevator"));
 
     // ***** OPERATOR CONTROLLER *****
 
@@ -647,8 +640,7 @@ public class RobotContainer {
         .and(operator.b().negate())
         .and(operator.x().negate())
         .and(operator.y().negate())
-        .whileTrue(
-            superstructure.runGoal(SuperstructureState.TOSS).withName("Operator Algae Eject"));
+        .whileTrue(superstructure.forceEject().withName("Operator Force Eject"));
 
     // Operator commands for superstructure
     BiConsumer<Trigger, ReefLevel> bindOperatorCoralScore =

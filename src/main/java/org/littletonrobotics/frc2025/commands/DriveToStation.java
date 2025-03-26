@@ -29,7 +29,7 @@ public class DriveToStation extends DriveToPose {
   private static final LoggedTunableNumber stationAlignDistance =
       new LoggedTunableNumber(
           "DriveToStation/StationAlignDistance",
-          DriveConstants.robotWidth / 2.0 + Units.inchesToMeters(5.0));
+          DriveConstants.robotWidth / 2.0 + Units.inchesToMeters(6.5));
   private static final LoggedTunableNumber horizontalMaxOffset =
       new LoggedTunableNumber(
           "DriveToStation/HorizontalMaxOffset",
