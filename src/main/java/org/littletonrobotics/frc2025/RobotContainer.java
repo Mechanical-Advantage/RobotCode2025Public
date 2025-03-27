@@ -36,7 +36,6 @@ import org.littletonrobotics.frc2025.subsystems.climber.ClimberIO;
 import org.littletonrobotics.frc2025.subsystems.climber.ClimberIOSim;
 import org.littletonrobotics.frc2025.subsystems.climber.ClimberIOTalonFX;
 import org.littletonrobotics.frc2025.subsystems.drive.*;
-import org.littletonrobotics.frc2025.subsystems.drive.trajectory.HolonomicTrajectory;
 import org.littletonrobotics.frc2025.subsystems.leds.Leds;
 import org.littletonrobotics.frc2025.subsystems.objectivetracker.ObjectiveTracker;
 import org.littletonrobotics.frc2025.subsystems.objectivetracker.ReefControlsIO;
@@ -248,14 +247,6 @@ public class RobotContainer {
         "Drive Wheel Radius Characterization", DriveCommands.wheelRadiusCharacterization(drive));
     autoChooser.addOption(
         "Drive Simple FF Characterization", DriveCommands.feedforwardCharacterization(drive));
-    HolonomicTrajectory testTrajectory = new HolonomicTrajectory("driveStraight");
-    autoChooser.addOption(
-        "Drive Trajectory",
-        Commands.runOnce(
-                () ->
-                    RobotState.getInstance()
-                        .resetPose(AllianceFlipUtil.apply(testTrajectory.getStartPose())))
-            .andThen(new DriveTrajectory(drive, testTrajectory)));
     autoChooser.addOption(
         "Elevator Static Up",
         superstructure.setCharacterizationMode().andThen(elevator.upStaticCharacterization()));
