@@ -17,6 +17,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import java.util.function.BooleanSupplier;
+import lombok.Getter;
 import lombok.Setter;
 import org.littletonrobotics.frc2025.Robot;
 import org.littletonrobotics.frc2025.subsystems.leds.Leds;
@@ -57,7 +58,7 @@ public class Climber extends SubsystemBase {
   @AutoLogOutput(key = "Climber/BrakeModeEnabled")
   private boolean brakeModeEnabled = true;
 
-  @AutoLogOutput private ClimbState climbState = ClimbState.START;
+  @Getter @AutoLogOutput private ClimbState climbState = ClimbState.START;
 
   private final Timer climbTimer = new Timer();
 

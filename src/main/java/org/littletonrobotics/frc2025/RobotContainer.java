@@ -32,6 +32,7 @@ import org.littletonrobotics.frc2025.FieldConstants.ReefLevel;
 import org.littletonrobotics.frc2025.commands.*;
 import org.littletonrobotics.frc2025.commands.auto.AutoBuilder;
 import org.littletonrobotics.frc2025.subsystems.climber.Climber;
+import org.littletonrobotics.frc2025.subsystems.climber.Climber.ClimbState;
 import org.littletonrobotics.frc2025.subsystems.climber.ClimberIO;
 import org.littletonrobotics.frc2025.subsystems.climber.ClimberIOSim;
 import org.littletonrobotics.frc2025.subsystems.climber.ClimberIOTalonFX;
@@ -564,8 +565,14 @@ public class RobotContainer {
                 .withName("Coral Eject"));
 
     // Nudge climber up and down
-    driver.povLeft().onTrue(Commands.runOnce(() -> climber.adjustClimbOffset(-5)));
-    driver.povRight().onTrue(Commands.runOnce(() -> climber.adjustClimbOffset(5)));
+    driver
+        .povLeft()
+        .and(() -> climber.getClimbState() == ClimbState.PULL)
+        .onTrue(Commands.runOnce(() -> climber.adjustClimbOffset(-5)));
+    driver
+        .povRight()
+        .and(() -> climber.getClimbState() == ClimbState.PULL)
+        .onTrue(Commands.runOnce(() -> climber.adjustClimbOffset(5)));
 
     // Raise elevator
     driver

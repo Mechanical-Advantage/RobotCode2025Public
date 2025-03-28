@@ -111,8 +111,8 @@ public class Dispenser {
         kG.initDefault(0.0);
       }
       default -> {
-        kP.initDefault(10000);
-        kD.initDefault(35);
+        kP.initDefault(6500);
+        kD.initDefault(100);
         kS.initDefault(0);
         kG.initDefault(0);
       }
