@@ -33,8 +33,8 @@ public class VisionConstants {
 
   private static int monoExposure = 1500;
   private static double monoGain = 15.0;
-  //   private static int colorExposure = 1500;
-  //   private static double colorGain = 15.0;
+  private static int colorExposure = 4500;
+  private static double colorGain = 5.0;
 
   public static LoggedTunableNumber[] pitchAdjustments =
       switch (Constants.getRobot()) {
@@ -144,12 +144,12 @@ public class VisionConstants {
                                   0.0,
                                   Units.degreesToRadians(-40.0 + pitchAdjustments[2].get()),
                                   Units.degreesToRadians(198.394))))
-                  .id("40265453")
-                  .width(1600)
-                  .height(1200)
-                  .exposure(monoExposure)
-                  .gain(monoGain)
-                  .stdDevFactor(1.0)
+                  .id("24737133")
+                  .width(1280)
+                  .height(960)
+                  .exposure(colorExposure)
+                  .gain(colorGain)
+                  .stdDevFactor(1.25)
                   .build(),
             };
         default -> new CameraConfig[] {};

@@ -30,6 +30,10 @@ public class DriveToStation extends DriveToPose {
       new LoggedTunableNumber(
           "DriveToStation/StationAlignDistance",
           DriveConstants.robotWidth / 2.0 + Units.inchesToMeters(6.5));
+  private static final LoggedTunableNumber sideStationAlignDistance =
+      new LoggedTunableNumber(
+          "DriveToStation/SideStationAlignDistance",
+          DriveConstants.robotWidth / 2.0 + Units.inchesToMeters(5.5));
   private static final LoggedTunableNumber horizontalMaxOffset =
       new LoggedTunableNumber(
           "DriveToStation/HorizontalMaxOffset",
@@ -92,7 +96,13 @@ public class DriveToStation extends DriveToPose {
             if (Math.abs(rotationOffset.getDegrees()) > 45 && !isAuto) {
               finalPoses.add(
                   new Pose2d(
-                      stationCenter.transformBy(offset).getTranslation(),
+                      stationCenter
+                          .transformBy(
+                              new Transform2d(
+                                  sideStationAlignDistance.get(),
+                                  offset.getY(),
+                                  offset.getRotation()))
+                          .getTranslation(),
                       stationCenter
                           .getRotation()
                           .rotateBy(

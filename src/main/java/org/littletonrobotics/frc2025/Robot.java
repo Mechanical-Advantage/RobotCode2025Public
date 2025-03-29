@@ -7,6 +7,7 @@
 
 package org.littletonrobotics.frc2025;
 
+import com.ctre.phoenix6.SignalLogger;
 import edu.wpi.first.hal.AllianceStationID;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
@@ -131,6 +132,9 @@ public class Robot extends LoggedRobot {
 
     // Start AdvantageKit logger
     Logger.start();
+
+    // Disable automatic Hoot logging
+    SignalLogger.enableAutoLogging(false);
 
     // Adjust loop overrun warning timeout
     try {
