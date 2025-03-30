@@ -42,9 +42,12 @@ public class RobotState {
       new LoggedTunableNumber("RobotState/MinDistanceTagPoseBlend", Units.inchesToMeters(24.0));
   private static final LoggedTunableNumber maxDistanceTagPoseBlend =
       new LoggedTunableNumber("RobotState/MaxDistanceTagPoseBlend", Units.inchesToMeters(36.0));
+  private static final LoggedTunableNumber coralOverlap =
+      new LoggedTunableNumber("RobotState/CoralOverlap", .5);
+  private static final LoggedTunableNumber coralPersistanceTime =
+      new LoggedTunableNumber("RobotState/CoralPersistanceTime", 2.0);
 
   private static final double poseBufferSizeSec = 2.0;
-  private static final double algaePersistanceTime = 2.0;
   private static final Matrix<N3, N1> odometryStateStdDevs =
       new Matrix<>(VecBuilder.fill(0.003, 0.003, 0.002));
   private static final Map<Integer, Pose2d> tagPoses2d = new HashMap<>();
@@ -88,11 +91,16 @@ public class RobotState {
   private Rotation2d gyroOffset = Rotation2d.kZero;
 
   private final Map<Integer, TxTyPoseRecord> txTyPoses = new HashMap<>();
-  private Set<AlgaePoseRecord> algaePoses = new HashSet<>();
+  private Set<CoralPoseRecord> coralPoses = new HashSet<>();
 
   @Getter
   @AutoLogOutput(key = "RobotState/RobotVelocity")
   private ChassisSpeeds robotVelocity = new ChassisSpeeds();
+
+  @Getter
+  @Setter
+  @AutoLogOutput(key = "RobotState/ElevatorExtensionPercent")
+  private double elevatorExtensionPercent;
 
   @Getter @Setter private OptionalDouble distanceToBranch = OptionalDouble.empty();
   @Getter @Setter private OptionalDouble distanceToReefAlgae = OptionalDouble.empty();
@@ -307,7 +315,7 @@ public class RobotState {
     return getEstimatedPose().interpolate(tagPose.get(), 1.0 - t);
   }
 
-  public void addAlgaeTxTyObservation(AlgaeTxTyObservation observation) {
+  public void addCoralTxTyObservation(CoralTxTyObservation observation) {
     var oldOdometryPose = poseBuffer.getSample(observation.timestamp());
     if (oldOdometryPose.isEmpty()) {
       return;
@@ -316,47 +324,41 @@ public class RobotState {
         estimatedPose.transformBy(new Transform2d(odometryPose, oldOdometryPose.get()));
     Pose3d robotToCamera = VisionConstants.cameras[observation.camera()].pose().get();
 
-    // Average tx's and ty's
-    double tx = 0.0;
-    double ty = 0.0;
-    for (int i = 0; i < 4; i++) {
-      tx += observation.tx()[i];
-      ty += observation.ty()[i];
-    }
-    tx /= 4.0;
-    ty /= 4.0;
-    double cameraToAlgaeAngle = -robotToCamera.getRotation().getY() - ty;
-    if (cameraToAlgaeAngle >= 0) {
+    // Assume coral height of zero and find midpoint of width of bottom tx ty
+    double tx = (observation.tx()[2] + observation.tx()[3]) / 2;
+    double ty = (observation.ty()[2] + observation.ty()[3]) / 2;
+
+    double cameraToCoralAngle = -robotToCamera.getRotation().getY() - ty;
+    if (cameraToCoralAngle >= 0) {
       return;
     }
-    double cameraToAlgaeNorm =
-        (FieldConstants.algaeDiameter / 2 - robotToCamera.getZ())
+
+    double cameraToCoralNorm =
+        (-robotToCamera.getZ())
             / Math.tan(-robotToCamera.getRotation().getY() - ty)
             / Math.cos(-tx);
     Pose2d fieldToCamera = fieldToRobot.transformBy(robotToCamera.toPose2d().toTransform2d());
-    Pose2d fieldToAlgae =
+    Pose2d fieldToCoral =
         fieldToCamera
             .transformBy(new Transform2d(Translation2d.kZero, new Rotation2d(-tx)))
             .transformBy(
-                new Transform2d(new Translation2d(cameraToAlgaeNorm, 0), Rotation2d.kZero));
-    Translation2d fieldToAlgaeTranslation2d = fieldToAlgae.getTranslation();
-    AlgaePoseRecord algaePoseRecord =
-        new AlgaePoseRecord(fieldToAlgaeTranslation2d, observation.timestamp());
+                new Transform2d(new Translation2d(cameraToCoralNorm, 0), Rotation2d.kZero));
+    Translation2d fieldToCoralTranslation2d = fieldToCoral.getTranslation();
+    CoralPoseRecord coralPoseRecord =
+        new CoralPoseRecord(fieldToCoralTranslation2d, observation.timestamp());
 
-    algaePoses =
-        algaePoses.stream()
+    coralPoses =
+        coralPoses.stream()
             .filter(
-                (x) ->
-                    x.translation.getDistance(fieldToAlgaeTranslation2d)
-                        > FieldConstants.algaeDiameter * .8)
+                (x) -> x.translation.getDistance(fieldToCoralTranslation2d) > coralOverlap.get())
             .collect(Collectors.toSet());
-    algaePoses.add(algaePoseRecord);
+    coralPoses.add(coralPoseRecord);
   }
 
-  public Set<Translation2d> getAlgaeTranslations() {
-    return algaePoses.stream()
-        .filter((x) -> Timer.getTimestamp() - x.timestamp() < algaePersistanceTime)
-        .map(AlgaePoseRecord::translation)
+  public Set<Translation2d> getCoralTranslations() {
+    return coralPoses.stream()
+        .filter((x) -> Timer.getTimestamp() - x.timestamp() < coralPersistanceTime.get())
+        .map(CoralPoseRecord::translation)
         .collect(Collectors.toSet());
   }
 
@@ -372,15 +374,19 @@ public class RobotState {
     }
     Logger.recordOutput("RobotState/TxTyPoses", tagPoses);
 
-    // Log algae poses
+    // Log coral poses
     Logger.recordOutput(
-        "RobotState/AlgaePoses",
-        getAlgaeTranslations().stream()
+        "RobotState/CoralPoses",
+        getCoralTranslations().stream()
             .map(
                 (translation) ->
-                    new Translation3d(
-                        translation.getX(), translation.getY(), FieldConstants.algaeDiameter / 2))
-            .toArray(Translation3d[]::new));
+                    new Pose3d(
+                        new Translation3d(
+                            translation.getX(),
+                            translation.getY(),
+                            FieldConstants.coralDiameter / 2.0),
+                        new Rotation3d(new Rotation2d(Timer.getTimestamp() * 5.0))))
+            .toArray(Pose3d[]::new));
   }
 
   public record OdometryObservation(
@@ -393,7 +399,7 @@ public class RobotState {
 
   public record TxTyPoseRecord(Pose2d pose, double distance, double timestamp) {}
 
-  public record AlgaeTxTyObservation(int camera, double[] tx, double[] ty, double timestamp) {}
+  public record CoralTxTyObservation(int camera, double[] tx, double[] ty, double timestamp) {}
 
-  public record AlgaePoseRecord(Translation2d translation, double timestamp) {}
+  public record CoralPoseRecord(Translation2d translation, double timestamp) {}
 }

@@ -406,7 +406,7 @@ public class Superstructure extends SubsystemBase {
     // E Stop Dispenser and Elevator if Necessary
     isEStopped =
         (isEStopped || elevator.isShouldEStop() || dispenser.isShouldEStop())
-            && Constants.getMode() != Mode.SIM;
+            && Constants.getMode() == Mode.REAL;
     elevator.setEStopped(isEStopped);
     dispenser.setEStopped(isEStopped);
 

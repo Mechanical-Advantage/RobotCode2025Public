@@ -39,13 +39,11 @@ public class AlgaeScoreCommands {
   private static final LoggedTunableNumber processEjectDegOffset =
       new LoggedTunableNumber("AlgaeScoreCommands/ProcessEjectDegreeOffset", 15.0);
   private static final LoggedTunableNumber throwLineupDistance =
-      new LoggedTunableNumber("AlgaeScoreCommands/ThrowLineupDistance", 1.2);
+      new LoggedTunableNumber("AlgaeScoreCommands/ThrowLineupDistance", 1.5);
   private static final LoggedTunableNumber throwDriveDistance =
-      new LoggedTunableNumber("AlgaeScoreCommands/ThrowDriveDistance", 0.2);
+      new LoggedTunableNumber("AlgaeScoreCommands/ThrowDriveDistance", 0.5);
   private static final LoggedTunableNumber throwDriveVelocity =
       new LoggedTunableNumber("AlgaeScoreCommands/ThrowDriveVelocity", 1.5);
-  public static final LoggedTunableNumber throwGripperEjectTime =
-      new LoggedTunableNumber("AlgaeScoreCommands/ThrowGripperEjectTime", 0.3);
   private static final LoggedTunableNumber throwReadyLinearTolerance =
       new LoggedTunableNumber("AlgaeScoreCommands/ThrowReadyLinearTolerance", 4.0);
   private static final LoggedTunableNumber throwReadyThetaToleranceDeg =
@@ -56,6 +54,10 @@ public class AlgaeScoreCommands {
   @Accessors(fluent = true)
   @Getter
   private static boolean shouldForceProcess = false;
+
+  @Getter
+  private static final LoggedTunableNumber lookaheadSecs =
+      new LoggedTunableNumber("AlgaeScoreCommands/LookaheadSecs", 0.75);
 
   public static Command process(
       Drive drive,
@@ -180,6 +182,11 @@ public class AlgaeScoreCommands {
                                     driveTimer.get() * throwDriveVelocity.get(),
                                     throwDriveDistance.get()),
                                 0)))
-                .alongWith(superstructure.runGoal(SuperstructureState.THROW)));
+                .alongWith(
+                    superstructure.runGoal(
+                        () ->
+                            driveTimer.get() * throwDriveVelocity.get() > throwDriveDistance.get()
+                                ? SuperstructureState.THROW
+                                : SuperstructureState.PRE_THROW)));
   }
 }

@@ -14,7 +14,6 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import java.util.Comparator;
 import java.util.function.DoubleSupplier;
-import org.littletonrobotics.frc2025.FieldConstants;
 import org.littletonrobotics.frc2025.RobotState;
 import org.littletonrobotics.frc2025.subsystems.drive.Drive;
 import org.littletonrobotics.frc2025.subsystems.drive.DriveConstants;
@@ -22,17 +21,17 @@ import org.littletonrobotics.frc2025.util.AllianceFlipUtil;
 import org.littletonrobotics.frc2025.util.LoggedTunableNumber;
 import org.littletonrobotics.junction.Logger;
 
-public class DriveToAlgae extends DriveToPose {
+public class DriveToCoral extends DriveToPose {
   private static final LoggedTunableNumber lookAheadSecs =
-      new LoggedTunableNumber("DriveToAlgae/LookAheadSecs", 0.3);
+      new LoggedTunableNumber("DriveToCoral/LookAheadSecs", 0.3);
   private static final LoggedTunableNumber angleDifferenceWeight =
-      new LoggedTunableNumber("DriveToAlgae/AngleDifferenceWeight", 0.3);
-  private static final LoggedTunableNumber algaeMaxDistance =
-      new LoggedTunableNumber("DriveToAlgae/AlgaeMaxDistance", 1.4);
-  private static final LoggedTunableNumber algaeMaxAngleDeg =
-      new LoggedTunableNumber("DriveToAlgae/AlgaeMaxAngleDegrees", 70.0);
+      new LoggedTunableNumber("DriveToCoral/AngleDifferenceWeight", 0.3);
+  private static final LoggedTunableNumber coralMaxDistance =
+      new LoggedTunableNumber("DriveToCoral/CoralMaxDistance", 1.4);
+  private static final LoggedTunableNumber coralMaxAngleDeg =
+      new LoggedTunableNumber("DriveToCoral/CoralMaxAngleDegrees", 70.0);
 
-  public DriveToAlgae(
+  public DriveToCoral(
       Drive drive, DoubleSupplier driverX, DoubleSupplier driverY, DoubleSupplier driverOmega) {
     super(
         drive,
@@ -44,43 +43,41 @@ public class DriveToAlgae extends DriveToPose {
 
           Pose2d predictedRobot =
               instance.getEstimatedPose().exp(robotVelocity.toTwist2d(lookAheadSecs.get()));
-          Logger.recordOutput("DriveToAlgae/LookAheadPose", predictedRobot);
+          Logger.recordOutput("DriveToCoral/LookAheadPose", predictedRobot);
 
-          return instance.getAlgaeTranslations().stream()
+          return instance.getCoralTranslations().stream()
               .min(
                   Comparator.comparingDouble(
-                      algae ->
-                          algae.getDistance(predictedRobot.getTranslation())
+                      coral ->
+                          coral.getDistance(predictedRobot.getTranslation())
                               + Math.abs(
-                                  algae
+                                  coral
                                           .minus(robot.getTranslation())
                                           .getAngle()
                                           .minus(robot.getRotation())
                                           .getRadians()
                                       * angleDifferenceWeight.get())))
               .filter(
-                  algae ->
-                      algae.getDistance(predictedRobot.getTranslation()) <= algaeMaxDistance.get()
+                  coral ->
+                      coral.getDistance(predictedRobot.getTranslation()) <= coralMaxDistance.get()
                           && Math.abs(
-                                  algae
-                                      .minus(predictedRobot.getTranslation())
-                                      .getAngle()
-                                      .getDegrees())
-                              <= algaeMaxAngleDeg.get())
+                                  predictedRobot.getRotation().rotateBy(Rotation2d.kPi).getDegrees()
+                                      - (coral
+                                          .minus(predictedRobot.getTranslation())
+                                          .getAngle()
+                                          .getDegrees()))
+                              <= coralMaxAngleDeg.get())
               .map(
-                  algae -> {
-                    Logger.recordOutput("DriveToAlgae/TargetedAlgae", new Translation2d[] {algae});
-                    return new Pose2d(algae, robot.getTranslation().minus(algae).getAngle())
+                  coral -> {
+                    Logger.recordOutput("DriveToCoral/TargetedCoral", new Translation2d[] {coral});
+                    return new Pose2d(coral, robot.getTranslation().minus(coral).getAngle())
                         .transformBy(
                             new Transform2d(
-                                FieldConstants.algaeDiameter / 2.0
-                                    + DriveConstants.robotWidth / 2.0,
-                                0.0,
-                                Rotation2d.kPi));
+                                DriveConstants.robotWidth / 2.0, 0.0, Rotation2d.kZero));
                   })
               .orElseGet(
                   () -> {
-                    Logger.recordOutput("DriveToAlgae/TargetedAlgae", new Translation2d[] {});
+                    Logger.recordOutput("DriveToCoral/TargetedCoral", new Translation2d[] {});
                     return RobotState.getInstance().getEstimatedPose();
                   });
         },

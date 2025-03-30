@@ -31,6 +31,7 @@ public class FieldConstants {
   public static final double startingLineX =
       Units.inchesToMeters(299.438); // Measured from the inside of starting line
   public static final double algaeDiameter = Units.inchesToMeters(16);
+  public static final double coralDiameter = Units.inchesToMeters(4.5);
 
   public static class Processor {
     public static final Pose2d centerFace =
@@ -163,12 +164,13 @@ public class FieldConstants {
   }
 
   public enum ReefLevel {
-    L1(Units.inchesToMeters(25.0), 0),
-    L2(Units.inchesToMeters(31.875 - Math.cos(Math.toRadians(35.0)) * 0.625), -35),
-    L3(Units.inchesToMeters(47.625 - Math.cos(Math.toRadians(35.0)) * 0.625), -35),
-    L4(Units.inchesToMeters(72), -90);
+    L1(0, Units.inchesToMeters(25.0), 0),
+    L2(1, Units.inchesToMeters(31.875 - Math.cos(Math.toRadians(35.0)) * 0.625), -35),
+    L3(2, Units.inchesToMeters(47.625 - Math.cos(Math.toRadians(35.0)) * 0.625), -35),
+    L4(3, Units.inchesToMeters(72), -90);
 
-    ReefLevel(double height, double pitch) {
+    ReefLevel(int levelNumber, double height, double pitch) {
+      this.levelNumber = levelNumber;
       this.height = height;
       this.pitch = pitch; // Degrees
     }
@@ -180,6 +182,7 @@ public class FieldConstants {
           .orElse(L4);
     }
 
+    public final int levelNumber;
     public final double height;
     public final double pitch;
   }

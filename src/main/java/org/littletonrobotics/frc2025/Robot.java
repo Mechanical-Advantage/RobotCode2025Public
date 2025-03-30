@@ -9,6 +9,9 @@ package org.littletonrobotics.frc2025;
 
 import com.ctre.phoenix6.SignalLogger;
 import edu.wpi.first.hal.AllianceStationID;
+import edu.wpi.first.math.MathShared;
+import edu.wpi.first.math.MathSharedStore;
+import edu.wpi.first.math.MathUsageId;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.Alert.AlertType;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -152,6 +155,29 @@ public class Robot extends LoggedRobot {
 
     // Rely on our custom alerts for disconnected controllers
     DriverStation.silenceJoystickConnectionWarning(true);
+
+    // Silence Rotation2d warnings
+    var mathShared = MathSharedStore.getMathShared();
+    MathSharedStore.setMathShared(
+        new MathShared() {
+          @Override
+          public void reportError(String error, StackTraceElement[] stackTrace) {
+            if (error.startsWith("x and y components of Rotation2d are zero")) {
+              return;
+            }
+            mathShared.reportError(error, stackTrace);
+          }
+
+          @Override
+          public void reportUsage(MathUsageId id, int count) {
+            mathShared.reportUsage(id, count);
+          }
+
+          @Override
+          public double getTimestamp() {
+            return mathShared.getTimestamp();
+          }
+        });
 
     // Log active commands
     Map<String, Integer> commandCounts = new HashMap<>();

@@ -8,6 +8,7 @@
 package org.littletonrobotics.frc2025.subsystems.superstructure.dispenser;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.filter.Debouncer.DebounceType;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -53,6 +54,10 @@ public class Dispenser {
   private static final LoggedTunableNumber kD = new LoggedTunableNumber("Dispenser/kD");
   private static final LoggedTunableNumber kS = new LoggedTunableNumber("Dispenser/kS");
   private static final LoggedTunableNumber kG = new LoggedTunableNumber("Dispenser/kG");
+  private static final LoggedTunableNumber tunnelkP =
+      new LoggedTunableNumber("Dispenser/TunnelPID/kP");
+  private static final LoggedTunableNumber tunnelkD =
+      new LoggedTunableNumber("Dispenser/TunnelPID/kD");
   private static final LoggedTunableNumber maxVelocityDegPerSec =
       new LoggedTunableNumber("Dispenser/MaxVelocityDegreesPerSec", 1500.0);
   private static final LoggedTunableNumber maxAccelerationDegPerSec2 =
@@ -87,6 +92,10 @@ public class Dispenser {
   };
   public static final LoggedTunableNumber tunnelIntakeVolts =
       new LoggedTunableNumber("Dispenser/TunnelIntakeVolts", 3.0);
+  public static final LoggedTunableNumber tunnelPositionMaxVolts =
+      new LoggedTunableNumber("Dispenser/TunnelPositionMaxVolts", 3.0);
+  public static final LoggedTunableNumber tunnelPositionOffsetRads =
+      new LoggedTunableNumber("Dispenser/TunnelPositionOffsetRads", 0);
   public static final LoggedTunableNumber tolerance =
       new LoggedTunableNumber("Dispenser/Tolerance", 0.4);
   public static final LoggedTunableNumber intakeReverseVolts =
@@ -130,6 +139,7 @@ public class Dispenser {
   private final PivotIO pivotIO;
   private final PivotIOInputsAutoLogged pivotInputs = new PivotIOInputsAutoLogged();
   private final RollerSystemIO tunnelIO;
+  private final PIDController tunnelPositionController;
   private final RollerSystemIOInputsAutoLogged tunnelInputs = new RollerSystemIOInputsAutoLogged();
   private final RollerSystemIO gripperIO;
   private final RollerSystemIOInputsAutoLogged gripperInputs = new RollerSystemIOInputsAutoLogged();
@@ -161,6 +171,7 @@ public class Dispenser {
   private boolean atGoal = false;
 
   @Setter private double tunnelVolts = 0.0;
+  private double lastTunnelVolts = tunnelVolts;
   @AutoLogOutput @Setter private GripperGoal gripperGoal = GripperGoal.IDLE;
 
   @AutoLogOutput
@@ -207,6 +218,8 @@ public class Dispenser {
     this.gripperIO = gripperIO;
     this.coralSensorIO = coralSensorIO;
 
+    tunnelPositionController = new PIDController(tunnelkP.get(), 0.0, tunnelkD.get());
+
     profile =
         new TrapezoidProfile(
             new TrapezoidProfile.Constraints(
@@ -242,6 +255,9 @@ public class Dispenser {
     // Update tunable numbers
     if (kP.hasChanged(hashCode()) || kD.hasChanged(hashCode())) {
       pivotIO.setPID(kP.get(), 0.0, kD.get());
+    }
+    if (tunnelkP.hasChanged(hashCode()) || tunnelkD.hasChanged(hashCode())) {
+      tunnelPositionController.setPID(tunnelkP.get(), 0.0, tunnelkD.get());
     }
     if (maxVelocityDegPerSec.hasChanged(hashCode())
         || maxAccelerationDegPerSec2.hasChanged(hashCode())) {
@@ -329,6 +345,15 @@ public class Dispenser {
       } else if (isIntaking) {
         Leds.getInstance().coralGrabbed = true;
         intakeVolts = 0.0;
+      } else if (lastTunnelVolts != tunnelVolts && tunnelVolts == 0) {
+        tunnelPositionController.setSetpoint(
+            tunnelInputs.data.positionRads() + tunnelPositionOffsetRads.get());
+      } else if (tunnelVolts == 0) {
+        intakeVolts =
+            MathUtil.clamp(
+                tunnelPositionController.calculate(tunnelInputs.data.positionRads()),
+                -tunnelPositionMaxVolts.get(),
+                tunnelPositionMaxVolts.get());
       }
       tunnelIO.runVolts(intakeVolts);
 
@@ -348,6 +373,7 @@ public class Dispenser {
       tunnelIO.stop();
       gripperIO.stop();
     }
+    lastTunnelVolts = tunnelVolts;
 
     // Check algae & coral states
     if (Constants.getRobot() != Constants.RobotType.SIMBOT) {

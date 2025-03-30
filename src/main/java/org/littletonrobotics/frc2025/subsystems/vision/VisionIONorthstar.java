@@ -11,6 +11,7 @@ import static org.littletonrobotics.frc2025.subsystems.vision.VisionConstants.*;
 
 import edu.wpi.first.networktables.*;
 import edu.wpi.first.util.WPIUtilJNI;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import java.util.function.Supplier;
 import org.littletonrobotics.frc2025.FieldConstants;
@@ -26,6 +27,9 @@ public class VisionIONorthstar implements VisionIO {
   private final DoubleArraySubscriber objDetectObservationSubscriber;
   private final IntegerSubscriber fpsAprilTagsSubscriber;
   private final IntegerSubscriber fpsObjDetectSubscriber;
+  private final StringPublisher eventNamePublisher;
+  private final IntegerPublisher matchTypePublisher;
+  private final IntegerPublisher matchNumberPublisher;
   private final IntegerPublisher timestampPublisher;
   private final BooleanPublisher isRecordingPublisher;
   private final StringPublisher tagLayoutPublisher;
@@ -38,6 +42,7 @@ public class VisionIONorthstar implements VisionIO {
     var northstarTable = NetworkTableInstance.getDefault().getTable(this.deviceId);
     var configTable = northstarTable.getSubTable("config");
     var camera = cameras[index];
+
     configTable.getStringTopic("camera_id").publish().set(camera.id());
     configTable.getIntegerTopic("camera_resolution_width").publish().set(camera.width());
     configTable.getIntegerTopic("camera_resolution_height").publish().set(camera.height());
@@ -49,6 +54,9 @@ public class VisionIONorthstar implements VisionIO {
     isRecordingPublisher.set(false);
     timestampPublisher = configTable.getIntegerTopic("timestamp").publish();
     tagLayoutPublisher = configTable.getStringTopic("tag_layout").publish();
+    eventNamePublisher = configTable.getStringTopic("event_name").publish();
+    matchTypePublisher = configTable.getIntegerTopic("match_type").publish();
+    matchNumberPublisher = configTable.getIntegerTopic("match_number").publish();
 
     var outputTable = northstarTable.getSubTable("output");
     observationSubscriber =
@@ -91,6 +99,12 @@ public class VisionIONorthstar implements VisionIO {
     // Publish timestamp
     if (slowPeriodic && SystemTimeValidReader.isValid()) {
       timestampPublisher.set(WPIUtilJNI.getSystemTime() / 1000000);
+    }
+
+    if (slowPeriodic) {
+      eventNamePublisher.set(DriverStation.getEventName());
+      matchTypePublisher.set(DriverStation.getMatchType().ordinal());
+      matchNumberPublisher.set(DriverStation.getMatchNumber());
     }
 
     // Publish tag layout

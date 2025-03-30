@@ -7,6 +7,8 @@
 
 package org.littletonrobotics.frc2025.subsystems.leds;
 
+import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.Pair;
 import edu.wpi.first.wpilibj.AddressableLED;
 import edu.wpi.first.wpilibj.AddressableLEDBuffer;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -51,8 +53,8 @@ public class Leds extends VirtualSubsystem {
   public ReefLevel autoScoringLevel = ReefLevel.L4;
   public boolean firstPriorityBlocked = false;
   public boolean secondPriorityBlocked = false;
-  public Color hexColor = Color.kBlack;
-  public Color secondaryHexColor = Color.kBlack;
+  public Color firstPriorityColor = Color.kBlack;
+  public Color secondPriorityColor = Color.kBlack;
 
   private Optional<Alliance> alliance = Optional.empty();
   private Color disabledColor = Color.kGold;
@@ -69,12 +71,14 @@ public class Leds extends VirtualSubsystem {
   // Constants
   private static final boolean prideLeds = false;
   private static final int minLoopCycleCount = 10;
-  private static final int length = 32;
+  private static final int length = 17;
+  private static final int fullLength = length * 2;
+  private static final int sideSectionLength = 6;
   private static final Section fullSection = new Section(0, length);
-  private static final Section topSection = new Section(length / 2, length);
-  private static final Section bottomSection = new Section(0, length / 2);
-  private static final Section topThreeQuartSection = new Section(length / 4, length);
-  private static final Section bottomQuartSection = new Section(0, length / 4);
+  private static final Section firstPrioritySection = new Section(0, 2 * length / 3);
+  private static final Section secondPrioritySection = new Section(2 * length / 3, length);
+  private static final Section straightSection = new Section(sideSectionLength, length);
+  private static final Section sideSection = new Section(0, sideSectionLength);
   private static final double strobeDuration = 0.1;
   private static final double breathFastDuration = 0.5;
   private static final double breathSlowDuration = 1.0;
@@ -95,8 +99,8 @@ public class Leds extends VirtualSubsystem {
 
   private Leds() {
     leds = new AddressableLED(8);
-    buffer = new AddressableLEDBuffer(length);
-    leds.setLength(length);
+    buffer = new AddressableLEDBuffer(fullLength);
+    leds.setLength(fullLength);
     leds.setData(buffer);
     leds.start();
     loadingNotifier =
@@ -147,8 +151,10 @@ public class Leds extends VirtualSubsystem {
     loadingNotifier.stop();
 
     // Strategy priorities
-    hexColor = renderPriority(firstPriorityLevel, firstPriorityBlocked, topSection);
-    secondaryHexColor = renderPriority(secondPriorityLevel, secondPriorityBlocked, bottomSection);
+    firstPriorityColor =
+        renderPriority(firstPriorityLevel, firstPriorityBlocked, firstPrioritySection);
+    secondPriorityColor =
+        renderPriority(secondPriorityLevel, secondPriorityBlocked, secondPrioritySection);
 
     // Select LED mode
     solid(fullSection, Color.kBlack); // Default to off
@@ -162,8 +168,7 @@ public class Leds extends VirtualSubsystem {
         // Auto fade
         wave(
             new Section(
-                0,
-                (int) (length * (1 - ((Timer.getTimestamp() - lastEnabledTime) / autoFadeTime)))),
+                (int) (length * ((Timer.getTimestamp() - lastEnabledTime) / autoFadeTime)), length),
             Color.kGold,
             Color.kDarkBlue,
             waveFastCycleLength,
@@ -205,7 +210,7 @@ public class Leds extends VirtualSubsystem {
 
       // Vision disconnected alert
       if (visionDisconnected) {
-        strobe(bottomQuartSection, Color.kRed, Color.kBlack, strobeDuration);
+        strobe(sideSection, Color.kRed, Color.kBlack, strobeDuration);
       }
 
     } else if (DriverStation.isAutonomous()) {
@@ -215,14 +220,14 @@ public class Leds extends VirtualSubsystem {
         wave(fullSection, Color.kGold, Color.kDarkBlue, waveFastCycleLength, waveFastDuration);
       }
     } else {
-      solid(topSection, hexColor);
-      solid(bottomSection, secondaryHexColor);
+      solid(firstPrioritySection, firstPriorityColor);
+      solid(secondPrioritySection, secondPriorityColor);
 
       // Auto scoring reef
       if (autoScoringReef) {
-        rainbow(topThreeQuartSection, rainbowCycleLength, rainbowDuration);
+        rainbow(straightSection, rainbowCycleLength, rainbowDuration);
         solid(
-            bottomQuartSection,
+            sideSection,
             switch (autoScoringLevel) {
               case L1 -> l1PriorityColor;
               case L2 -> l2PriorityColor;
@@ -232,33 +237,33 @@ public class Leds extends VirtualSubsystem {
 
         // Super auto scoring
         if (superAutoScoring) {
-          strobe(topThreeQuartSection, Color.kBlack, null, rainbowStrobeDuration);
+          strobe(straightSection, Color.kBlack, null, rainbowStrobeDuration);
         }
       }
 
       // Auto scoring
       if (autoScoring) {
-        rainbow(fullSection, rainbowCycleLength, rainbowDuration);
+        rainbow(straightSection, rainbowCycleLength, rainbowDuration);
       }
 
       // Ready alert
       if (ready) {
-        strobe(fullSection, Color.kWhite, Color.kBlue, strobeDuration);
+        strobe(straightSection, Color.kWhite, Color.kBlue, strobeDuration);
       }
 
       // Coral grab alert
       if (coralGrabbed) {
-        solid(fullSection, Color.kLime);
+        solid(straightSection, Color.kLime);
       }
 
       // Human player alert
       if (hpAttentionAlert) {
-        strobe(fullSection, Color.kWhite, Color.kBlack, strobeDuration);
+        strobe(straightSection, Color.kWhite, Color.kBlack, strobeDuration);
       }
 
       // Endgame alert
       if (endgameAlert) {
-        strobe(fullSection, Color.kRed, Color.kGold, strobeDuration);
+        strobe(straightSection, Color.kRed, Color.kGold, strobeDuration);
       }
     }
 
@@ -268,8 +273,8 @@ public class Leds extends VirtualSubsystem {
     }
 
     // Update dashboard
-    SmartDashboard.putString("LEDs/First Priority", hexColor.toHexString());
-    SmartDashboard.putString("LEDs/Second Priority", secondaryHexColor.toHexString());
+    SmartDashboard.putString("LEDs/First Priority", firstPriorityColor.toHexString());
+    SmartDashboard.putString("LEDs/Second Priority", secondPriorityColor.toHexString());
 
     // Update LEDs
     leds.setData(buffer);
@@ -281,7 +286,7 @@ public class Leds extends VirtualSubsystem {
   private Color solid(Section section, Color color) {
     if (color != null) {
       for (int i = section.start(); i < section.end(); i++) {
-        buffer.setLED(i, color);
+        setLED(i, color);
       }
     }
     return color;
@@ -316,7 +321,7 @@ public class Leds extends VirtualSubsystem {
     for (int i = section.end() - 1; i >= section.start(); i--) {
       x += xDiffPerLed;
       x %= 180.0;
-      buffer.setHSV(i, (int) x, 255, 255);
+      setHSV(i, (int) x, 255, 255);
     }
   }
 
@@ -335,7 +340,7 @@ public class Leds extends VirtualSubsystem {
       double red = (c1.red * (1 - ratio)) + (c2.red * ratio);
       double green = (c1.green * (1 - ratio)) + (c2.green * ratio);
       double blue = (c1.blue * (1 - ratio)) + (c2.blue * ratio);
-      buffer.setLED(i, new Color(red, green, blue));
+      setLED(i, new Color(red, green, blue));
     }
   }
 
@@ -345,11 +350,9 @@ public class Leds extends VirtualSubsystem {
       int colorIndex =
           (int) (Math.floor((double) (i - offset) / stripeLength) + colors.size()) % colors.size();
       colorIndex = colors.size() - 1 - colorIndex;
-      buffer.setLED(i, colors.get(colorIndex));
+      setLED(i, colors.get(colorIndex));
     }
   }
-
-  private static record Section(int start, int end) {}
 
   private Color renderPriority(Optional<ReefLevel> level, Boolean blocked, Section section) {
     Color primaryColor =
@@ -361,7 +364,7 @@ public class Leds extends VirtualSubsystem {
               case L3 -> l3PriorityColor;
               case L4 -> l4PriorityColor;
             };
-    if (blocked == false) {
+    if (!blocked) {
       return primaryColor;
     } else {
       return breathCalculate(
@@ -372,4 +375,23 @@ public class Leds extends VirtualSubsystem {
           Timer.getTimestamp());
     }
   }
+
+  private void setHSV(int index, int h, int s, int v) {
+    var indices = getIndices(index);
+    buffer.setHSV(indices.getFirst(), h, s, v);
+    buffer.setHSV(indices.getSecond(), h, s, v);
+  }
+
+  private void setLED(int index, Color color) {
+    var indices = getIndices(index);
+    buffer.setLED(indices.getFirst(), color);
+    buffer.setLED(indices.getSecond(), color);
+  }
+
+  private static Pair<Integer, Integer> getIndices(int index) {
+    index = MathUtil.clamp(index, 0, length);
+    return Pair.of(index, fullLength - index - 1);
+  }
+
+  private record Section(int start, int end) {}
 }

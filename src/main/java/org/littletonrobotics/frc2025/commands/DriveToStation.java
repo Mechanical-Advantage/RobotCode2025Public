@@ -62,7 +62,7 @@ public class DriveToStation extends DriveToPose {
         () ->
             Math.copySign(
                 Math.pow(
-                    MathUtil.applyDeadband(driverOmega.getAsDouble(), DriveCommands.DEADBAND), 2.0),
+                    MathUtil.applyDeadband(driverOmega.getAsDouble(), DriveCommands.deadband), 2.0),
                 driverOmega.getAsDouble()),
         isAuto);
   }

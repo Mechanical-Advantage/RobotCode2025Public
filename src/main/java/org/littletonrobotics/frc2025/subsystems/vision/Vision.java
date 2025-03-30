@@ -20,7 +20,7 @@ import lombok.experimental.ExtensionMethod;
 import org.littletonrobotics.frc2025.FieldConstants;
 import org.littletonrobotics.frc2025.FieldConstants.AprilTagLayoutType;
 import org.littletonrobotics.frc2025.RobotState;
-import org.littletonrobotics.frc2025.RobotState.AlgaeTxTyObservation;
+import org.littletonrobotics.frc2025.RobotState.CoralTxTyObservation;
 import org.littletonrobotics.frc2025.RobotState.TxTyObservation;
 import org.littletonrobotics.frc2025.RobotState.VisionObservation;
 import org.littletonrobotics.frc2025.subsystems.leds.Leds;
@@ -111,7 +111,7 @@ public class Vision extends VirtualSubsystem {
     List<Pose2d> allRobotPoses = new ArrayList<>();
     List<VisionObservation> allVisionObservations = new ArrayList<>();
     Map<Integer, TxTyObservation> allTxTyObservations = new HashMap<>();
-    List<AlgaeTxTyObservation> allAlgaeTxTyObservations = new ArrayList<>();
+    List<CoralTxTyObservation> allCoralTxTyObservations = new ArrayList<>();
     for (int instanceIndex = 0; instanceIndex < io.length; instanceIndex++) {
       // Loop over frames
       for (int frameIndex = 0;
@@ -282,7 +282,7 @@ public class Vision extends VirtualSubsystem {
         }
       }
 
-      // Record algae observations
+      // Record coral observations
       for (int frameIndex = 0;
           frameIndex < objDetectInputs[instanceIndex].timestamps.length;
           frameIndex++) {
@@ -295,8 +295,8 @@ public class Vision extends VirtualSubsystem {
               tx[z] = frame[i + 2 + (2 * z)];
               ty[z] = frame[i + 2 + (2 * z) + 1];
             }
-            allAlgaeTxTyObservations.add(
-                new AlgaeTxTyObservation(
+            allCoralTxTyObservations.add(
+                new CoralTxTyObservation(
                     instanceIndex, tx, ty, objDetectInputs[instanceIndex].timestamps[frameIndex]));
           }
         }
@@ -335,9 +335,9 @@ public class Vision extends VirtualSubsystem {
         .sorted(Comparator.comparingDouble(VisionObservation::timestamp))
         .forEach(RobotState.getInstance()::addVisionObservation);
     allTxTyObservations.values().stream().forEach(RobotState.getInstance()::addTxTyObservation);
-    allAlgaeTxTyObservations.stream()
-        .sorted(Comparator.comparingDouble(AlgaeTxTyObservation::timestamp))
-        .forEach(RobotState.getInstance()::addAlgaeTxTyObservation);
+    allCoralTxTyObservations.stream()
+        .sorted(Comparator.comparingDouble(CoralTxTyObservation::timestamp))
+        .forEach(RobotState.getInstance()::addCoralTxTyObservation);
 
     // Record cycle time
     LoggedTracer.record("Vision");

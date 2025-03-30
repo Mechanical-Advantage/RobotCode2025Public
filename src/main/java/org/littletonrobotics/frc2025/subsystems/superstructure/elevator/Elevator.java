@@ -25,6 +25,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.littletonrobotics.frc2025.Constants;
 import org.littletonrobotics.frc2025.Robot;
+import org.littletonrobotics.frc2025.RobotState;
 import org.littletonrobotics.frc2025.subsystems.superstructure.SuperstructureConstants;
 import org.littletonrobotics.frc2025.util.EqualsUtil;
 import org.littletonrobotics.frc2025.util.LoggedTracer;
@@ -242,6 +243,11 @@ public class Elevator {
     if (isEStopped) {
       io.stop();
     }
+
+    // Set extension in robot state
+    RobotState.getInstance()
+        .setElevatorExtensionPercent(
+            getPositionMeters() / SuperstructureConstants.elevatorMaxTravel);
 
     // Log state
     Logger.recordOutput("Elevator/CoastOverride", coastOverride.getAsBoolean());

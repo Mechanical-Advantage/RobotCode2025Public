@@ -38,13 +38,18 @@ class FFmpegVideoWriter(VideoWriter):
         pass
 
     def start(self, config: ConfigStore, is_gray: bool) -> None:
+        match_prefixes = ["", "p", "q", "e"]
         filename = (
             config.local_config.video_folder
             + config.local_config.device_id
             + "_"
             + datetime.fromtimestamp(config.remote_config.timestamp).strftime("%Y%m%d_%H%M%S")
-            + ".mkv"
         )
+        if len(config.remote_config.event_name) > 0:
+            filename += "_" + config.remote_config.event_name.lower()
+        if config.remote_config.match_type != 0 and config.remote_config.match_number > 0:
+            filename += "_" + match_prefixes[config.remote_config.match_type] + str(config.remote_config.match_number)
+        filename += ".mkv"
         self._ffmpeg = subprocess.Popen(
             [
                 "ffmpeg",

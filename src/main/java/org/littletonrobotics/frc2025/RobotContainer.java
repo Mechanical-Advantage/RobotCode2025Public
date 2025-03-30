@@ -424,7 +424,15 @@ public class RobotContainer {
     Trigger shouldProcess =
         new Trigger(
             () ->
-                AllianceFlipUtil.applyY(RobotState.getInstance().getEstimatedPose().getY())
+                AllianceFlipUtil.apply(
+                                RobotState.getInstance()
+                                    .getEstimatedPose()
+                                    .exp(
+                                        RobotState.getInstance()
+                                            .getRobotVelocity()
+                                            .toTwist2d(
+                                                AlgaeScoreCommands.getLookaheadSecs().get())))
+                            .getY()
                         < FieldConstants.fieldWidth / 2 - DriveConstants.robotWidth
                     || onOpposingSide.getAsBoolean());
     Container<Boolean> hasAlgae = new Container<>(false);
