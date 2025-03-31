@@ -71,8 +71,8 @@ public class Leds extends VirtualSubsystem {
   // Constants
   private static final boolean prideLeds = false;
   private static final int minLoopCycleCount = 10;
-  private static final int length = 17;
-  private static final int fullLength = length * 2;
+  private static final int fullLength = 42;
+  private static final int length = (int) Math.ceil(fullLength / 2.0);
   private static final int sideSectionLength = 6;
   private static final Section fullSection = new Section(0, length);
   private static final Section firstPrioritySection = new Section(0, 2 * length / 3);
@@ -389,8 +389,9 @@ public class Leds extends VirtualSubsystem {
   }
 
   private static Pair<Integer, Integer> getIndices(int index) {
-    index = MathUtil.clamp(index, 0, length);
-    return Pair.of(index, fullLength - index - 1);
+    int a = MathUtil.clamp(index, 0, fullLength - 1);
+    int b = MathUtil.clamp(fullLength - index - 1, 0, fullLength - 1);
+    return Pair.of(a, b);
   }
 
   private record Section(int start, int end) {}

@@ -24,7 +24,7 @@ public class VisionConstants {
   public static final double ambiguityThreshold = 0.4;
   public static final double targetLogTimeSecs = 0.1;
   public static final double fieldBorderMargin = 0.5;
-  public static final double xyStdDevCoefficient = 0.015;
+  public static final double xyStdDevCoefficient = 0.01;
   public static final double thetaStdDevCoefficient = 0.03;
   public static final double demoTagPosePersistenceSecs = 0.5;
   public static final double objDetectConfidenceThreshold = 0.8;
