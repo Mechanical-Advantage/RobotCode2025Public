@@ -16,17 +16,17 @@
       "rotations": [
         {
           "axis": "y",
-          "degrees": -25.0
+          "degrees": 29
         },
         {
           "axis": "z",
-          "degrees": -20.0
+          "degrees": -23.31
         }
       ],
       "position": [
-        0.2794,
-        0.2286,
-        0.21113
+        0.254,
+        0.254,
+        0.4699
       ],
       "resolution": [
         1600,
@@ -39,17 +39,17 @@
       "rotations": [
         {
           "axis": "y",
-          "degrees": -25.0
+          "degrees": 29
         },
         {
           "axis": "z",
-          "degrees": 20.0
+          "degrees": 23.31
         }
       ],
       "position": [
-        0.2794,
-        -0.2286,
-        0.21113
+        0.254,
+        -0.254,
+        0.4699
       ],
       "resolution": [
         1600,
@@ -79,6 +79,25 @@
         1200
       ],
       "fov": 66.62
+    },
+    {
+      "name": "Super Color Camera",
+      "rotations": [
+        {
+          "axis": "z",
+          "degrees": -15
+        }
+      ],
+      "position": [
+        0.2286,
+        0.254,
+        0.635
+      ],
+      "resolution": [
+        1280,
+        720
+      ],
+      "fov": 59.49
     }
   ],
   "components": [
@@ -94,9 +113,9 @@
         }
       ],
       "zeroedPosition": [
-        -0.085,
+        0.029697,
         0.0,
-        -0.028953
+        -0.048854
       ]
     },
     {
@@ -162,9 +181,26 @@
         }
       ],
       "zeroedPosition": [
-        -0.015875,
+        -0.338983,
         0.0,
-        -0.119405
+        -0.287
+      ]
+    },
+    {
+      "zeroedRotations": [
+        {
+          "axis": "x",
+          "degrees": 90
+        },
+        {
+          "axis": "z",
+          "degrees": 270
+        }
+      ],
+      "zeroedPosition": [
+        0.304800,
+        0,
+        -0.378
       ]
     }
   ]

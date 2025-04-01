@@ -152,37 +152,30 @@ class PylonCapture(Capture):
         self._is_flipped = is_flipped
 
     _camera: Union[None, pylon.InstantCamera] = None
-    _device: Union[None, pylon.DeviceInfo] = None
     _converter: Union[None, pylon.ImageFormatConverter] = None
     _last_config: ConfigStore
 
     def get_frame(self, config_store: ConfigStore) -> Tuple[bool, cv2.Mat]:
         if self._camera != None and self._config_changed(self._last_config, config_store):
-            print("Config changed, restarting")
-            sys.exit(0)
+            print("Config changed, stopping capture session")
+            self._camera.Close()
+            self._camera = None
+            time.sleep(2)
 
         if self._camera is None:
-            if self._device == None:
-                device_infos: list[pylon.DeviceInfo] = pylon.TlFactory.GetInstance().EnumerateDevices()
-                self._device: Union[None, any] = None  # Native object type
-                for device_info in device_infos:
-                    if device_info.GetSerialNumber() == config_store.remote_config.camera_id:
-                        self._device = pylon.TlFactory.GetInstance().CreateDevice(device_info)
-            if self._device == None:
-                print("Unable to find device")
-            else:
+            device_infos: list[pylon.DeviceInfo] = pylon.TlFactory.GetInstance().EnumerateDevices()
+            device: Union[None, any] = None  # Native object type
+            for device_info in device_infos:
+                if device_info.GetSerialNumber() == config_store.remote_config.camera_id:
+                    device = pylon.TlFactory.GetInstance().CreateDevice(device_info)
+            if device != None:
                 print("Starting capture session")
-                self._camera = pylon.InstantCamera(self._device)
+                self._camera = pylon.InstantCamera(device)
                 self._camera.Open()
-                self._camera.GrabLoopThreadPriorityOverride = True
-                self._camera.GrabLoopThreadPriority = 85
-                self._camera.InternalGrabEngineThreadPriorityOverride = True
-                self._camera.InternalGrabEngineThreadPriority = 95
                 self._camera.GetNodeMap().GetNode("DeviceLinkThroughputLimitMode").SetValue("On")
                 max_bandwidth = int(150e6) if self._mode == "color" else int(250e6)
                 self._camera.GetNodeMap().GetNode("DeviceLinkThroughputLimit").SetValue(max_bandwidth)
                 self._camera.GetNodeMap().GetNode("ExposureAuto").SetValue("Off")
-                self._camera.GetNodeMap().GetNode("AcquisitionMode").SetValue("Continuous")
                 self._camera.GetNodeMap().GetNode("ExposureTime").SetValue(config_store.remote_config.camera_exposure)
                 self._camera.GetNodeMap().GetNode("GainAuto").SetValue("Off")
                 self._camera.GetNodeMap().GetNode("Gain").SetValue(config_store.remote_config.camera_gain)
@@ -202,7 +195,7 @@ class PylonCapture(Capture):
                     self._camera.GetNodeMap().GetNode("ReverseX").SetValue(True)
                     self._camera.GetNodeMap().GetNode("ReverseY").SetValue(True)
 
-                self._camera.StartGrabbing(pylon.GrabStrategy_LatestImages)
+                self._camera.StartGrabbing(pylon.GrabStrategy_LatestImageOnly)
                 print("Capture session ready")
 
         self._last_config = ConfigStore(
@@ -212,18 +205,18 @@ class PylonCapture(Capture):
         if self._camera is None:
             return False, None
         else:
-            try:
-                with self._camera.RetrieveResult(5000, pylon.TimeoutHandling_ThrowException) as grab_result:
-                    if grab_result.GrabSucceeded():
+            with self._camera.RetrieveResult(5000, pylon.TimeoutHandling_ThrowException) as grab_result:
+                if grab_result.GrabSucceeded:
+                    try:
                         if self._converter == None:
                             return True, grab_result.Array
                         else:
                             return True, self._converter.Convert(grab_result).Array
-                    else:
+                    except Exception:
+                        print("Error when capturing frame:", traceback.format_exc())
                         return False, None
-            except Exception:
-                print("Error when capturing frame:", traceback.format_exc())
-                sys.exit(0)
+                else:
+                    return False, None
 
 
 class GStreamerCapture(Capture):

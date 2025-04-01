@@ -30,9 +30,6 @@ class LocalConfig:
 
 @dataclass
 class RemoteConfig:
-    event_name: str = ""
-    match_type: int = 0
-    match_number: int = 0
     camera_id: str = ""
     camera_resolution_width: int = 0
     camera_resolution_height: int = 0

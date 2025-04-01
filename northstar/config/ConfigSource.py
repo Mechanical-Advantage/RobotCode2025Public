@@ -62,9 +62,6 @@ class NTConfigSource(ConfigSource):
     _tag_layout_sub: ntcore.DoubleSubscriber
     _is_recording_sub: ntcore.BooleanSubscriber
     _timestamp_sub: ntcore.IntegerSubscriber
-    _event_name_sub: ntcore.StringSubscriber
-    _match_type_sub: ntcore.IntegerSubscriber
-    _match_number_sub: ntcore.IntegerSubscriber
 
     def update(self, config_store: ConfigStore) -> None:
         # Initialize subscribers on first call
@@ -92,9 +89,6 @@ class NTConfigSource(ConfigSource):
             self._tag_layout_sub = nt_table.getStringTopic("tag_layout").subscribe("")
             self._is_recording_sub = nt_table.getBooleanTopic("is_recording").subscribe(False)
             self._timestamp_sub = nt_table.getIntegerTopic("timestamp").subscribe(0)
-            self._event_name_sub = nt_table.getStringTopic("event_name").subscribe("")
-            self._match_type_sub = nt_table.getIntegerTopic("match_type").subscribe(0)
-            self._match_number_sub = nt_table.getIntegerTopic("match_number").subscribe(0)
             self._init_complete = True
 
         # Read config data
@@ -112,6 +106,3 @@ class NTConfigSource(ConfigSource):
             pass
         config_store.remote_config.is_recording = self._is_recording_sub.get()
         config_store.remote_config.timestamp = self._timestamp_sub.get()
-        config_store.remote_config.event_name = self._event_name_sub.get()
-        config_store.remote_config.match_type = self._match_type_sub.get()
-        config_store.remote_config.match_number = self._match_number_sub.get()
