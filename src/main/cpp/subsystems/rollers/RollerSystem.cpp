@@ -5,54 +5,42 @@
 // license that can be found in the LICENSE file at
 // the root directory of this project.
 
-package org.littletonrobotics.frc2025.subsystems.rollers;
+#include "frc2025/subsystems/rollers/RollerSystem.h"
 
-import edu.wpi.first.wpilibj.Alert;
-import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import java.util.function.DoubleSupplier;
-import org.littletonrobotics.frc2025.Robot;
-import org.littletonrobotics.frc2025.util.LoggedTracer;
-import org.littletonrobotics.junction.AutoLogOutput;
-import org.littletonrobotics.junction.Logger;
+#include <frc/Alert.h>
+#include <frc2/command/Command.h>
+#include <frc2/command/SubsystemBase.h>
+#include <wpi/function.h>
 
-public
-class RollerSystem extends SubsystemBase {
-private
-  final String name;
-private
-  final RollerSystemIO io;
-protected
-  final RollerSystemIOInputsAutoLogged inputs =
-      new RollerSystemIOInputsAutoLogged();
-private
-  final Alert disconnected;
-private
-  final Alert tempFault;
+#include "frc2025/Robot.h"
+#include "frc2025/util/LoggedTracer.h"
+#include "third_party/frc-wpi-util/wpi/StringRef.h"
+#include "third_party/frc-wpi-util/wpi/function_ref.h"
+#include "third_party/frc-wpi-util/wpi/span.h"
+#include "third_party/frc-wpi-util/wpi/string.h"
+#include "third_party/frc-wpi-util/wpi/units/voltage.h"
 
-public
-  RollerSystem(String name, RollerSystemIO io) {
-    this.name = name;
-    this.io = io;
+using namespace frc;
+using namespace frc2;
+using namespace wpi;
 
-    disconnected =
-        new Alert(name + " motor disconnected!", Alert.AlertType.kWarning);
-    tempFault =
-        new Alert(name + " motor too hot! 🥵", Alert.AlertType.kWarning);
-  }
+RollerSystem::RollerSystem(std::string name, RollerSystemIO *io)
+    : SubsystemBase(), name_(name), io_(io),
+      disconnected_(name + " motor disconnected!", Alert::AlertType::kWarning),
+      tempFault_(name + " motor too hot! \xF0\x9F\x98\xB5",
+                 Alert::AlertType::kWarning) {}
 
-public
-  void periodic() {
-    io.updateInputs(inputs);
-    Logger.processInputs(name, inputs);
-    disconnected.set(!inputs.data.connected() && !Robot.isJITing());
-    tempFault.set(inputs.data.tempFault());
+void RollerSystem::Periodic() {
+  io_->UpdateInputs(&inputs_);
+  Logger::ProcessInputs(name_, &inputs_);
+  disconnected_.Set(!inputs_.data.connected && !Robot::IsJitting());
+  tempFault_.Set(inputs_.data.tempFault);
 
-    // Record cycle time
-    LoggedTracer.record(name);
-  }
+  // Record cycle time
+  LoggedTracer::Record(name_);
+}
 
-  @AutoLogOutput public Command runRoller(DoubleSupplier inputVolts) {
-    return runEnd(()->io.runVolts(inputVolts.getAsDouble()), io::stop);
-  }
+CommandPtr RollerSystem::RunRoller(std::function<double()> inputVolts) {
+  return StartEnd([this, inputVolts] { io_->RunVolts(inputVolts()); },
+                  [this] { io_->Stop(); });
 }
