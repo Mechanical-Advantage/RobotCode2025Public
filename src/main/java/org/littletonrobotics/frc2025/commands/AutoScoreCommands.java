@@ -46,15 +46,15 @@ public class AutoScoreCommands {
   private static final double controllerRumbleSecs = 0.2;
 
   private static final LoggedTunableNumber maxDistanceReefLineupX =
-      new LoggedTunableNumber("AutoScore/MaxDistanceReefLineupX", 0.5);
+      new LoggedTunableNumber("AutoScore/MaxDistanceReefLineupX", 0.75);
   private static final LoggedTunableNumber maxDistanceReefLineupY =
-      new LoggedTunableNumber("AutoScore/MaxDistanceReefLineupY", 1.5);
+      new LoggedTunableNumber("AutoScore/MaxDistanceReefLineupY", 1.2);
   public static final LoggedTunableNumber minDistanceReefClearL4 =
-      new LoggedTunableNumber("AutoScore/MinDistanceReefClear", Units.inchesToMeters(6.0));
+      new LoggedTunableNumber("AutoScore/MinDistanceReefClear", Units.inchesToMeters(4.0));
   public static final LoggedTunableNumber minDistanceReefClearAlgaeL4 =
       new LoggedTunableNumber("AutoScore/MinDistanceReefClearAlgae", 0.45);
   public static final LoggedTunableNumber minAngleReefClear =
-      new LoggedTunableNumber("AutoScore/MinAngleReefClear", 60.0);
+      new LoggedTunableNumber("AutoScore/MinAngleReefClear", 30.0);
   public static final LoggedTunableNumber algaeBackupTime =
       new LoggedTunableNumber("AutoScore/AlgaeBackupTime", 0.5);
   private static final LoggedTunableNumber distanceSuperstructureReady =
@@ -128,13 +128,13 @@ public class AutoScoreCommands {
   private static final LoggedTunableNumber correctiveMeasureBlendDistance =
       new LoggedTunableNumber(
           "AutoScore/CorrectiveMeasureBlendDistance", Units.inchesToMeters(6.0));
-
   private static final LoggedTunableNumber[] branchFudgeX = {
     new LoggedTunableNumber("AutoScore/FudgeX/L1", 0.0),
     new LoggedTunableNumber("AutoScore/FudgeX/L2", 0.0),
     new LoggedTunableNumber("AutoScore/FudgeX/L3", 0.0),
     new LoggedTunableNumber("AutoScore/FudgeX/L4", 0.0)
   };
+  private static final boolean enableAimingInAuto = true;
 
   private AutoScoreCommands() {}
 
@@ -182,7 +182,7 @@ public class AutoScoreCommands {
                         0.0));
           }
           Logger.recordOutput("AutoScore/Goal", AllianceFlipUtil.apply(goalPose));
-          if (DriverStation.isAutonomousEnabled()) {
+          if (DriverStation.isAutonomousEnabled() && !enableAimingInAuto) {
             return AllianceFlipUtil.apply(goalPose);
           } else {
             Pose2d flippedGoalPose = AllianceFlipUtil.apply(goalPose);

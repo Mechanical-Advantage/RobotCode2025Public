@@ -29,10 +29,7 @@ import org.littletonrobotics.frc2025.subsystems.drive.Drive;
 import org.littletonrobotics.frc2025.subsystems.drive.DriveConstants;
 import org.littletonrobotics.frc2025.subsystems.rollers.RollerSystem;
 import org.littletonrobotics.frc2025.subsystems.superstructure.Superstructure;
-import org.littletonrobotics.frc2025.util.AllianceFlipUtil;
-import org.littletonrobotics.frc2025.util.Container;
-import org.littletonrobotics.frc2025.util.LoggedTunableNumber;
-import org.littletonrobotics.frc2025.util.MirrorUtil;
+import org.littletonrobotics.frc2025.util.*;
 
 @RequiredArgsConstructor
 public class AutoBuilder {
@@ -55,7 +52,7 @@ public class AutoBuilder {
           new CoralObjective(8, isSuper ? ReefLevel.L4 : ReefLevel.L2),
           new CoralObjective(10, ReefLevel.L4),
           new CoralObjective(11, ReefLevel.L4),
-          new CoralObjective(0, ReefLevel.L4)
+          new CoralObjective(0, ReefLevel.L2)
         };
     Container<Integer> currentObjectiveIndex = new Container<>();
 
@@ -79,26 +76,35 @@ public class AutoBuilder {
             })
         .andThen(
             getUpInThePush(),
-            AutoScoreCommands.autoScore(
-                    drive,
-                    superstructure,
-                    funnel,
-                    () -> coralObjectives[currentObjectiveIndex.value].reefLevel(),
-                    () ->
-                        Optional.of(MirrorUtil.apply(coralObjectives[currentObjectiveIndex.value])))
-                .finallyDo(
-                    interrupted -> {
-                      if (!interrupted) {
-                        System.out.printf(
-                            "Scored Coral #" + (currentObjectiveIndex.value + 1) + " at %.2f\n",
-                            autoTimer.get());
-                        currentObjectiveIndex.value++;
-                      }
-                    }),
             Commands.sequence(
                     // Intake
                     driveToStation
-                        .deadlineFor(IntakeCommands.intake(superstructure, funnel))
+                        .deadlineFor(
+                            AutoScoreCommands.superstructureAimAndEject(
+                                    superstructure,
+                                    () -> coralObjectives[currentObjectiveIndex.value].reefLevel(),
+                                    () ->
+                                        Optional.of(
+                                            MirrorUtil.apply(
+                                                coralObjectives[currentObjectiveIndex.value])),
+                                    () -> true,
+                                    () -> true,
+                                    () -> false)
+                                .until(
+                                    () -> {
+                                      Pose2d robot = RobotState.getInstance().getEstimatedPose();
+                                      Pose2d flippedRobot = AllianceFlipUtil.apply(robot);
+                                      return AutoScoreCommands.outOfDistanceToReef(
+                                              robot, AutoScoreCommands.minDistanceReefClearL4.get())
+                                          || Math.abs(
+                                                  FieldConstants.Reef.center
+                                                      .minus(flippedRobot.getTranslation())
+                                                      .getAngle()
+                                                      .minus(flippedRobot.getRotation())
+                                                      .getDegrees())
+                                              >= AutoScoreCommands.minAngleReefClear.get();
+                                    })
+                                .andThen(IntakeCommands.intake(superstructure, funnel)))
                         .until(
                             () -> {
                               if (!driveToStation.withinTolerance(
@@ -134,9 +140,21 @@ public class AutoBuilder {
                                     () -> coralIndexedTimer.hasElapsed(scoreCancelSecs.get()))
                                 .andThen(Commands.idle().onlyIf(superstructure::hasCoral))))
                 .repeatedly()
-                .until(() -> currentObjectiveIndex.value >= coralObjectives.length),
-            new DriveToStation(drive, true)
-                .deadlineFor(IntakeCommands.intake(superstructure, funnel)));
+                .until(() -> currentObjectiveIndex.value >= coralObjectives.length))
+        .andThen(
+            new DriveToPose(
+                    drive,
+                    () ->
+                        RobotState.getInstance()
+                            .getEstimatedPose()
+                            .transformBy(
+                                GeomUtil.toTransform2d(
+                                    -AutoScoreCommands.minDistanceReefClearL4.get(), 0.0)))
+                .until(
+                    () ->
+                        AutoScoreCommands.outOfDistanceToReef(
+                            RobotState.getInstance().getEstimatedPose(),
+                            AutoScoreCommands.minDistanceReefClearL4.get())));
   }
 
   public Command upInTheSimplicityAuto() {

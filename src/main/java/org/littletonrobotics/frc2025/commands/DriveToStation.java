@@ -113,7 +113,7 @@ public class DriveToStation extends DriveToPose {
             }
           }
           Pose2d intakePose = AllianceFlipUtil.apply(robot.nearest(finalPoses));
-
+          robot = AllianceFlipUtil.apply(robot);
           Pose2d goal;
           if (AutoScoreCommands.withinDistanceToReef(robot, 0.35)) {
             final double yError = intakePose.relativeTo(robot).getY();
@@ -121,12 +121,12 @@ public class DriveToStation extends DriveToPose {
                 robot
                     .transformBy(
                         GeomUtil.toTransform2d(
-                            -2.0, Math.abs(yError) > 0.6 ? yError * 0.6 : yError))
+                            -3.0, Math.abs(yError) > 0.6 ? yError * 0.6 : yError))
                     .transformBy(
                         GeomUtil.toTransform2d(
                             robot
                                 .getRotation()
-                                .interpolate(intakePose.getRotation(), 0.15)
+                                .interpolate(intakePose.getRotation(), 0.05)
                                 .minus(robot.getRotation())));
           } else {
             goal = intakePose;
