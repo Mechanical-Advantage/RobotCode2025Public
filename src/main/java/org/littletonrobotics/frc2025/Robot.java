@@ -217,7 +217,7 @@ public class Robot extends LoggedRobot {
 
     // DO NOT COPY UNLESS YOU UNDERSTAND THE CONSEQUENCES
     // https://docs.advantagekit.org/getting-started/template-projects/spark-swerve-template#real-time-thread-priority
-    Threads.setCurrentThreadPriority(true, 2);
+    Threads.setCurrentThreadPriority(true, 1);
   }
 
   /** This function is called periodically during all modes. */

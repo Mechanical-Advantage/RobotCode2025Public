@@ -31,8 +31,9 @@ public class VisionConstants {
   public static final LoggedTunableNumber timestampOffset =
       new LoggedTunableNumber("AprilTagVision/TimestampOffset", 0.0);
 
-  private static int monoExposure = 1500;
-  private static double monoGain = 15.0;
+  private static int monoExposure = 2200;
+  private static double monoGain = 17.5;
+  private static double monoDenoise = 1.0;
   //   private static int colorExposure = 4500;
   //   private static double colorGain = 5.0;
 
@@ -111,6 +112,7 @@ public class VisionConstants {
                   .height(1200)
                   .exposure(monoExposure)
                   .gain(monoGain)
+                  .denoise(monoDenoise)
                   .stdDevFactor(1.0)
                   .build(),
               // Front Right
@@ -130,6 +132,7 @@ public class VisionConstants {
                   .height(1200)
                   .exposure(monoExposure)
                   .gain(monoGain)
+                  .denoise(monoDenoise)
                   .stdDevFactor(1.0)
                   .build(),
               // Back Up
@@ -149,6 +152,7 @@ public class VisionConstants {
                   .height(1200)
                   .exposure(monoExposure)
                   .gain(monoGain)
+                  .denoise(monoDenoise)
                   .stdDevFactor(1.0)
                   .build(),
             };
@@ -164,6 +168,7 @@ public class VisionConstants {
       int autoExposure,
       int exposure,
       double gain,
+      double denoise,
       double stdDevFactor) {}
 
   private VisionConstants() {}

@@ -76,7 +76,6 @@ public class Superstructure extends SubsystemBase {
       new LoggedNetworkBoolean("/SmartDashboard/Characterization Mode On", false);
 
   private BooleanSupplier disableOverride = () -> false;
-  private BooleanSupplier autoCoralStationIntakeOverride = () -> false;
   private final Alert driverDisableAlert =
       new Alert("Superstructure disabled due to driver override.", Alert.AlertType.kWarning);
   private final Alert emergencyDisableAlert =
@@ -92,7 +91,6 @@ public class Superstructure extends SubsystemBase {
 
   @Setter private Optional<SuperstructureState> reefDangerState = Optional.empty();
 
-  @AutoLogOutput @Getter private boolean requestFunnelIntake = false;
   @AutoLogOutput @Getter private boolean requestFunnelOuttake = false;
   @AutoLogOutput private boolean forceFastConstraints = false;
 
@@ -294,56 +292,40 @@ public class Superstructure extends SubsystemBase {
 
     setDefaultCommand(
         runGoal(
-                () -> {
-                  final Pose2d robot = RobotState.getInstance().getEstimatedPose();
-                  final Pose2d flippedRobot = AllianceFlipUtil.apply(robot);
+            () -> {
+              final Pose2d robot = RobotState.getInstance().getEstimatedPose();
+              final Pose2d flippedRobot = AllianceFlipUtil.apply(robot);
 
-                  // Check danger state
-                  if (reefDangerState.isPresent()
-                      && AutoScoreCommands.withinDistanceToReef(
-                          robot,
-                          hasAlgae()
-                              ? AutoScoreCommands.minDistanceReefClearAlgaeL4.get()
-                              : AutoScoreCommands.minDistanceReefClearL4.get())
-                      && Math.abs(
-                              FieldConstants.Reef.center
-                                  .minus(flippedRobot.getTranslation())
-                                  .getAngle()
-                                  .minus(flippedRobot.getRotation())
-                                  .getDegrees())
-                          <= AutoScoreCommands.minAngleReefClear.get()) {
-                    // Reset reef danger state when new goal requested
-                    if (goal != reefDangerState.get()
-                        && !(coralEjectPairs.containsKey(reefDangerState.get())
-                            && goal == coralEjectPairs.get(reefDangerState.get()))) {
-                      reefDangerState = Optional.empty();
-                    } else {
-                      return reefDangerState.get();
-                    }
-                  } else if (reefDangerState.isPresent()) {
-                    reefDangerState = Optional.empty();
-                  }
+              // Check danger state
+              if (reefDangerState.isPresent()
+                  && AutoScoreCommands.withinDistanceToReef(
+                      robot,
+                      hasAlgae()
+                          ? AutoScoreCommands.minDistanceReefClearAlgaeL4.get()
+                          : AutoScoreCommands.minDistanceReefClearL4.get())
+                  && Math.abs(
+                          FieldConstants.Reef.center
+                              .minus(flippedRobot.getTranslation())
+                              .getAngle()
+                              .minus(flippedRobot.getRotation())
+                              .getDegrees())
+                      <= AutoScoreCommands.minAngleReefClear.get()) {
+                // Reset reef danger state when new goal requested
+                if (goal != reefDangerState.get()
+                    && !(coralEjectPairs.containsKey(reefDangerState.get())
+                        && goal == coralEjectPairs.get(reefDangerState.get()))) {
+                  reefDangerState = Optional.empty();
+                } else {
+                  return reefDangerState.get();
+                }
+              } else if (reefDangerState.isPresent()) {
+                reefDangerState = Optional.empty();
+              }
 
-                  // Check if should intake
-                  if (!hasCoral()
-                      && robot.getX() < FieldConstants.fieldLength / 5.0
-                      && (robot.getY() < FieldConstants.fieldWidth / 5.0
-                          || robot.getY() > FieldConstants.fieldWidth * 4.0 / 5.0)
-                      && !autoCoralStationIntakeOverride.getAsBoolean()) {
-                    if (state == SuperstructureState.CORAL_INTAKE
-                        || state == SuperstructureState.ALGAE_CORAL_INTAKE) {
-                      requestFunnelIntake = true;
-                    }
-                    return hasAlgae()
-                        ? SuperstructureState.ALGAE_CORAL_INTAKE
-                        : SuperstructureState.CORAL_INTAKE;
-                  }
-                  requestFunnelIntake = false;
-                  return dispenser.hasAlgae()
-                      ? SuperstructureState.ALGAE_STOW
-                      : SuperstructureState.STOW;
-                })
-            .finallyDo(() -> requestFunnelIntake = false));
+              return dispenser.hasAlgae()
+                  ? SuperstructureState.ALGAE_STOW
+                  : SuperstructureState.STOW;
+            }));
   }
 
   @Override
@@ -450,10 +432,8 @@ public class Superstructure extends SubsystemBase {
     LoggedTracer.record("Superstructure");
   }
 
-  public void setOverrides(
-      BooleanSupplier disableOverride, BooleanSupplier autoCoralStationIntakeOverride) {
+  public void setOverrides(BooleanSupplier disableOverride) {
     this.disableOverride = disableOverride;
-    this.autoCoralStationIntakeOverride = autoCoralStationIntakeOverride;
   }
 
   @AutoLogOutput(key = "Superstructure/AtGoal")

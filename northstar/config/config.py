@@ -39,6 +39,7 @@ class RemoteConfig:
     camera_auto_exposure: int = 0
     camera_exposure: int = 0
     camera_gain: float = 0
+    camera_denoise: float = 0
     fiducial_size_m: float = 0
     tag_layout: any = None
     is_recording: bool = False

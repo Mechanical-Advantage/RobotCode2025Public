@@ -8,7 +8,6 @@
 package org.littletonrobotics.frc2025.commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.Commands;
 import org.littletonrobotics.frc2025.subsystems.rollers.RollerSystem;
 import org.littletonrobotics.frc2025.subsystems.superstructure.Superstructure;
 import org.littletonrobotics.frc2025.subsystems.superstructure.SuperstructureState;
@@ -29,6 +28,9 @@ public class IntakeCommands {
                     ? SuperstructureState.ALGAE_CORAL_INTAKE
                     : SuperstructureState.CORAL_INTAKE)
         .alongWith(
-            Commands.waitUntil(superstructure::atGoal).andThen(funnel.runRoller(funnelVolts)));
+            funnel
+                .runRoller(outtakeVolts)
+                .until(superstructure::atGoal)
+                .andThen(funnel.runRoller(funnelVolts)));
   }
 }

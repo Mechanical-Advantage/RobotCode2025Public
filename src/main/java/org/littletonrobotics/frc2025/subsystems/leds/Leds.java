@@ -19,6 +19,8 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.util.Color;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BooleanSupplier;
+import lombok.Setter;
 import org.littletonrobotics.frc2025.FieldConstants.ReefLevel;
 import org.littletonrobotics.frc2025.util.LoggedTracer;
 import org.littletonrobotics.frc2025.util.VirtualSubsystem;
@@ -55,6 +57,7 @@ public class Leds extends VirtualSubsystem {
   public boolean secondPriorityBlocked = false;
   public Color firstPriorityColor = Color.kBlack;
   public Color secondPriorityColor = Color.kBlack;
+  @Setter private BooleanSupplier shouldDimSupplier = () -> false;
 
   private Optional<Alliance> alliance = Optional.empty();
   private Color disabledColor = Color.kGold;
@@ -101,6 +104,7 @@ public class Leds extends VirtualSubsystem {
   private static final Color l2PriorityColor = Color.kCyan;
   private static final Color l3PriorityColor = Color.kBlue;
   private static final Color l4PriorityColor = Color.kPurple;
+  private static final double dimMultiplier = 0.1;
 
   private Leds() {
     leds = new AddressableLED(8);
@@ -382,17 +386,18 @@ public class Leds extends VirtualSubsystem {
   }
 
   private void setHSV(int index, int h, int s, int v) {
-    var indices = getIndices(index);
-    if (indices.getFirst() < 0) return;
-    buffer.setHSV(indices.getFirst(), h, s, v);
-    buffer.setHSV(indices.getSecond(), h, s, v);
+    setLED(index, Color.fromHSV(h, s, v));
   }
 
   private void setLED(int index, Color color) {
     var indices = getIndices(index);
     if (indices.getFirst() < 0) return;
-    buffer.setLED(indices.getFirst(), color);
-    buffer.setLED(indices.getSecond(), color);
+    var dimmedColor =
+        shouldDimSupplier.getAsBoolean()
+            ? Color.lerpRGB(Color.kBlack, color, dimMultiplier)
+            : color;
+    buffer.setLED(indices.getFirst(), dimmedColor);
+    buffer.setLED(indices.getSecond(), dimmedColor);
   }
 
   private static Pair<Integer, Integer> getIndices(int index) {

@@ -49,6 +49,7 @@ public class VisionIONorthstar implements VisionIO {
     configTable.getIntegerTopic("camera_auto_exposure").publish().set(camera.autoExposure());
     configTable.getIntegerTopic("camera_exposure").publish().set(camera.exposure());
     configTable.getDoubleTopic("camera_gain").publish().set(camera.gain());
+    configTable.getDoubleTopic("camera_denoise").publish().set(camera.denoise());
     configTable.getDoubleTopic("fiducial_size_m").publish().set(FieldConstants.aprilTagWidth);
     isRecordingPublisher = configTable.getBooleanTopic("is_recording").publish();
     isRecordingPublisher.set(false);
@@ -66,6 +67,7 @@ public class VisionIONorthstar implements VisionIO {
                 new double[] {},
                 PubSubOption.keepDuplicates(true),
                 PubSubOption.sendAll(true),
+                PubSubOption.pollStorage(5),
                 PubSubOption.periodic(0.01));
     objDetectObservationSubscriber =
         outputTable
@@ -74,6 +76,7 @@ public class VisionIONorthstar implements VisionIO {
                 new double[] {},
                 PubSubOption.keepDuplicates(true),
                 PubSubOption.sendAll(true),
+                PubSubOption.pollStorage(5),
                 PubSubOption.periodic(0.01));
     fpsAprilTagsSubscriber = outputTable.getIntegerTopic("fps_apriltags").subscribe(0);
     fpsObjDetectSubscriber = outputTable.getIntegerTopic("fps_objdetect").subscribe(0);

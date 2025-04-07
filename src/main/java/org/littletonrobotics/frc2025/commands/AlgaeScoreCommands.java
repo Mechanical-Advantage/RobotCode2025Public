@@ -41,7 +41,7 @@ public class AlgaeScoreCommands {
   private static final LoggedTunableNumber throwLineupDistance =
       new LoggedTunableNumber("AlgaeScoreCommands/ThrowLineupDistance", 1.5);
   private static final LoggedTunableNumber throwDriveDistance =
-      new LoggedTunableNumber("AlgaeScoreCommands/ThrowDriveDistance", 0.3);
+      new LoggedTunableNumber("AlgaeScoreCommands/ThrowDriveDistance", 0.6);
   private static final LoggedTunableNumber throwDriveVelocity =
       new LoggedTunableNumber("AlgaeScoreCommands/ThrowDriveVelocity", 1.5);
   private static final LoggedTunableNumber throwReadyLinearTolerance =

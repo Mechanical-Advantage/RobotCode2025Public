@@ -46,7 +46,7 @@ public class AutoScoreCommands {
   private static final double controllerRumbleSecs = 0.2;
 
   private static final LoggedTunableNumber maxDistanceReefLineupX =
-      new LoggedTunableNumber("AutoScore/MaxDistanceReefLineupX", 0.75);
+      new LoggedTunableNumber("AutoScore/MaxDistanceReefLineupX", 1.0);
   private static final LoggedTunableNumber maxDistanceReefLineupY =
       new LoggedTunableNumber("AutoScore/MaxDistanceReefLineupY", 1.2);
   public static final LoggedTunableNumber minDistanceReefClearL4 =
@@ -69,14 +69,14 @@ public class AutoScoreCommands {
       new LoggedTunableNumber("AutoScore/ArcDistanceReadyAuto", 1.5);
   private static final LoggedTunableNumber[] linearXToleranceEject = {
     new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L1", 0.03),
-    new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L2", 0.15),
-    new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L3", 0.15),
+    new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L2", 0.1),
+    new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L3", 0.1),
     new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L4", 0.05)
   };
   private static final LoggedTunableNumber[] linearYToleranceEject = {
     new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L1", 0.05),
-    new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L2", 0.15),
-    new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L3", 0.15),
+    new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L2", 0.1),
+    new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L3", 0.1),
     new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L4", 0.08)
   };
   private static final LoggedTunableNumber[] maxLinearVel = {
@@ -87,9 +87,9 @@ public class AutoScoreCommands {
   };
   private static final LoggedTunableNumber[] maxAngularVel = {
     new LoggedTunableNumber("AutoScore/MaxAngularVel/L1", 10),
-    new LoggedTunableNumber("AutoScore/MaxAngularVel/L2", 10),
-    new LoggedTunableNumber("AutoScore/MaxAngularVel/L3", 10),
-    new LoggedTunableNumber("AutoScore/MaxAngularVel/L4", 10)
+    new LoggedTunableNumber("AutoScore/MaxAngularVel/L2", 5),
+    new LoggedTunableNumber("AutoScore/MaxAngularVel/L3", 5),
+    new LoggedTunableNumber("AutoScore/MaxAngularVel/L4", 5)
   };
   private static final LoggedTunableNumber[] thetaToleranceEject = {
     new LoggedTunableNumber("AutoScore/ThetaToleranceEject/L1", 5),
@@ -106,7 +106,7 @@ public class AutoScoreCommands {
   private static final LoggedTunableNumber l3ReefIntakeDistance =
       new LoggedTunableNumber("AutoScore/L3ReefIntakeDistance", 0.14);
   private static final LoggedTunableNumber maxAimingAngle =
-      new LoggedTunableNumber("AutoScore/MaxAimingAngle", 20.0);
+      new LoggedTunableNumber("AutoScore/MaxAimingAngle", 10.0);
   private static final LoggedTunableNumber l1AlignOffsetX =
       new LoggedTunableNumber("AutoScore/L1AlignOffsetX", 0.45);
   private static final LoggedTunableNumber l1AlignOffsetY =

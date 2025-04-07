@@ -91,8 +91,8 @@ public class Dispenser {
     new LoggedTunableNumber("Dispenser/TunnelDispenseVolts/L4", 5.0)
   };
   public static final LoggedTunableNumber[] tunnelDispenseVoltsAlgae = {
-    new LoggedTunableNumber("Dispenser/TunnelDispenseVoltsAlgae/L2", 3.5),
-    new LoggedTunableNumber("Dispenser/TunnelDispenseVoltsAlgae/L3", 3.5),
+    new LoggedTunableNumber("Dispenser/TunnelDispenseVoltsAlgae/L2", 3.0),
+    new LoggedTunableNumber("Dispenser/TunnelDispenseVoltsAlgae/L3", 3.0),
     new LoggedTunableNumber("Dispenser/TunnelDispenseVoltsAlgae/L4", 5.0)
   };
   public static final LoggedTunableNumber tunnelIntakeVolts =
@@ -468,6 +468,7 @@ public class Dispenser {
   public void resetHasCoral(boolean value) {
     hasCoral = value;
     lastHasCoral = value;
+    tunnelPositionController.setSetpoint(tunnelInputs.data.positionRads());
     coralDebouncer = new Debouncer(coralDebounceTime, DebounceType.kRising);
     coralDebouncer.calculate(value);
   }

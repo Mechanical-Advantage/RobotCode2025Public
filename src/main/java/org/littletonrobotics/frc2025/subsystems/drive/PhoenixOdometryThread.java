@@ -109,7 +109,7 @@ public class PhoenixOdometryThread extends Thread {
   public void run() {
     // DO NOT COPY UNLESS YOU UNDERSTAND THE CONSEQUENCES
     // https://docs.advantagekit.org/getting-started/template-projects/spark-swerve-template#real-time-thread-priority
-    Threads.setCurrentThreadPriority(true, 3);
+    Threads.setCurrentThreadPriority(true, 1);
 
     while (true) {
       // Wait for updates from all signals

@@ -27,6 +27,7 @@ import java.util.Optional;
 import java.util.function.*;
 import lombok.experimental.ExtensionMethod;
 import org.littletonrobotics.frc2025.Constants.Mode;
+import org.littletonrobotics.frc2025.FieldConstants.AlgaeObjective;
 import org.littletonrobotics.frc2025.FieldConstants.AprilTagLayoutType;
 import org.littletonrobotics.frc2025.FieldConstants.ReefLevel;
 import org.littletonrobotics.frc2025.commands.*;
@@ -75,7 +76,7 @@ public class RobotContainer {
   private final Trigger robotRelative = overrides.driverSwitch(0);
   private final Trigger superstructureDisable = overrides.driverSwitch(1);
   private final Trigger superstructureCoast = overrides.driverSwitch(2);
-  private final Trigger disableAutoCoralStationIntake = new Trigger(() -> true);
+  private final Trigger dimLeds = overrides.operatorSwitch(0);
   private final Trigger disableReefAutoAlign = overrides.operatorSwitch(1);
   private final Trigger disableCoralStationAutoAlign = overrides.operatorSwitch(2);
   private final Trigger disableAlgaeScoreAutoAlign = overrides.operatorSwitch(3);
@@ -258,14 +259,26 @@ public class RobotContainer {
         superstructure.setCharacterizationMode().andThen(dispenser.staticCharacterization()));
 
     // Set up overrides
-    superstructure.setOverrides(superstructureDisable, disableAutoCoralStationIntake);
+    superstructure.setOverrides(superstructureDisable);
     elevator.setOverrides(() -> superstructureCoastOverride, superstructureDisable);
     dispenser.setOverrides(() -> superstructureCoastOverride, superstructureDisable);
     climber.setCoastOverride(() -> superstructureCoastOverride);
     objectiveTracker.setOverrides(forceSimpleCoralStrategy);
+    Leds.getInstance().setShouldDimSupplier(dimLeds);
 
     // Configure the button bindings
     configureButtonBindings();
+
+    // Warm up objective tracker
+    for (int i = 0; i < 50; i++) {
+      objectiveTracker.getAlgaeObjective();
+      objectiveTracker.getFirstLevel();
+      objectiveTracker.getSecondLevel();
+      for (var level : ReefLevel.values()) {
+        objectiveTracker.getCoralObjective(level);
+        objectiveTracker.getSuperCoralObjective(new AlgaeObjective(0), level);
+      }
+    }
   }
 
   /**
@@ -397,7 +410,11 @@ public class RobotContainer {
     bindAutoScore.accept(driver.rightBumper(), false);
 
     // Climbing controls
-    driver.y().doublePress().onTrue(climber.readyClimb().withName("Ready Climber"));
+    driver
+        .y()
+        .doublePress()
+        .onTrue(climber.readyClimb().withName("Ready Climber"))
+        .onTrue(controllerRumbleCommand().withTimeout(0.25));
 
     // Coral intake
     driver
@@ -686,21 +703,6 @@ public class RobotContainer {
     bindOperatorCoralScore.accept(operator.y(), ReefLevel.L4);
 
     // ***** MISCELlANEOUS *****
-
-    // Auto intake coral
-    funnel.setDefaultCommand(
-        funnel
-            .runRoller(
-                () -> {
-                  if (superstructure.isRequestFunnelIntake()) {
-                    return IntakeCommands.funnelVolts.get();
-                  } else if (superstructure.isRequestFunnelOuttake()) {
-                    return IntakeCommands.outtakeVolts.get();
-                  } else {
-                    return 0.0;
-                  }
-                })
-            .withName("Auto Intake Coral"));
 
     // Reset gyro
     var driverStartAndBack = driver.start().and(driver.back());

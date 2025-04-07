@@ -157,7 +157,7 @@ public class DriveToPose extends Command {
     // Enable continuous input for theta controller
     thetaController.enableContinuousInput(-Math.PI, Math.PI);
 
-    addRequirements(drive);
+    if (drive != null) addRequirements(drive);
   }
 
   public DriveToPose(Drive drive, Supplier<Pose2d> target, Supplier<Pose2d> robot) {
@@ -341,9 +341,14 @@ public class DriveToPose extends Command {
     }
 
     // Command speeds
-    drive.runVelocity(
-        ChassisSpeeds.fromFieldRelativeSpeeds(
-            driveVelocity.getX(), driveVelocity.getY(), thetaVelocity, currentPose.getRotation()));
+    if (drive != null) {
+      drive.runVelocity(
+          ChassisSpeeds.fromFieldRelativeSpeeds(
+              driveVelocity.getX(),
+              driveVelocity.getY(),
+              thetaVelocity,
+              currentPose.getRotation()));
+    }
 
     // Log data
     Logger.recordOutput("DriveToPose/DistanceMeasured", driveErrorAbs);
@@ -369,7 +374,7 @@ public class DriveToPose extends Command {
 
   @Override
   public void end(boolean interrupted) {
-    drive.stop();
+    if (drive != null) drive.stop();
     running = false;
     // Clear logs
     Logger.recordOutput("DriveToPose/Setpoint", new Pose2d[] {});

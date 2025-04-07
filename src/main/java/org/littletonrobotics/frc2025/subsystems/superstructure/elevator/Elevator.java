@@ -213,7 +213,7 @@ public class Elevator {
               && EqualsUtil.epsilonEquals(setpoint.velocity, goalState.velocity);
 
       // Run
-      if (stowed && atGoal) {
+      if (stowed && atGoal && getPositionMeters() < 0.08) {
         io.stop();
       } else {
         double accel = (setpoint.velocity - previousVelocity) / Constants.loopPeriodSecs;

@@ -128,7 +128,7 @@ public class ModuleIOComp implements ModuleIO {
     // Create drive status signals
     drivePosition = driveTalon.getPosition();
     drivePositionQueue =
-        PhoenixOdometryThread.getInstance().registerSignal(driveTalon.getPosition());
+        PhoenixOdometryThread.getInstance().registerSignal(driveTalon.getPosition().clone());
     driveVelocity = driveTalon.getVelocity();
     driveAppliedVolts = driveTalon.getMotorVoltage();
     driveSupplyCurrentAmps = driveTalon.getSupplyCurrent();
@@ -137,7 +137,8 @@ public class ModuleIOComp implements ModuleIO {
     // Create turn status signals
     turnAbsolutePosition = encoder.getAbsolutePosition();
     turnPosition = turnTalon.getPosition();
-    turnPositionQueue = PhoenixOdometryThread.getInstance().registerSignal(turnTalon.getPosition());
+    turnPositionQueue =
+        PhoenixOdometryThread.getInstance().registerSignal(turnTalon.getPosition().clone());
     turnVelocity = turnTalon.getVelocity();
     turnAppliedVolts = turnTalon.getMotorVoltage();
     turnSupplyCurrentAmps = turnTalon.getSupplyCurrent();
