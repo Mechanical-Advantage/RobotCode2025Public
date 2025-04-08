@@ -76,6 +76,8 @@ public class Elevator {
       new LoggedTunableNumber("Elevator/HomingTimeSecs", 0.25);
   private static final LoggedTunableNumber homingVelocityThresh =
       new LoggedTunableNumber("Elevator/HomingVelocityThresh", 5.0);
+  private static final LoggedTunableNumber stowStopCheckHeight =
+      new LoggedTunableNumber("Elevator/StowStopCheckHeight", .08);
   private static final LoggedTunableNumber tolerance =
       new LoggedTunableNumber("Elevator/Tolerance", 0.5);
 
@@ -213,7 +215,7 @@ public class Elevator {
               && EqualsUtil.epsilonEquals(setpoint.velocity, goalState.velocity);
 
       // Run
-      if (stowed && atGoal && getPositionMeters() < 0.08) {
+      if (stowed && atGoal && getPositionMeters() < stowStopCheckHeight.get()) {
         io.stop();
       } else {
         double accel = (setpoint.velocity - previousVelocity) / Constants.loopPeriodSecs;

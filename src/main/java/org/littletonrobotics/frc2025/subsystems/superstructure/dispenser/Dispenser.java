@@ -46,7 +46,7 @@ import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
 public class Dispenser {
-  public static final Rotation2d minAngle = Rotation2d.fromDegrees(-76.0);
+  public static final Rotation2d minAngle = Rotation2d.fromDegrees(-87.0);
   public static final Rotation2d maxAngle = Rotation2d.fromDegrees(13.7);
 
   // Tunable numbers
@@ -63,9 +63,9 @@ public class Dispenser {
   private static final LoggedTunableNumber maxAccelerationDegPerSec2 =
       new LoggedTunableNumber("Dispenser/MaxAccelerationDegreesPerSec2", 2500.0);
   private static final LoggedTunableNumber algaeMaxVelocityDegPerSec =
-      new LoggedTunableNumber("Dispenser/AlgaeMaxVelocityDegreesPerSec", 1500.0);
+      new LoggedTunableNumber("Dispenser/AlgaeMaxVelocityDegreesPerSec", 800.0);
   private static final LoggedTunableNumber algaeMaxAccelerationDegPerSec2 =
-      new LoggedTunableNumber("Dispenser/AlgaeMaxAccelerationDegreesPerSec2", 2500.0);
+      new LoggedTunableNumber("Dispenser/AlgaeMaxAccelerationDegreesPerSec2", 1500.0);
   private static final LoggedTunableNumber staticCharacterizationVelocityThresh =
       new LoggedTunableNumber("Dispenser/StaticCharacterizationVelocityThresh", 0.1);
   private static final LoggedTunableNumber staticCharacterizationRampRate =
@@ -196,9 +196,9 @@ public class Dispenser {
   @Getter private boolean doNotStopIntaking = false;
 
   private static final double coralDebounceTime = 0.1;
-  private static final double algaeDebounceTime = 0.4;
+  private static final double algaeDebounceTime = 0.6;
   private Debouncer coralDebouncer = new Debouncer(coralDebounceTime, DebounceType.kRising);
-  private Debouncer algaeDebouncer = new Debouncer(algaeDebounceTime, DebounceType.kRising);
+  private Debouncer algaeDebouncer = new Debouncer(algaeDebounceTime);
   private Debouncer toleranceDebouncer = new Debouncer(0.25, DebounceType.kRising);
 
   @Setter @Getter @AutoLogOutput private double coralThresholdOffset = 0.0;
@@ -383,7 +383,7 @@ public class Dispenser {
 
     // Check algae & coral states
     if (Constants.getRobot() != Constants.RobotType.SIMBOT) {
-      if (Math.abs(gripperInputs.data.appliedVoltage()) >= 0.5 || DriverStation.isDisabled()) {
+      if (gripperGoal == GripperGoal.GRIP || DriverStation.isDisabled()) {
         hasAlgae =
             algaeDebouncer.calculate(
                 gripperInputs.data.torqueCurrentAmps() >= algaeCurrentThresh.get());
