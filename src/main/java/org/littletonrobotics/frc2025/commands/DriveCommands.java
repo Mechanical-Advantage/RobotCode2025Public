@@ -73,15 +73,16 @@ public class DriveCommands {
         () -> {
           // Get linear velocity
           Translation2d linearVelocity =
-              getLinearVelocityFromJoysticks(xSupplier.getAsDouble(), ySupplier.getAsDouble());
+              getLinearVelocityFromJoysticks(xSupplier.getAsDouble(), ySupplier.getAsDouble())
+                  .times(DriveConstants.maxLinearSpeed);
 
           // Calculate angular velocity
           double omega = getOmegaFromJoysticks(omegaSupplier.getAsDouble());
 
           ChassisSpeeds speeds =
               new ChassisSpeeds(
-                  linearVelocity.getX() * DriveConstants.maxLinearSpeed,
-                  linearVelocity.getY() * DriveConstants.maxLinearSpeed,
+                  linearVelocity.getX(),
+                  linearVelocity.getY(),
                   omega * DriveConstants.maxAngularSpeed);
 
           drive.runVelocity(

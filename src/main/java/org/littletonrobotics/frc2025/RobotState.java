@@ -37,7 +37,7 @@ import org.littletonrobotics.junction.Logger;
 public class RobotState {
   // Must be less than 2.0
   private static final LoggedTunableNumber txTyObservationStaleSecs =
-      new LoggedTunableNumber("RobotState/TxTyObservationStaleSeconds", 0.5);
+      new LoggedTunableNumber("RobotState/TxTyObservationStaleSeconds", 0.05);
   private static final LoggedTunableNumber minDistanceTagPoseBlend =
       new LoggedTunableNumber("RobotState/MinDistanceTagPoseBlend", Units.inchesToMeters(24.0));
   private static final LoggedTunableNumber maxDistanceTagPoseBlend =
@@ -289,7 +289,7 @@ public class RobotState {
    * Get estimated pose using txty data given tagId on reef and aligned pose on reef. Used for algae
    * intaking and coral scoring.
    */
-  public Pose2d getReefPose(int face, Pose2d finalPose) {
+  public ReefPoseEstimate getReefPose(int face, Pose2d finalPose) {
     final boolean isRed = AllianceFlipUtil.shouldFlip();
     var tagPose =
         getTxTyPose(
@@ -303,7 +303,7 @@ public class RobotState {
               default -> isRed ? 7 : 18;
             });
     // Use estimated pose if tag pose is not present
-    if (tagPose.isEmpty()) return RobotState.getInstance().getEstimatedPose();
+    if (tagPose.isEmpty()) return new ReefPoseEstimate(getEstimatedPose(), 0.0);
     // Use distance from estimated pose to final pose to get t value
     final double t =
         MathUtil.clamp(
@@ -312,7 +312,7 @@ public class RobotState {
                 / (maxDistanceTagPoseBlend.get() - minDistanceTagPoseBlend.get()),
             0.0,
             1.0);
-    return getEstimatedPose().interpolate(tagPose.get(), 1.0 - t);
+    return new ReefPoseEstimate(getEstimatedPose().interpolate(tagPose.get(), 1.0 - t), 1.0 - t);
   }
 
   public void addCoralTxTyObservation(CoralTxTyObservation observation) {
@@ -402,4 +402,6 @@ public class RobotState {
   public record CoralTxTyObservation(int camera, double[] tx, double[] ty, double timestamp) {}
 
   public record CoralPoseRecord(Translation2d translation, double timestamp) {}
+
+  public record ReefPoseEstimate(Pose2d pose, double blend) {}
 }

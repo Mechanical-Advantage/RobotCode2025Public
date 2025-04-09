@@ -86,10 +86,14 @@ public class DriveToPose extends Command {
       new LoggedTunableNumber("DriveToPose/SetpointMinVelocity");
   private static final LoggedTunableNumber minDistanceVelocityCorrection =
       new LoggedTunableNumber("DriveToPose/MinDistanceVelocityCorrection");
+  private static final LoggedTunableNumber minLinearErrorReset =
+      new LoggedTunableNumber("DriveToPose/Reset/MinLinearError");
+  private static final LoggedTunableNumber minThetaErrorReset =
+      new LoggedTunableNumber("DriveToPose/Reset/MinThetaError");
   private static final LoggedTunableNumber minLinearFFSReset =
-      new LoggedTunableNumber("DriveToPose/MinLinearFFSReset");
+      new LoggedTunableNumber("DriveToPose/Reset/MinLinearFF");
   private static final LoggedTunableNumber minThetaFFSReset =
-      new LoggedTunableNumber("DriveToPose/MinThetaFFSReset");
+      new LoggedTunableNumber("DriveToPose/Reset/MinThetaFF");
 
   static {
     drivekP.initDefault(1.0);
@@ -124,6 +128,8 @@ public class DriveToPose extends Command {
 
     setpointMinVelocity.initDefault(-0.5);
     minDistanceVelocityCorrection.initDefault(0.01);
+    minLinearErrorReset.initDefault(0.3);
+    minThetaErrorReset.initDefault(Units.degreesToRadians(15.0));
     minLinearFFSReset.initDefault(0.2);
     minThetaFFSReset.initDefault(0.1);
   }
@@ -178,27 +184,7 @@ public class DriveToPose extends Command {
 
   @Override
   public void initialize() {
-    Pose2d currentPose = robot.get();
-    Pose2d targetPose = target.get();
-    ChassisSpeeds fieldVelocity = RobotState.getInstance().getFieldVelocity();
-    Translation2d linearFieldVelocity =
-        new Translation2d(fieldVelocity.vxMetersPerSecond, fieldVelocity.vyMetersPerSecond);
-
-    driveProfile =
-        new TrapezoidProfile(
-            DriverStation.isAutonomous()
-                ? new TrapezoidProfile.Constraints(
-                    driveMaxVelocityAuto.get(), driveMaxAccelerationAuto.get())
-                : new TrapezoidProfile.Constraints(
-                    driveMaxVelocity.get(), driveMaxAcceleration.get()));
-
-    driveController.reset();
-    thetaController.reset(
-        currentPose.getRotation().getRadians(), fieldVelocity.omegaRadiansPerSecond);
-    lastSetpointTranslation = currentPose.getTranslation();
-    lastSetpointVelocity = linearFieldVelocity;
-    lastGoalRotation = targetPose.getRotation();
-    lastTime = Timer.getTimestamp();
+    resetProfile();
   }
 
   @Override
@@ -327,17 +313,19 @@ public class DriveToPose extends Command {
     thetaVelocity =
         MathUtil.interpolate(
             thetaVelocity, omegaFF.getAsDouble() * DriveConstants.maxAngularSpeed, thetaS);
-    // Reset profiles if enough input
     ChassisSpeeds fieldVelocity = RobotState.getInstance().getFieldVelocity();
     Translation2d linearFieldVelocity =
         new Translation2d(fieldVelocity.vxMetersPerSecond, fieldVelocity.vyMetersPerSecond);
-    if (linearS >= minLinearFFSReset.get()) {
-      lastSetpointTranslation = currentPose.getTranslation();
-      lastSetpointVelocity = linearFieldVelocity;
-    }
-    if (thetaS >= minThetaFFSReset.get()) {
-      thetaController.reset(
-          currentPose.getRotation().getRadians(), fieldVelocity.omegaRadiansPerSecond);
+    // Reset profiles if enough input or far enough away from setpoint
+    if (linearS >= minLinearFFSReset.get()
+        || thetaS >= minThetaFFSReset.get()
+        || Math.abs(driveSetpoint.position - driveErrorAbs) >= minLinearErrorReset.get()
+        || Math.abs(
+                MathUtil.angleModulus(
+                    currentPose.getRotation().getRadians()
+                        - thetaController.getSetpoint().position))
+            >= minThetaErrorReset.get()) {
+      resetProfile();
     }
 
     // Command speeds
@@ -370,6 +358,30 @@ public class DriveToPose extends Command {
               Rotation2d.fromRadians(thetaController.getSetpoint().position))
         });
     Logger.recordOutput("DriveToPose/Goal", new Pose2d[] {targetPose});
+  }
+
+  private void resetProfile() {
+    Pose2d currentPose = robot.get();
+    Pose2d targetPose = target.get();
+    ChassisSpeeds fieldVelocity = RobotState.getInstance().getFieldVelocity();
+    Translation2d linearFieldVelocity =
+        new Translation2d(fieldVelocity.vxMetersPerSecond, fieldVelocity.vyMetersPerSecond);
+
+    driveProfile =
+        new TrapezoidProfile(
+            DriverStation.isAutonomous()
+                ? new TrapezoidProfile.Constraints(
+                    driveMaxVelocityAuto.get(), driveMaxAccelerationAuto.get())
+                : new TrapezoidProfile.Constraints(
+                    driveMaxVelocity.get(), driveMaxAcceleration.get()));
+
+    driveController.reset();
+    thetaController.reset(
+        currentPose.getRotation().getRadians(), fieldVelocity.omegaRadiansPerSecond);
+    lastSetpointTranslation = currentPose.getTranslation();
+    lastSetpointVelocity = linearFieldVelocity;
+    lastGoalRotation = targetPose.getRotation();
+    lastTime = Timer.getTimestamp();
   }
 
   @Override

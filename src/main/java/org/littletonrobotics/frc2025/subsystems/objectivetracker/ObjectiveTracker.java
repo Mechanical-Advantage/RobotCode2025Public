@@ -11,6 +11,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StringPublisher;
@@ -18,6 +19,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.MatchType;
 import java.util.*;
 import java.util.function.BooleanSupplier;
+import java.util.function.DoubleSupplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -29,6 +31,8 @@ import org.littletonrobotics.frc2025.FieldConstants.CoralObjective;
 import org.littletonrobotics.frc2025.FieldConstants.ReefLevel;
 import org.littletonrobotics.frc2025.RobotState;
 import org.littletonrobotics.frc2025.commands.AutoScoreCommands;
+import org.littletonrobotics.frc2025.commands.DriveCommands;
+import org.littletonrobotics.frc2025.subsystems.drive.DriveConstants;
 import org.littletonrobotics.frc2025.subsystems.leds.Leds;
 import org.littletonrobotics.frc2025.util.AllianceFlipUtil;
 import org.littletonrobotics.frc2025.util.GeomUtil;
@@ -80,7 +84,7 @@ public class ObjectiveTracker extends VirtualSubsystem {
   @Getter private Optional<AlgaeObjective> algaeObjective;
 
   private final LoggedNetworkString strategyInput =
-      new LoggedNetworkString("/SmartDashboard/Strategy", "545352514321");
+      new LoggedNetworkString("/SmartDashboard/Strategy", "747372714321");
   private String previousStrategy = null;
   private final StringPublisher[] strategyNamesPublishers = new StringPublisher[8];
   private final StringPublisher[] strategyCompletedPublishers = new StringPublisher[8];
@@ -94,6 +98,11 @@ public class ObjectiveTracker extends VirtualSubsystem {
   private Pose2d predictedRobot = Pose2d.kZero;
 
   private Pose2d robot = Pose2d.kZero;
+
+  private DoubleSupplier driverX = () -> 0.0;
+  private DoubleSupplier driverY = () -> 0.0;
+  private DoubleSupplier driverOmega = () -> 0.0;
+  private BooleanSupplier robotRelative = () -> false;
 
   public ObjectiveTracker(ReefControlsIO io) {
     this.io = io;
@@ -211,9 +220,9 @@ public class ObjectiveTracker extends VirtualSubsystem {
       uncompletedPriorities.clear();
       Optional<CoralPriority> uselessPriority = Optional.empty();
       if (coopState) {
-        // Decide which 5 coral we should give up on based on completion
+        // Decide which 7 coral we should give up on based on completion
         uselessPriority =
-            Set.of(CoralPriority._54, CoralPriority._53, CoralPriority._52, CoralPriority._51)
+            Set.of(CoralPriority._74, CoralPriority._73, CoralPriority._72, CoralPriority._71)
                 .stream()
                 .filter(coralPriority -> !coralPriority.complete(reefState))
                 .sorted(
@@ -349,12 +358,22 @@ public class ObjectiveTracker extends VirtualSubsystem {
     io.setElims(DriverStation.getMatchType() == MatchType.Elimination);
 
     // Calculate predicted robot and robot
-    predictedRobot =
-        AllianceFlipUtil.apply(
-            RobotState.getInstance()
-                .getEstimatedPose()
-                .exp(RobotState.getInstance().getRobotVelocity().toTwist2d(lookaheadS.get())));
     robot = AllianceFlipUtil.apply(RobotState.getInstance().getEstimatedPose());
+    // Calculate wanted speeds
+    var linearVelocity =
+        DriveCommands.getLinearVelocityFromJoysticks(driverX.getAsDouble(), driverY.getAsDouble())
+            .times(DriveConstants.maxLinearSpeed);
+    double omega =
+        DriveCommands.getOmegaFromJoysticks(driverOmega.getAsDouble())
+            * DriveConstants.maxAngularSpeed;
+    ChassisSpeeds wantedSpeeds =
+        new ChassisSpeeds(linearVelocity.getX(), linearVelocity.getY(), omega);
+    predictedRobot =
+        robot.exp(
+            (robotRelative.getAsBoolean()
+                    ? wantedSpeeds
+                    : ChassisSpeeds.fromFieldRelativeSpeeds(wantedSpeeds, robot.getRotation()))
+                .toTwist2d(lookaheadS.get()));
 
     // Calculate nearby branches that do not have coral on them
     nearbyBranches.clear();
@@ -481,7 +500,7 @@ public class ObjectiveTracker extends VirtualSubsystem {
         .min(nearestCoralObjectiveComparator(predictedRobot));
   }
 
-  private static final Set<Character> allowedCharacters = Set.of('1', '2', '3', '4', '5');
+  private static final Set<Character> allowedCharacters = Set.of('1', '2', '3', '4', '7');
 
   private void parseStrategy() {
     previousStrategy = getStrategyString();
@@ -500,10 +519,10 @@ public class ObjectiveTracker extends VirtualSubsystem {
     Logger.recordOutput("ObjectiveTracker/Strategy/StrategyInput", filtered);
     // Populate with proper enums
     for (int i = 0; i < filtered.length(); i++) {
-      if (filtered.charAt(i) == '5' && i + 1 < filtered.length() && filtered.charAt(i + 1) != '5') {
+      if (filtered.charAt(i) == '7' && i + 1 < filtered.length() && filtered.charAt(i + 1) != '7') {
         fullStrategy.add(CoralPriority.valueOf("_" + filtered.substring(i, i + 2)));
         i++;
-      } else if (filtered.charAt(i) != '5') {
+      } else if (filtered.charAt(i) != '7') {
         fullStrategy.add(CoralPriority.valueOf("_" + filtered.charAt(i)));
       }
     }
@@ -533,14 +552,25 @@ public class ObjectiveTracker extends VirtualSubsystem {
     this.forceSimpleCoralStrategy = forceSimpleCoralStrategy;
   }
 
+  public void setDriverInput(
+      DoubleSupplier driverX,
+      DoubleSupplier driverY,
+      DoubleSupplier driverOmega,
+      BooleanSupplier robotRelative) {
+    this.driverX = driverX;
+    this.driverY = driverY;
+    this.driverOmega = driverOmega;
+    this.robotRelative = robotRelative;
+  }
+
   @Getter
   @RequiredArgsConstructor
   /** All strategies have bias towards higher levels! */
   public enum CoralPriority {
-    _54(ReefLevel.L4, false, "5/4"),
-    _53(ReefLevel.L3, false, "5/3"),
-    _52(ReefLevel.L2, false, "5/2"),
-    _51(ReefLevel.L1, false, "5/1"),
+    _74(ReefLevel.L4, false, "7/4"),
+    _73(ReefLevel.L3, false, "7/3"),
+    _72(ReefLevel.L2, false, "7/2"),
+    _71(ReefLevel.L1, false, "7/1"),
     _4(ReefLevel.L4, true, "4"),
     _3(ReefLevel.L3, true, "3"),
     _2(ReefLevel.L2, true, "2"),
@@ -559,13 +589,13 @@ public class ObjectiveTracker extends VirtualSubsystem {
         }
         return true;
       }
-      if (level == ReefLevel.L1) return reefState.troughCount() >= 5;
+      if (level == ReefLevel.L1) return reefState.troughCount() >= 7;
       int count = 0;
       boolean[] levelState = reefState.coral()[level.ordinal() - 1];
       for (boolean b : levelState) {
         if (b) count++;
       }
-      return count >= 5;
+      return count >= 7;
     }
   }
 

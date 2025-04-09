@@ -21,11 +21,13 @@ import edu.wpi.first.wpilibj2.command.ScheduleCommand;
 import java.util.Optional;
 import java.util.OptionalDouble;
 import java.util.function.*;
+import org.littletonrobotics.frc2025.Constants;
 import org.littletonrobotics.frc2025.FieldConstants.AlgaeObjective;
 import org.littletonrobotics.frc2025.FieldConstants.CoralObjective;
 import org.littletonrobotics.frc2025.FieldConstants.Reef;
 import org.littletonrobotics.frc2025.FieldConstants.ReefLevel;
 import org.littletonrobotics.frc2025.RobotState;
+import org.littletonrobotics.frc2025.RobotState.ReefPoseEstimate;
 import org.littletonrobotics.frc2025.subsystems.drive.Drive;
 import org.littletonrobotics.frc2025.subsystems.drive.DriveConstants;
 import org.littletonrobotics.frc2025.subsystems.leds.Leds;
@@ -34,10 +36,7 @@ import org.littletonrobotics.frc2025.subsystems.superstructure.Superstructure;
 import org.littletonrobotics.frc2025.subsystems.superstructure.SuperstructureConstants;
 import org.littletonrobotics.frc2025.subsystems.superstructure.SuperstructurePose.CoralDispenserPose;
 import org.littletonrobotics.frc2025.subsystems.superstructure.SuperstructureState;
-import org.littletonrobotics.frc2025.util.AllianceFlipUtil;
-import org.littletonrobotics.frc2025.util.Container;
-import org.littletonrobotics.frc2025.util.GeomUtil;
-import org.littletonrobotics.frc2025.util.LoggedTunableNumber;
+import org.littletonrobotics.frc2025.util.*;
 import org.littletonrobotics.junction.Logger;
 
 public class AutoScoreCommands {
@@ -97,6 +96,10 @@ public class AutoScoreCommands {
     new LoggedTunableNumber("AutoScore/ThetaToleranceEject/L3", 5),
     new LoggedTunableNumber("AutoScore/ThetaToleranceEject/L4", 10)
   };
+  private static final LoggedTunableNumber minBlendTransform =
+      new LoggedTunableNumber("AutoScore/MinBlendTransform", 0.8);
+  private static final LoggedTunableNumber singleTagTransform =
+      new LoggedTunableNumber("AutoScore/SingleTagTransform", 0.3);
   private static final LoggedTunableNumber l4EjectDelay =
       new LoggedTunableNumber("AutoScore/L4EjectDelay", 0.05);
   private static final LoggedTunableNumber l4EjectDelayAuto =
@@ -106,7 +109,7 @@ public class AutoScoreCommands {
   private static final LoggedTunableNumber l3ReefIntakeDistance =
       new LoggedTunableNumber("AutoScore/L3ReefIntakeDistance", 0.14);
   private static final LoggedTunableNumber maxAimingAngle =
-      new LoggedTunableNumber("AutoScore/MaxAimingAngle", 10.0);
+      new LoggedTunableNumber("AutoScore/MaxAimingAngle", 20.0);
   private static final LoggedTunableNumber l1AlignOffsetX =
       new LoggedTunableNumber("AutoScore/L1AlignOffsetX", 0.45);
   private static final LoggedTunableNumber l1AlignOffsetY =
@@ -152,12 +155,13 @@ public class AutoScoreCommands {
       BooleanSupplier robotRelative,
       BooleanSupplier disableReefAutoAlign,
       BooleanSupplier manualEject) {
-    Supplier<Pose2d> robot =
+    Supplier<ReefPoseEstimate> robot =
         () ->
             coralObjective
                 .get()
                 .map(objective -> getRobotPose(objective, superstructure.hasAlgae()))
-                .orElseGet(() -> RobotState.getInstance().getEstimatedPose());
+                .orElseGet(
+                    () -> new ReefPoseEstimate(RobotState.getInstance().getEstimatedPose(), 0.0));
 
     Function<CoralObjective, Pose2d> goal =
         objective -> {
@@ -166,11 +170,15 @@ public class AutoScoreCommands {
             return AllianceFlipUtil.apply(getL1Pose(objective));
           }
           Pose2d goalPose = getCoralScorePose(objective, hasAlgae);
+          var reefPoseEstimate = robot.get();
           final double clearDistance =
               hasAlgae ? minDistanceReefClearAlgaeL4.get() : minDistanceReefClearL4.get();
-          if ((!superstructure.readyForL4() && reefLevel.get() == ReefLevel.L4)
+          if (reefPoseEstimate.blend() <= minBlendTransform.get()
+              && Constants.getRobot() != Constants.RobotType.SIMBOT) {
+            goalPose = goalPose.transformBy(GeomUtil.toTransform2d(-singleTagTransform.get(), 0.0));
+          } else if ((!superstructure.readyForL4() && reefLevel.get() == ReefLevel.L4)
               || (superstructure.readyForL4()
-                  && withinDistanceToReef(robot.get(), clearDistance - 0.05)
+                  && withinDistanceToReef(reefPoseEstimate.pose(), clearDistance - 0.05)
                   && reefLevel.get() != ReefLevel.L4)) {
             goalPose =
                 goalPose.transformBy(
@@ -190,15 +198,16 @@ public class AutoScoreCommands {
             Rotation2d rotationAdjustment =
                 AllianceFlipUtil.apply(getBranchPose(objective))
                     .getTranslation()
-                    .minus(robot.get().getTranslation())
+                    .minus(reefPoseEstimate.pose().getTranslation())
                     .getAngle()
                     .minus(originalRotation);
+            boolean isLeftBranch = objective.branchId() % 2 == 0;
             rotationAdjustment =
                 Rotation2d.fromDegrees(
                     MathUtil.clamp(
                         rotationAdjustment.getDegrees(),
-                        -maxAimingAngle.get(),
-                        maxAimingAngle.get()));
+                        isLeftBranch ? 0.0 : -maxAimingAngle.get(),
+                        isLeftBranch ? maxAimingAngle.get() : 0.0));
             return new Pose2d(
                 flippedGoalPose.getTranslation(), originalRotation.plus(rotationAdjustment));
           }
@@ -216,9 +225,9 @@ public class AutoScoreCommands {
                     .filter(
                         objective ->
                             !(superstructure.hasAlgae() && objective.reefLevel() == ReefLevel.L1))
-                    .map(objective -> getDriveTarget(robot.get(), goal.apply(objective)))
+                    .map(objective -> getDriveTarget(robot.get().pose(), goal.apply(objective)))
                     .orElseGet(() -> RobotState.getInstance().getEstimatedPose()),
-            robot,
+            () -> robot.get().pose(),
             () ->
                 DriveCommands.getLinearVelocityFromJoysticks(
                         driverX.getAsDouble(), driverY.getAsDouble())
@@ -257,7 +266,7 @@ public class AutoScoreCommands {
             preIntake(
                 superstructure,
                 funnel,
-                robot,
+                () -> robot.get().pose(),
                 () -> reefLevel.get() == ReefLevel.L4,
                 disableReefAutoAlign),
             // Check if need wait until pre ready or already ready
@@ -266,7 +275,7 @@ public class AutoScoreCommands {
                   boolean ready =
                       coralObjective.get().isPresent()
                               && readyForSuperstructure(
-                                  robot.get(),
+                                  robot.get().pose(),
                                   goal.apply(coralObjective.get().get()),
                                   reefLevel.get() == ReefLevel.L4)
                           || disableReefAutoAlign.getAsBoolean();
@@ -291,32 +300,36 @@ public class AutoScoreCommands {
                     coralObjective,
                     () -> {
                       if (coralObjective.get().isEmpty()) return false;
+                      var reefPose = robot.get();
                       Pose2d poseError =
-                          robot.get().relativeTo(goal.apply(coralObjective.get().get()));
+                          reefPose.pose().relativeTo(goal.apply(coralObjective.get().get()));
 
                       int intReefLevel = coralObjective.get().get().reefLevel().ordinal();
                       boolean ready =
-                          (Math.abs(poseError.getTranslation().getX())
-                                      <= linearXToleranceEject[intReefLevel].get()
-                                  && Math.abs(poseError.getTranslation().getY())
-                                      <= linearYToleranceEject[intReefLevel].get()
-                                  && Math.hypot(
-                                          RobotState.getInstance()
-                                              .getRobotVelocity()
-                                              .vxMetersPerSecond,
-                                          RobotState.getInstance()
-                                              .getRobotVelocity()
-                                              .vyMetersPerSecond)
-                                      <= maxLinearVel[intReefLevel].get()
-                                  && Math.abs(
-                                          RobotState.getInstance()
-                                              .getRobotVelocity()
-                                              .omegaRadiansPerSecond)
-                                      <= Units.degreesToRadians(maxAngularVel[intReefLevel].get())
-                                  && Math.abs(poseError.getRotation().getDegrees())
-                                      <= thetaToleranceEject[intReefLevel].get()
-                                  && superstructure.atGoal()
-                                  && !disableReefAutoAlign.getAsBoolean())
+                          (EqualsUtil.epsilonEquals(reefPose.blend(), 1.0)
+                                      || Constants.getRobot() == Constants.RobotType.SIMBOT)
+                                  && (Math.abs(poseError.getTranslation().getX())
+                                          <= linearXToleranceEject[intReefLevel].get()
+                                      && Math.abs(poseError.getTranslation().getY())
+                                          <= linearYToleranceEject[intReefLevel].get()
+                                      && Math.hypot(
+                                              RobotState.getInstance()
+                                                  .getRobotVelocity()
+                                                  .vxMetersPerSecond,
+                                              RobotState.getInstance()
+                                                  .getRobotVelocity()
+                                                  .vyMetersPerSecond)
+                                          <= maxLinearVel[intReefLevel].get()
+                                      && Math.abs(
+                                              RobotState.getInstance()
+                                                  .getRobotVelocity()
+                                                  .omegaRadiansPerSecond)
+                                          <= Units.degreesToRadians(
+                                              maxAngularVel[intReefLevel].get())
+                                      && Math.abs(poseError.getRotation().getDegrees())
+                                          <= thetaToleranceEject[intReefLevel].get()
+                                      && superstructure.atGoal()
+                                      && !disableReefAutoAlign.getAsBoolean())
                               || manualEject.getAsBoolean();
                       if (reefLevel.get() == ReefLevel.L4) {
                         if (!ready) {
@@ -400,7 +413,7 @@ public class AutoScoreCommands {
         () ->
             algaeObjective
                 .get()
-                .map(AutoScoreCommands::getRobotPose)
+                .map(objective -> AutoScoreCommands.getRobotPose(objective).pose())
                 .orElseGet(() -> RobotState.getInstance().getEstimatedPose());
 
     Supplier<SuperstructureState> algaeIntakeState =
@@ -701,6 +714,7 @@ public class AutoScoreCommands {
                             var dispenserPose =
                                 AllianceFlipUtil.apply(
                                     getRobotPose(objective, superstructure.hasAlgae())
+                                        .pose()
                                         .transformBy(
                                             GeomUtil.toTransform2d(
                                                 getCoralDispenserPose(
@@ -886,12 +900,12 @@ public class AutoScoreCommands {
     return distanceToReefCenter >= reefRadius + DriveConstants.robotWidth / 2.0 + distance;
   }
 
-  public static Pose2d getRobotPose(CoralObjective coralObjective, boolean algae) {
+  public static ReefPoseEstimate getRobotPose(CoralObjective coralObjective, boolean algae) {
     return RobotState.getInstance()
         .getReefPose(coralObjective.branchId() / 2, getCoralScorePose(coralObjective, algae));
   }
 
-  private static Pose2d getRobotPose(AlgaeObjective algaeObjective) {
+  private static ReefPoseEstimate getRobotPose(AlgaeObjective algaeObjective) {
     return RobotState.getInstance()
         .getReefPose(algaeObjective.id(), getReefIntakePose(algaeObjective));
   }

@@ -292,6 +292,7 @@ public class RobotContainer {
     DoubleSupplier driverX = () -> -driver.getLeftY() - operator.getLeftY();
     DoubleSupplier driverY = () -> -driver.getLeftX() - operator.getLeftX();
     DoubleSupplier driverOmega = () -> -driver.getRightX() - operator.getRightX();
+    objectiveTracker.setDriverInput(driverX, driverY, driverOmega, robotRelative);
 
     // Joystick drive command (driver and operator)
     Supplier<Command> joystickDriveCommandFactory =
