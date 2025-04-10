@@ -134,13 +134,20 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
       return pose.get().getRotation().getDegrees();
     }
 
-    public Transform2d toRobotPose() {
+    public Transform2d branchToRobot() {
       return new Transform2d(
           getElevatorHeight() * elevatorAngle.getCos()
               + pose.get().getX()
               + dispenserOrigin2d.getX(),
           0.0,
           Rotation2d.kPi);
+    }
+
+    public Transform2d robotToDispenser() {
+      return GeomUtil.toTransform2d(
+          getElevatorHeight() * SuperstructureConstants.elevatorAngle.getCos()
+              + SuperstructureConstants.dispenserOrigin2d.getX(),
+          0.0);
     }
 
     private static Pose2d calculatePose(ReefLevel reefLevel, boolean algae) {

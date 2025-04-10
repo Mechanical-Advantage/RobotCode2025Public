@@ -11,7 +11,6 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
@@ -66,36 +65,32 @@ public class AutoScoreCommands {
       new LoggedTunableNumber("AutoScore/ArcDistanceReady", 0.7);
   private static final LoggedTunableNumber arcDistanceReadyAuto =
       new LoggedTunableNumber("AutoScore/ArcDistanceReadyAuto", 1.5);
-  private static final LoggedTunableNumber[] linearXToleranceEject = {
-    new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L1", 0.03),
-    new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L2", 0.1),
-    new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L3", 0.1),
-    new LoggedTunableNumber("AutoScore/LinearXToleranceEject/L4", 0.05)
+  private static final LoggedTunableNumber[] lowerXToleranceEject = {
+    new LoggedTunableNumber("AutoScore/XToleranceEject/Lower/L1", 0.03),
+    new LoggedTunableNumber("AutoScore/XToleranceEject/Lower/L2", 0.05),
+    new LoggedTunableNumber("AutoScore/XToleranceEject/Lower/L3", 0.05),
+    new LoggedTunableNumber("AutoScore/XToleranceEject/Lower/L4", 0.05)
   };
-  private static final LoggedTunableNumber[] linearYToleranceEject = {
-    new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L1", 0.05),
-    new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L2", 0.1),
-    new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L3", 0.1),
-    new LoggedTunableNumber("AutoScore/LinearYToleranceEject/L4", 0.08)
+  private static final LoggedTunableNumber[] upperXToleranceEject = {
+    new LoggedTunableNumber("AutoScore/XToleranceEject/Upper/L1", 0.03),
+    new LoggedTunableNumber("AutoScore/XToleranceEject/Upper/L2", 0.1),
+    new LoggedTunableNumber("AutoScore/XToleranceEject/Upper/L3", 0.1),
+    new LoggedTunableNumber("AutoScore/XToleranceEject/Upper/L4", 0.1)
   };
-  private static final LoggedTunableNumber[] maxLinearVel = {
-    new LoggedTunableNumber("AutoScore/MaxLinearVel/L1", 0.1),
-    new LoggedTunableNumber("AutoScore/MaxLinearVel/L2", 0.1),
-    new LoggedTunableNumber("AutoScore/MaxLinearVel/L3", 0.1),
-    new LoggedTunableNumber("AutoScore/MaxLinearVel/L4", 0.05)
+  private static final LoggedTunableNumber[] yToleranceEject = {
+    new LoggedTunableNumber("AutoScore/YToleranceEject/L1", 0.05),
+    new LoggedTunableNumber("AutoScore/YToleranceEject/L2", 0.05),
+    new LoggedTunableNumber("AutoScore/YToleranceEject/L3", 0.05),
+    new LoggedTunableNumber("AutoScore/YToleranceEject/L4", 0.05)
   };
-  private static final LoggedTunableNumber[] maxAngularVel = {
-    new LoggedTunableNumber("AutoScore/MaxAngularVel/L1", 10),
-    new LoggedTunableNumber("AutoScore/MaxAngularVel/L2", 5),
-    new LoggedTunableNumber("AutoScore/MaxAngularVel/L3", 5),
-    new LoggedTunableNumber("AutoScore/MaxAngularVel/L4", 5)
+  private static final LoggedTunableNumber[] lookaheadEject = {
+    new LoggedTunableNumber("AutoScore/LookaheadToleranceEject/L1", 0.5),
+    new LoggedTunableNumber("AutoScore/LookaheadToleranceEject/L2", 0.5),
+    new LoggedTunableNumber("AutoScore/LookaheadToleranceEject/L3", 0.5),
+    new LoggedTunableNumber("AutoScore/LookaheadToleranceEject/L4", 0.3)
   };
-  private static final LoggedTunableNumber[] thetaToleranceEject = {
-    new LoggedTunableNumber("AutoScore/ThetaToleranceEject/L1", 5),
-    new LoggedTunableNumber("AutoScore/ThetaToleranceEject/L2", 5),
-    new LoggedTunableNumber("AutoScore/ThetaToleranceEject/L3", 5),
-    new LoggedTunableNumber("AutoScore/ThetaToleranceEject/L4", 10)
-  };
+  private static final LoggedTunableNumber l1ThetaEject =
+      new LoggedTunableNumber("AutoScore/L1ThetaToleranceEject", 5.0);
   private static final LoggedTunableNumber minBlendTransform =
       new LoggedTunableNumber("AutoScore/MinBlendTransform", 0.8);
   private static final LoggedTunableNumber singleTagTransform =
@@ -124,13 +119,6 @@ public class AutoScoreCommands {
     new LoggedTunableNumber("AutoScore/EjectTimeSeconds/L3", 0.5),
     new LoggedTunableNumber("AutoScore/EjectTimeSeconds/L4", 0.3)
   };
-  private static final LoggedTunableNumber correctiveMeasureFF =
-      new LoggedTunableNumber("AutoScore/CorrectiveMeasureFF", 0.7);
-  private static final LoggedTunableNumber correctiveMeasureDistance =
-      new LoggedTunableNumber("AutoScore/CorrectiveMeasureDistance", Units.inchesToMeters(20.0));
-  private static final LoggedTunableNumber correctiveMeasureBlendDistance =
-      new LoggedTunableNumber(
-          "AutoScore/CorrectiveMeasureBlendDistance", Units.inchesToMeters(6.0));
   private static final LoggedTunableNumber[] branchFudgeX = {
     new LoggedTunableNumber("AutoScore/FudgeX/L1", 0.0),
     new LoggedTunableNumber("AutoScore/FudgeX/L2", 0.0),
@@ -234,14 +222,6 @@ public class AutoScoreCommands {
                     .times(AllianceFlipUtil.shouldFlip() ? -1.0 : 1.0),
             () -> DriveCommands.getOmegaFromJoysticks(driverOmega.getAsDouble()));
 
-    // Schedule get back command
-    // new Trigger(() -> hasEnded.value && needsToGetBack.value)
-    //     .and(() -> !disableReefAutoAlign.getAsBoolean())
-    //     .onTrue(
-    //         getBackCorrectiveMeasure(drive, driverX, driverY, driverOmega, robotRelative)
-    //             .finallyDo(() -> needsToGetBack.value = false)
-    //             .withName("Corrective Measure"));
-
     Timer l4EjectTimer = new Timer();
     l4EjectTimer.start();
     return Commands.runOnce(
@@ -258,7 +238,7 @@ public class AutoScoreCommands {
               Logger.recordOutput("AutoScore/ReefLevel", reefLevel.get().toString());
 
               // Clear logs
-              Logger.recordOutput("AutoScore/AllowPreReady", false);
+              Logger.recordOutput("AutoScore/AllowReady", false);
               Logger.recordOutput("AutoScore/AllowEject", false);
             })
         .andThen(
@@ -301,35 +281,30 @@ public class AutoScoreCommands {
                     () -> {
                       if (coralObjective.get().isEmpty()) return false;
                       var reefPose = robot.get();
-                      Pose2d poseError =
-                          reefPose.pose().relativeTo(goal.apply(coralObjective.get().get()));
 
-                      int intReefLevel = coralObjective.get().get().reefLevel().ordinal();
+                      var objective = coralObjective.get().get();
+                      Pose2d flippedRobot = AllianceFlipUtil.apply(reefPose.pose());
+                      Pose2d predictedRobot =
+                          flippedRobot.exp(
+                              RobotState.getInstance()
+                                  .getRobotVelocity()
+                                  .toTwist2d(lookaheadEject[reefLevel.get().ordinal()].get()));
+
                       boolean ready =
                           (EqualsUtil.epsilonEquals(reefPose.blend(), 1.0)
                                       || Constants.getRobot() == Constants.RobotType.SIMBOT)
-                                  && (Math.abs(poseError.getTranslation().getX())
-                                          <= linearXToleranceEject[intReefLevel].get()
-                                      && Math.abs(poseError.getTranslation().getY())
-                                          <= linearYToleranceEject[intReefLevel].get()
-                                      && Math.hypot(
-                                              RobotState.getInstance()
-                                                  .getRobotVelocity()
-                                                  .vxMetersPerSecond,
-                                              RobotState.getInstance()
-                                                  .getRobotVelocity()
-                                                  .vyMetersPerSecond)
-                                          <= maxLinearVel[intReefLevel].get()
-                                      && Math.abs(
-                                              RobotState.getInstance()
-                                                  .getRobotVelocity()
-                                                  .omegaRadiansPerSecond)
-                                          <= Units.degreesToRadians(
-                                              maxAngularVel[intReefLevel].get())
-                                      && Math.abs(poseError.getRotation().getDegrees())
-                                          <= thetaToleranceEject[intReefLevel].get()
-                                      && superstructure.atGoal()
-                                      && !disableReefAutoAlign.getAsBoolean())
+                                  && checkEjectTolerances(
+                                      flippedRobot,
+                                      objective,
+                                      reefLevel.get(),
+                                      superstructure.hasAlgae())
+                                  && checkEjectTolerances(
+                                      predictedRobot,
+                                      objective,
+                                      reefLevel.get(),
+                                      superstructure.hasAlgae())
+                                  && superstructure.atGoal()
+                                  && !disableReefAutoAlign.getAsBoolean()
                               || manualEject.getAsBoolean();
                       if (reefLevel.get() == ReefLevel.L4) {
                         if (!ready) {
@@ -444,16 +419,6 @@ public class AutoScoreCommands {
                         algaeIntaked.value == null
                             ? AllianceFlipUtil.apply(robot.get())
                             : getReefIntakePose(algaeIntaked.value));
-
-    // Schedule get back command
-    // if (funnel.isEmpty()) {
-    //   new Trigger(() -> hasEnded.value && needsToGetBack.value)
-    //       .and(() -> !disableReefAutoAlign.getAsBoolean())
-    //       .onTrue(
-    //           getBackCorrectiveMeasure(drive, driverX, driverY, driverOmega, robotRelative)
-    //               .finallyDo(() -> needsToGetBack.value = false)
-    //               .withName("Corrective Measure"));
-    // }
 
     return Commands.runOnce(
             () -> {
@@ -716,16 +681,10 @@ public class AutoScoreCommands {
                                     getRobotPose(objective, superstructure.hasAlgae())
                                         .pose()
                                         .transformBy(
-                                            GeomUtil.toTransform2d(
-                                                getCoralDispenserPose(
-                                                                objective.reefLevel(),
-                                                                superstructure.hasAlgae())
-                                                            .getElevatorHeight()
-                                                        * SuperstructureConstants.elevatorAngle
-                                                            .getCos()
-                                                    + SuperstructureConstants.dispenserOrigin2d
-                                                        .getX(),
-                                                0.0)));
+                                            getCoralDispenserPose(
+                                                    objective.reefLevel(),
+                                                    superstructure.hasAlgae())
+                                                .robotToDispenser()));
                             var offsetTranslation =
                                 dispenserPose
                                     .relativeTo(
@@ -769,48 +728,6 @@ public class AutoScoreCommands {
         .onlyIf(() -> !superstructure.hasCoral());
   }
 
-  private static Command getBackCorrectiveMeasure(
-      Drive drive,
-      DoubleSupplier driverX,
-      DoubleSupplier driverY,
-      DoubleSupplier driverOmega,
-      BooleanSupplier robotRelative) {
-    Supplier<Translation2d> correctiveMeasure =
-        () -> {
-          final Pose2d flippedRobot =
-              AllianceFlipUtil.apply(RobotState.getInstance().getEstimatedPose());
-          Translation2d driverLinearVel =
-              DriveCommands.getLinearVelocityFromJoysticks(
-                  driverX.getAsDouble(), driverY.getAsDouble());
-
-          return driverLinearVel.plus(
-              new Translation2d(
-                  (driverLinearVel.getNorm()
-                      * correctiveMeasureFF.get()
-                      * (1.0
-                          - MathUtil.clamp(
-                              (flippedRobot.getTranslation().getDistance(Reef.center)
-                                      - reefRadius
-                                      - DriveConstants.robotWidth / 2.0
-                                      - correctiveMeasureDistance.get())
-                                  / (correctiveMeasureDistance.get()
-                                      - correctiveMeasureBlendDistance.get()),
-                              0.0,
-                              1.0))),
-                  flippedRobot.getTranslation().minus(Reef.center).getAngle()));
-        };
-    return DriveCommands.joystickDrive(
-            drive,
-            () -> correctiveMeasure.get().getX(),
-            () -> correctiveMeasure.get().getY(),
-            driverOmega,
-            robotRelative)
-        .until(
-            () ->
-                outOfDistanceToReef(
-                    RobotState.getInstance().getEstimatedPose(), correctiveMeasureDistance.get()));
-  }
-
   /** Get drive target. */
   public static Pose2d getDriveTarget(Pose2d robot, Pose2d goal) {
     Rotation2d angleToGoal =
@@ -839,7 +756,7 @@ public class AutoScoreCommands {
   /** Get position of robot aligned with branch for selected objective. */
   public static Pose2d getCoralScorePose(CoralObjective coralObjective, boolean algae) {
     return getBranchPose(coralObjective)
-        .transformBy(getCoralDispenserPose(coralObjective.reefLevel(), algae).toRobotPose());
+        .transformBy(getCoralDispenserPose(coralObjective.reefLevel(), algae).branchToRobot());
   }
 
   public static Pose2d getReefIntakePose(AlgaeObjective objective) {
@@ -862,6 +779,32 @@ public class AutoScoreCommands {
                 l1AlignOffsetY.get(),
                 Rotation2d.fromDegrees(l1AlignOffsetTheta.get())));
     return centerFace;
+  }
+
+  private static boolean checkEjectTolerances(
+      Pose2d flippedRobot, CoralObjective objective, ReefLevel level, boolean algae) {
+    // Separate tolerances for L1
+    if (level == ReefLevel.L1) {
+      var error = flippedRobot.relativeTo(getL1Pose(objective));
+      return Math.abs(error.getX()) <= lowerXToleranceEject[level.ordinal()].get()
+          && Math.abs(error.getY()) <= yToleranceEject[level.ordinal()].get()
+          && Math.abs(error.getRotation().getDegrees()) <= l1ThetaEject.get();
+    }
+
+    var dispenserPose = getCoralDispenserPose(level, algae);
+    var error =
+        getBranchPose(objective)
+            .relativeTo(flippedRobot.transformBy(dispenserPose.robotToDispenser()))
+            .getTranslation();
+    double rawDistance = error.getNorm();
+    double yError = Math.abs(error.getAngle().getTan() * rawDistance);
+    double xError =
+        Math.abs(rawDistance / error.getAngle().getCos()) - dispenserPose.getPose().get().getX();
+    Logger.recordOutput("AutoScore/YError", yError);
+    Logger.recordOutput("AutoScore/XError", xError);
+    return yError <= yToleranceEject[level.ordinal()].get()
+        && xError >= -lowerXToleranceEject[level.ordinal()].get()
+        && xError <= upperXToleranceEject[level.ordinal()].get();
   }
 
   public static boolean readyForSuperstructure(Pose2d robot, Pose2d goal, boolean shouldBackUp) {
