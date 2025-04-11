@@ -66,6 +66,10 @@ public class Dispenser {
       new LoggedTunableNumber("Dispenser/AlgaeMaxVelocityDegreesPerSec", 800.0);
   private static final LoggedTunableNumber algaeMaxAccelerationDegPerSec2 =
       new LoggedTunableNumber("Dispenser/AlgaeMaxAccelerationDegreesPerSec2", 1500.0);
+  private static final LoggedTunableNumber slowMaxVelocityDegPerSec =
+      new LoggedTunableNumber("Dispenser/SlowMaxVelocityDegreesPerSec", 200.0);
+  private static final LoggedTunableNumber slowMaxAccelerationDegPerSec2 =
+      new LoggedTunableNumber("Dispenser/SlowMaxAccelerationDegreesPerSec2", 400.0);
   private static final LoggedTunableNumber staticCharacterizationVelocityThresh =
       new LoggedTunableNumber("Dispenser/StaticCharacterizationVelocityThresh", 0.1);
   private static final LoggedTunableNumber staticCharacterizationRampRate =
@@ -75,7 +79,7 @@ public class Dispenser {
   private static final LoggedTunableNumber coralProxThreshold =
       new LoggedTunableNumber("Dispenser/CoralProxThresh", 0.06);
   public static final LoggedTunableNumber gripperHoldVolts =
-      new LoggedTunableNumber("Dispenser/GripperHoldVolts", 0.7);
+      new LoggedTunableNumber("Dispenser/GripperHoldVolts", 1.0);
   public static final LoggedTunableNumber gripperIntakeVolts =
       new LoggedTunableNumber("Dispenser/GripperIntakeVolts", 9.0);
   public static final LoggedTunableNumber gripperEjectVolts =
@@ -163,6 +167,7 @@ public class Dispenser {
 
   private TrapezoidProfile profile;
   private TrapezoidProfile algaeProfile;
+  private TrapezoidProfile slowProfile;
   @Getter private State setpoint = new State();
   private DoubleSupplier goal = () -> 0.0;
   private boolean stopProfile = false;
@@ -172,6 +177,11 @@ public class Dispenser {
   @Setter private boolean forceFastConstraints = false;
   @Setter private boolean forceEjectForward = false;
   @Setter private boolean forceEjectReverse = false;
+
+  @Accessors(fluent = true)
+  @Setter
+  private boolean forceSlowConstraints = false;
+
   private final Timer intakingReverseTimer = new Timer();
 
   @Getter
@@ -198,7 +208,7 @@ public class Dispenser {
   private static final double coralDebounceTime = 0.1;
   private static final double algaeDebounceTime = 0.6;
   private Debouncer coralDebouncer = new Debouncer(coralDebounceTime, DebounceType.kRising);
-  private Debouncer algaeDebouncer = new Debouncer(algaeDebounceTime);
+  private Debouncer algaeDebouncer = new Debouncer(algaeDebounceTime, DebounceType.kBoth);
   private Debouncer toleranceDebouncer = new Debouncer(0.25, DebounceType.kRising);
 
   @Setter @Getter @AutoLogOutput private double coralThresholdOffset = 0.0;
@@ -284,6 +294,14 @@ public class Dispenser {
                   Units.degreesToRadians(algaeMaxVelocityDegPerSec.get()),
                   Units.degreesToRadians(algaeMaxAccelerationDegPerSec2.get())));
     }
+    if (slowMaxVelocityDegPerSec.hasChanged(hashCode())
+        || slowMaxAccelerationDegPerSec2.hasChanged(hashCode())) {
+      slowProfile =
+          new TrapezoidProfile(
+              new TrapezoidProfile.Constraints(
+                  Units.degreesToRadians(slowMaxVelocityDegPerSec.get()),
+                  Units.degreesToRadians(slowMaxAccelerationDegPerSec2.get())));
+    }
     if (gripperCurrentLimit.hasChanged(hashCode())) {
       gripperIO.setCurrentLimit(gripperCurrentLimit.get());
     }
@@ -312,7 +330,9 @@ public class Dispenser {
               MathUtil.clamp(goal.getAsDouble(), minAngle.getRadians(), maxAngle.getRadians()),
               0.0);
       setpoint =
-          (hasAlgae && !forceFastConstraints ? algaeProfile : profile)
+          (forceSlowConstraints
+                  ? slowProfile
+                  : hasAlgae && !forceFastConstraints ? algaeProfile : profile)
               .calculate(Constants.loopPeriodSecs, setpoint, goalState);
       pivotIO.runPosition(
           Rotation2d.fromRadians(setpoint.position),

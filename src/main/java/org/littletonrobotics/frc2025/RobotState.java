@@ -46,6 +46,8 @@ public class RobotState {
       new LoggedTunableNumber("RobotState/CoralOverlap", .5);
   private static final LoggedTunableNumber coralPersistanceTime =
       new LoggedTunableNumber("RobotState/CoralPersistanceTime", 2.0);
+  private static final LoggedTunableNumber algaePersistanceTime =
+      new LoggedTunableNumber("RobotState/AlgaePersistanceTime", 0.1);
 
   private static final double poseBufferSizeSec = 2.0;
   private static final Matrix<N3, N1> odometryStateStdDevs =
@@ -92,6 +94,11 @@ public class RobotState {
 
   private final Map<Integer, TxTyPoseRecord> txTyPoses = new HashMap<>();
   private Set<CoralPoseRecord> coralPoses = new HashSet<>();
+
+  @AutoLogOutput private Rotation2d leftAlgaeObservation = Rotation2d.kZero;
+  @AutoLogOutput private Rotation2d rightAlgaeObservation = Rotation2d.kZero;
+  private double leftAlgaeObservationTimestamp = 0.0;
+  private double rightAlgaeObservationTimestamp = 0.0;
 
   @Getter
   @AutoLogOutput(key = "RobotState/RobotVelocity")
@@ -364,6 +371,32 @@ public class RobotState {
 
   public Rotation2d getRotation() {
     return estimatedPose.getRotation();
+  }
+
+  public void addLeftAlgaeObservation(Rotation2d angle) {
+    leftAlgaeObservation = angle;
+    leftAlgaeObservationTimestamp = Timer.getTimestamp();
+  }
+
+  public void addRightAlgaeObservation(Rotation2d angle) {
+    rightAlgaeObservation = angle;
+    rightAlgaeObservationTimestamp = Timer.getTimestamp();
+  }
+
+  public Optional<Rotation2d> getLeftAlgaeObservation() {
+    if (Timer.getTimestamp() - leftAlgaeObservationTimestamp < algaePersistanceTime.get()) {
+      return Optional.of(leftAlgaeObservation);
+    } else {
+      return Optional.empty();
+    }
+  }
+
+  public Optional<Rotation2d> getRightAlgaeObservation() {
+    if (Timer.getTimestamp() - rightAlgaeObservationTimestamp < algaePersistanceTime.get()) {
+      return Optional.of(rightAlgaeObservation);
+    } else {
+      return Optional.empty();
+    }
   }
 
   public void periodicLog() {

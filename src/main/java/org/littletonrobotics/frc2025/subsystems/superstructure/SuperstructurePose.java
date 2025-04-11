@@ -201,7 +201,7 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
     ALGAE_L2(CoralDispenserPose.ALGAE_L2),
     ALGAE_L3(CoralDispenserPose.ALGAE_L3),
     ALGAE_L4(CoralDispenserPose.ALGAE_L4),
-    ALGAE_FLOOR_INTAKE("AlgaeFloorIntake", 0.4, -20.0),
+    ALGAE_GROUND_INTAKE("AlgaeGroundIntake", 0.08, -10.0),
     ALGAE_L2_INTAKE(
         () -> l2ReefIntakeHeight.get() + getReefIntakeAdjustment(),
         new LoggedTunableNumber("Superstructure/AlgaeIntake/L2/Pivot", -55.0)),

@@ -27,7 +27,8 @@ public class VisionConstants {
   public static final double xyStdDevCoefficient = 0.01;
   public static final double thetaStdDevCoefficient = 0.03;
   public static final double demoTagPosePersistenceSecs = 0.5;
-  public static final double objDetectConfidenceThreshold = 0.8;
+  public static final double coralDetectConfidenceThreshold = 0.35;
+  public static final double algaeDetectConfidenceThreshold = 0.35;
   public static final LoggedTunableNumber timestampOffset =
       new LoggedTunableNumber("AprilTagVision/TimestampOffset", 0.0);
 

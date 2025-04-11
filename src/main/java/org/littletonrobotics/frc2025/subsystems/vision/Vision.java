@@ -282,24 +282,67 @@ public class Vision extends VirtualSubsystem {
         }
       }
 
-      // Record coral observations
-      for (int frameIndex = 0;
-          frameIndex < objDetectInputs[instanceIndex].timestamps.length;
-          frameIndex++) {
-        double[] frame = objDetectInputs[instanceIndex].frames[frameIndex];
-        for (int i = 0; i < frame.length; i += 10) {
-          if (frame[i + 1] > objDetectConfidenceThreshold) {
-            double[] tx = new double[4];
-            double[] ty = new double[4];
-            for (int z = 0; z < 4; z++) {
-              tx[z] = frame[i + 2 + (2 * z)];
-              ty[z] = frame[i + 2 + (2 * z) + 1];
+      // Record object detection observations
+      switch (instanceIndex) {
+        case 2:
+          // Record coral observations
+          for (int frameIndex = 0;
+              frameIndex < objDetectInputs[instanceIndex].timestamps.length;
+              frameIndex++) {
+            double[] frame = objDetectInputs[instanceIndex].frames[frameIndex];
+            for (int i = 0; i < frame.length; i += 10) {
+              if (frame[i + 1] > coralDetectConfidenceThreshold) {
+                double[] tx = new double[4];
+                double[] ty = new double[4];
+                for (int z = 0; z < 4; z++) {
+                  tx[z] = frame[i + 2 + (2 * z)];
+                  ty[z] = frame[i + 2 + (2 * z) + 1];
+                }
+                allCoralTxTyObservations.add(
+                    new CoralTxTyObservation(
+                        instanceIndex,
+                        tx,
+                        ty,
+                        objDetectInputs[instanceIndex].timestamps[frameIndex]));
+              }
             }
-            allCoralTxTyObservations.add(
-                new CoralTxTyObservation(
-                    instanceIndex, tx, ty, objDetectInputs[instanceIndex].timestamps[frameIndex]));
           }
-        }
+          break;
+
+        case 0:
+        case 1:
+          // Record algae observations
+          if (objDetectInputs[instanceIndex].timestamps.length > 0) {
+            double[] frame =
+                objDetectInputs[instanceIndex]
+                    .frames[objDetectInputs[instanceIndex].timestamps.length - 1];
+            double largestSize = 0.0;
+            Rotation2d angle = null;
+            for (int i = 0; i < frame.length; i += 10) {
+              if (frame[i + 1] > algaeDetectConfidenceThreshold) {
+                double[] tx = new double[4];
+                double[] ty = new double[4];
+                for (int z = 0; z < 4; z++) {
+                  tx[z] = frame[i + 2 + (2 * z)];
+                  ty[z] = frame[i + 2 + (2 * z) + 1];
+                }
+
+                double size = Math.abs(tx[0] - tx[1]);
+                if (size > largestSize) {
+                  largestSize = size;
+                  angle = Rotation2d.fromRadians(-(tx[0] + tx[1]) / 2.0);
+                }
+              }
+            }
+            if (angle != null) {
+              if (instanceIndex == 0) {
+                RobotState.getInstance().addLeftAlgaeObservation(angle);
+              } else {
+                RobotState.getInstance().addRightAlgaeObservation(angle);
+              }
+            }
+          }
+          break;
       }
 
       // If no frames from instances, clear robot pose

@@ -529,7 +529,7 @@ public class ObjectiveTracker extends VirtualSubsystem {
     // Remove duplicates
     fullStrategy = new ArrayList<>(fullStrategy.stream().distinct().toList());
     // Add fill priorities
-    for (int i = 4; i >= 1; i--) {
+    for (int i = 4; i >= 2; i--) {
       CoralPriority priority = CoralPriority.valueOf("_" + i);
       if (!fullStrategy.contains(priority)) {
         fullStrategy.add(priority);

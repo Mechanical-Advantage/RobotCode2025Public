@@ -181,6 +181,7 @@ public class Superstructure extends SubsystemBase {
             SuperstructureState.L3_CORAL,
             SuperstructureState.L4_CORAL,
             SuperstructureState.ALGAE_STOW_INTAKE,
+            SuperstructureState.ALGAE_GROUND_INTAKE,
             SuperstructureState.ALGAE_L2_INTAKE,
             SuperstructureState.ALGAE_L3_INTAKE,
             SuperstructureState.ALGAE_ICE_CREAM_INTAKE);
@@ -189,6 +190,7 @@ public class Superstructure extends SubsystemBase {
         Set.of(
             SuperstructureState.ALGAE_STOW,
             SuperstructureState.ALGAE_GOODBYE_CORAL,
+            SuperstructureState.ALGAE_GROUND_INTAKE,
             SuperstructureState.ALGAE_L2_CORAL,
             SuperstructureState.ALGAE_L3_CORAL,
             SuperstructureState.ALGAE_L4_CORAL,
@@ -201,6 +203,7 @@ public class Superstructure extends SubsystemBase {
     final Set<SuperstructureState> algaeIntakeStates =
         Set.of(
             SuperstructureState.ALGAE_STOW_INTAKE,
+            SuperstructureState.ALGAE_GROUND_INTAKE,
             SuperstructureState.ALGAE_L2_INTAKE,
             SuperstructureState.ALGAE_L3_INTAKE,
             SuperstructureState.ALGAE_ICE_CREAM_INTAKE);
@@ -618,18 +621,26 @@ public class Superstructure extends SubsystemBase {
           SuperstructureState.ALGAE_L4_CORAL, SuperstructureState.ALGAE_L4_CORAL_EJECT);
 
   private Command getEdgeCommand(SuperstructureState from, SuperstructureState to) {
-    if (from == SuperstructureState.ALGAE_STOW && to == SuperstructureState.PRE_PROCESS) {
+    if (from == SuperstructureState.ALGAE_STOW
+        && (to == SuperstructureState.PRE_PROCESS
+            || to == SuperstructureState.ALGAE_GROUND_INTAKE)) {
       return runElevator(to.getValue().getPose().elevatorHeight())
           .andThen(
               Commands.waitUntil(elevator::isAtGoal),
               runSuperstructurePose(to.getValue().getPose()),
               Commands.waitUntil(this::mechanismsAtGoal));
-    } else if (from == SuperstructureState.PRE_PROCESS && to == SuperstructureState.ALGAE_STOW) {
+    } else if ((from == SuperstructureState.PRE_PROCESS
+            || from == SuperstructureState.ALGAE_GROUND_INTAKE)
+        && to == SuperstructureState.ALGAE_STOW) {
       return runDispenserPivot(to.getValue().getPose().pivotAngle())
           .andThen(
               Commands.waitUntil(dispenser::isAtGoal),
               runSuperstructurePose(to.getValue().getPose()),
-              Commands.waitUntil(this::mechanismsAtGoal));
+              Commands.waitUntil(this::mechanismsAtGoal))
+          .deadlineFor(
+              Commands.startEnd(
+                  () -> dispenser.forceSlowConstraints(true),
+                  () -> dispenser.forceSlowConstraints(false)));
     }
 
     if ((algaeScoreStates.containsKey(to) && algaeScoreStates.get(to) != from)

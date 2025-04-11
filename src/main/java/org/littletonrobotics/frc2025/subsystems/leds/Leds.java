@@ -50,6 +50,7 @@ public class Leds extends VirtualSubsystem {
   public boolean ready = false;
   public boolean superClimbed = false;
   public boolean coralGrabbed = false;
+  public boolean algaeGrabbed = false;
   public Optional<ReefLevel> firstPriorityLevel = Optional.empty();
   public Optional<ReefLevel> secondPriorityLevel = Optional.empty();
   public ReefLevel autoScoringLevel = ReefLevel.L4;
@@ -261,7 +262,7 @@ public class Leds extends VirtualSubsystem {
       }
 
       // Coral grab alert
-      if (coralGrabbed) {
+      if (coralGrabbed || algaeGrabbed) {
         solid(straightSection, Color.kLime);
       }
 

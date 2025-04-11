@@ -470,7 +470,6 @@ public class RobotContainer {
                     driverY,
                     driverOmega,
                     joystickDriveCommandFactory.get(),
-                    Commands.none(),
                     () -> false,
                     disableReefAutoAlign)
                 .deadlineFor(
@@ -480,14 +479,19 @@ public class RobotContainer {
                 .onlyIf(() -> objectiveTracker.getAlgaeObjective().isPresent())
                 .withName("Algae Reef Intake"));
 
-    // Algae ice cream intake
+    // Algae ground intake
     driver
         .x()
         .toggleOnTrue(
-            superstructure
-                .runGoal(SuperstructureState.ALGAE_ICE_CREAM_INTAKE)
-                .until(superstructure::hasAlgae)
-                .withName("Algae Ice Cream Intake"));
+            IntakeCommands.algaeIntakeWithAiming(
+                    drive,
+                    superstructure,
+                    driverX,
+                    driverY,
+                    driverOmega,
+                    robotRelative,
+                    () -> false)
+                .withName("Algae Ground Intake"));
 
     // Algae pre-processor
     driver
@@ -776,6 +780,14 @@ public class RobotContainer {
                 .beforeStarting(() -> leds.endgameAlert = true)
                 .finallyDo(() -> leds.endgameAlert = false)
                 .withName("Controller Endgame Alert 2")); // Rumble three times
+
+    // Algae alert
+    new Trigger(superstructure::hasAlgae)
+        .onTrue(
+            controllerRumbleCommand()
+                .withTimeout(.25)
+                .beforeStarting(() -> leds.algaeGrabbed = true)
+                .finallyDo(() -> leds.algaeGrabbed = false));
   }
 
   // Creates controller rumble command

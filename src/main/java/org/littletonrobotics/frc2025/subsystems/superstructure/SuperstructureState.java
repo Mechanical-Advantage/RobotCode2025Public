@@ -65,6 +65,11 @@ public enum SuperstructureState {
       CORAL_INTAKE.getValue().toBuilder().gripperGoal(Dispenser.GripperGoal.GRIP).build()),
   ALGAE_GOODBYE_CORAL(
       GOODBYE_CORAL.getValue().toBuilder().gripperGoal(Dispenser.GripperGoal.GRIP).build()),
+  ALGAE_GROUND_INTAKE(
+      SuperstructureStateData.builder()
+          .pose(Preset.ALGAE_GROUND_INTAKE.getPose())
+          .gripperGoal(Dispenser.GripperGoal.GRIP)
+          .build()),
   ALGAE_L2_CORAL(
       SuperstructureStateData.builder()
           .pose(Preset.ALGAE_L2.getPose())

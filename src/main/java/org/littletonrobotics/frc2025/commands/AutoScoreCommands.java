@@ -381,7 +381,6 @@ public class AutoScoreCommands {
       DoubleSupplier driverY,
       DoubleSupplier driverOmega,
       Command joystickDrive,
-      Command controllerRumble,
       BooleanSupplier robotRelative,
       BooleanSupplier disableReefAutoAlign) {
     Supplier<Pose2d> robot =
@@ -550,8 +549,8 @@ public class AutoScoreCommands {
               complete.value = false;
               hasEnded.value = true;
             })
-        .deadlineFor(Commands.run(() -> Logger.recordOutput("ReefIntake/Complete", complete.value)))
-        .andThen(new ScheduleCommand(controllerRumble.withTimeout(controllerRumbleSecs)));
+        .deadlineFor(
+            Commands.run(() -> Logger.recordOutput("ReefIntake/Complete", complete.value)));
   }
 
   public static Command reefIntake(
@@ -562,7 +561,6 @@ public class AutoScoreCommands {
       DoubleSupplier driverY,
       DoubleSupplier driverOmega,
       Command joystickDrive,
-      Command controllerRumble,
       BooleanSupplier robotRelative,
       BooleanSupplier disableReefAutoAlign) {
     return reefIntake(
@@ -574,7 +572,6 @@ public class AutoScoreCommands {
         driverY,
         driverOmega,
         joystickDrive,
-        controllerRumble,
         robotRelative,
         disableReefAutoAlign);
   }
@@ -604,7 +601,6 @@ public class AutoScoreCommands {
             driverY,
             driverOmega,
             joystickDriveCommandFactory.get(),
-            controllerRumbleCommandFactory.get(),
             robotRelative,
             disableReefAutoAlign)
         .andThen(
