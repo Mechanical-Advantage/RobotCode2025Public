@@ -83,7 +83,7 @@ public class RobotContainer {
   private final Trigger forceSimpleCoralStrategy = overrides.operatorSwitch(4);
 
   private final Trigger aprilTagsReef = overrides.multiDirectionSwitchLeft();
-  private final Trigger aprilTagFieldBorder = overrides.multiDirectionSwitchRight();
+  private final Trigger aprilTagNone = overrides.multiDirectionSwitchRight();
   private final Alert aprilTagLayoutAlert = new Alert("", AlertType.kInfo);
   private final Alert driverDisconnected =
       new Alert("Driver controller disconnected (port 0).", AlertType.kWarning);
@@ -831,8 +831,8 @@ public class RobotContainer {
       } else {
         return FieldConstants.AprilTagLayoutType.RED_REEF;
       }
-    } else if (aprilTagFieldBorder.getAsBoolean()) {
-      return FieldConstants.AprilTagLayoutType.FIELD_BORDER;
+    } else if (aprilTagNone.getAsBoolean()) {
+      return FieldConstants.AprilTagLayoutType.NONE;
     } else {
       return FieldConstants.defaultAprilTagType;
     }

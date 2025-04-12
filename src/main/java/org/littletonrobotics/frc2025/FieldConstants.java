@@ -197,7 +197,7 @@ public class FieldConstants {
     NO_BARGE("2025-no-barge"),
     BLUE_REEF("2025-blue-reef"),
     RED_REEF("2025-red-reef"),
-    FIELD_BORDER("2025-field-border");
+    NONE("2025-none");
 
     AprilTagLayoutType(String name) {
       if (Constants.disableHAL) {
