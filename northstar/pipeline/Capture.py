@@ -187,9 +187,11 @@ class PylonCapture(Capture):
                 self._camera.GetNodeMap().GetNode("ExposureTime").SetValue(config_store.remote_config.camera_exposure)
                 self._camera.GetNodeMap().GetNode("GainAuto").SetValue("Off")
                 self._camera.GetNodeMap().GetNode("Gain").SetValue(config_store.remote_config.camera_gain)
-                self._camera.GetNodeMap().GetNode("BslNoiseReduction").SetValue(
-                    config_store.remote_config.camera_denoise
-                )
+
+                if self._mode != "color":
+                    self._camera.GetNodeMap().GetNode("BslNoiseReduction").SetValue(
+                        config_store.remote_config.camera_denoise
+                    )
 
                 if self._mode == "color":
                     self._converter = pylon.ImageFormatConverter()

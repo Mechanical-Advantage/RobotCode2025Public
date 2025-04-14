@@ -283,11 +283,13 @@ public class ObjectiveTracker extends VirtualSubsystem {
                               new Pose3d(
                                   level == 2
                                       ? new Translation3d(
-                                          -Units.inchesToMeters(7.2), 0, Units.inchesToMeters(1.3))
+                                          -Units.inchesToMeters(6.5), 0, Units.inchesToMeters(0.9))
                                       : new Translation3d(
-                                          -Units.inchesToMeters(11.875) / 2.5, 0.0, 0.0),
+                                          Units.inchesToMeters(-4.5),
+                                          0.0,
+                                          Units.inchesToMeters(-1.2)),
                                   level == 2
-                                      ? new Rotation3d(0, Units.degreesToRadians(25), 0)
+                                      ? new Rotation3d(0, Units.degreesToRadians(20), 0)
                                       : Rotation3d.kZero)))));
         }
       }
@@ -314,9 +316,8 @@ public class ObjectiveTracker extends VirtualSubsystem {
                         new Translation3d(
                             0.0,
                             0.0,
-                            (i % 2 == 0)
-                                ? secondBranchPose.getZ() - firstBranchPose.getZ()
-                                : 0.0))));
+                            ((i % 2 == 0) ? secondBranchPose.getZ() - firstBranchPose.getZ() : 0.0)
+                                + Units.inchesToMeters(-0.7)))));
       }
       Logger.recordOutput(
           "ObjectiveTracker/3DView/Algae", algaePoses.toArray(Translation3d[]::new));

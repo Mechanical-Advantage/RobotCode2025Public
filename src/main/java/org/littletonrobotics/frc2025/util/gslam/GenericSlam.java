@@ -16,25 +16,24 @@ import org.littletonrobotics.frc2025.Robot;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
-public abstract class GenericSlamElevator<G extends GenericSlamElevator.SlamElevatorGoal> {
+public abstract class GenericSlam<G extends GenericSlam.SlamGoal> {
 
-  public interface SlamElevatorGoal {
+  public interface SlamGoal {
     DoubleSupplier getSlammingCurrent();
 
     boolean isStopAtGoal();
 
-    SlamElevatorState getState();
+    SlamState getState();
   }
 
-  public enum SlamElevatorState {
+  public enum SlamState {
     IDLING,
     RETRACTING,
     EXTENDING
   }
 
-  private final GenericSlamElevatorIO io;
-  protected final GenericSlamElevatorIOInputsAutoLogged inputs =
-      new GenericSlamElevatorIOInputsAutoLogged();
+  private final GenericSlamIO io;
+  protected final GenericSlamIOInputsAutoLogged inputs = new GenericSlamIOInputsAutoLogged();
 
   private final String name;
   private final double staticTimeSecs;
@@ -62,8 +61,8 @@ public abstract class GenericSlamElevator<G extends GenericSlamElevator.SlamElev
    * @param minVelocityThresh Minimum velocity threshold for elevator to start stopping at in
    *     rads/sec of the last sprocket.
    */
-  public GenericSlamElevator(
-      String name, GenericSlamElevatorIO io, double staticTimeSecs, double minVelocityThresh) {
+  public GenericSlam(
+      String name, GenericSlamIO io, double staticTimeSecs, double minVelocityThresh) {
     this.name = name;
     this.io = io;
     this.staticTimeSecs = staticTimeSecs;
@@ -123,12 +122,12 @@ public abstract class GenericSlamElevator<G extends GenericSlamElevator.SlamElev
 
     // Run to goal.
     if (!slammed) {
-      io.runCurrent(getGoal().getSlammingCurrent().getAsDouble());
+      io.runTorqueCurrent(getGoal().getSlammingCurrent().getAsDouble());
     } else {
       if (getGoal().isStopAtGoal()) {
         io.stop();
       } else {
-        io.runCurrent(getGoal().getSlammingCurrent().getAsDouble());
+        io.runTorqueCurrent(getGoal().getSlammingCurrent().getAsDouble());
       }
     }
 
@@ -147,22 +146,22 @@ public abstract class GenericSlamElevator<G extends GenericSlamElevator.SlamElev
     // Update coast mode
     setBrakeMode(!coastModeSupplier.getAsBoolean());
 
-    Logger.recordOutput("Chariot/Goal", getGoal().toString());
-    Logger.recordOutput("Chariot/BrakeModeEnabled", brakeModeEnabled);
+    Logger.recordOutput(name + "/Goal", getGoal().toString());
+    Logger.recordOutput(name + "/BrakeModeEnabled", brakeModeEnabled);
   }
 
-  @AutoLogOutput(key = "Chariot/Slammed")
+  @AutoLogOutput(key = "{name}/Slammed")
   public boolean slammed() {
     return slammed;
   }
 
-  @AutoLogOutput(key = "Chariot/Extended")
+  @AutoLogOutput(key = "{name}/Extended")
   public boolean extended() {
-    return getGoal().getState() == SlamElevatorState.EXTENDING && slammed;
+    return getGoal().getState() == SlamState.EXTENDING && slammed;
   }
 
-  @AutoLogOutput(key = "Chariot/Retracted")
+  @AutoLogOutput(key = "{name}/Retracted")
   public boolean retracted() {
-    return getGoal().getState() == SlamElevatorState.RETRACTING && slammed;
+    return getGoal().getState() == SlamState.RETRACTING && slammed;
   }
 }

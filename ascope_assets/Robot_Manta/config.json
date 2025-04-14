@@ -62,23 +62,23 @@
       "rotations": [
         {
           "axis": "y",
-          "degrees": -40
+          "degrees": 25.0
         },
         {
           "axis": "z",
-          "degrees": -193.394
+          "degrees": 170
         }
       ],
       "position": [
         0.0762,
-        0.254,
+        -0.254,
         0.635
       ],
       "resolution": [
-        1600,
-        1200
+        1280,
+        960
       ],
-      "fov": 66.62
+      "fov": 59.42
     }
   ],
   "components": [

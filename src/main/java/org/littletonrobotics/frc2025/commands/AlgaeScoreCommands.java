@@ -7,9 +7,9 @@
 
 package org.littletonrobotics.frc2025.commands;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import java.util.function.BooleanSupplier;
@@ -38,16 +38,16 @@ public class AlgaeScoreCommands {
       new LoggedTunableNumber("AlgaeScoreCommands/ProcessLineupClear", 0.3);
   private static final LoggedTunableNumber processEjectDegOffset =
       new LoggedTunableNumber("AlgaeScoreCommands/ProcessEjectDegreeOffset", 15.0);
-  private static final LoggedTunableNumber throwLineupDistance =
-      new LoggedTunableNumber("AlgaeScoreCommands/ThrowLineupDistance", 1.5);
-  private static final LoggedTunableNumber throwDriveDistance =
-      new LoggedTunableNumber("AlgaeScoreCommands/ThrowDriveDistance", 0.6);
-  private static final LoggedTunableNumber throwDriveVelocity =
-      new LoggedTunableNumber("AlgaeScoreCommands/ThrowDriveVelocity", 1.5);
+  private static final LoggedTunableNumber throwRaiseThetaToleranceDeg =
+      new LoggedTunableNumber("AlgaeScoreCommands/ThrowRaiseThetaToleranceDeg", 20.0);
+  private static final LoggedTunableNumber throwDriveStart =
+      new LoggedTunableNumber("AlgaeScoreCommands/ThrowDriveStart", 2.0);
+  private static final LoggedTunableNumber throwDriveEnd =
+      new LoggedTunableNumber("AlgaeScoreCommands/ThrowDriveEnd", 1.0);
   private static final LoggedTunableNumber throwReadyLinearTolerance =
-      new LoggedTunableNumber("AlgaeScoreCommands/ThrowReadyLinearTolerance", 4.0);
+      new LoggedTunableNumber("AlgaeScoreCommands/ThrowReadyLinearTolerance", 0.5);
   private static final LoggedTunableNumber throwReadyThetaToleranceDeg =
-      new LoggedTunableNumber("AlgaeScoreCommands/ThrowReadyThetaToleranceDegrees", 40.0);
+      new LoggedTunableNumber("AlgaeScoreCommands/ThrowReadyThetaToleranceDegrees", 15.0);
   private static final LoggedTunableNumber forceProcessorMaxDistance =
       new LoggedTunableNumber("AlgaeScoreCommands/ForceProcessorMaxDistance", 0.5);
 
@@ -129,22 +129,31 @@ public class AlgaeScoreCommands {
         .finallyDo(() -> shouldForceProcess = false);
   }
 
-  public static Command netThrowLineup(
+  public static Command netScore(
       Drive drive,
       Superstructure superstructure,
       DoubleSupplier driverX,
       DoubleSupplier driverY,
       Command joystickDrive,
+      BooleanSupplier eject,
+      Command controllerRumbleCommand,
       BooleanSupplier disableAlgaeScoreAutoAlign) {
     var autoAlignCommand =
         new DriveToPose(
             drive,
             () ->
-                new Pose2d(
-                    AllianceFlipUtil.applyX(
-                        FieldConstants.fieldLength / 2.0 - throwLineupDistance.get()),
-                    RobotState.getInstance().getEstimatedPose().getY(),
-                    AllianceFlipUtil.apply(Rotation2d.kZero)),
+                AllianceFlipUtil.apply(
+                    new Pose2d(
+                        MathUtil.interpolate(
+                            FieldConstants.fieldLength / 2.0 - throwDriveStart.get(),
+                            FieldConstants.fieldLength / 2.0 - throwDriveEnd.get(),
+                            RobotState.getInstance().getElevatorExtensionPercent()),
+                        MathUtil.clamp(
+                            AllianceFlipUtil.applyY(
+                                RobotState.getInstance().getEstimatedPose().getY()),
+                            FieldConstants.fieldWidth / 2 + DriveConstants.robotWidth,
+                            FieldConstants.fieldWidth - DriveConstants.robotWidth),
+                        Rotation2d.kZero)),
             RobotState.getInstance()::getEstimatedPose,
             () ->
                 DriveCommands.getLinearVelocityFromJoysticks(
@@ -152,41 +161,38 @@ public class AlgaeScoreCommands {
                     .times(AllianceFlipUtil.shouldFlip() ? -1.0 : 1.0),
             () -> 0);
 
-    return Commands.either(joystickDrive, autoAlignCommand, disableAlgaeScoreAutoAlign)
-        .alongWith(
-            Commands.waitUntil(
-                    () ->
-                        disableAlgaeScoreAutoAlign.getAsBoolean()
-                            || (autoAlignCommand.isRunning()
-                                && autoAlignCommand.withinTolerance(
-                                    throwReadyLinearTolerance.get(),
-                                    Rotation2d.fromDegrees(throwReadyThetaToleranceDeg.get()))))
-                .andThen(superstructure.runGoal(SuperstructureState.PRE_THROW)));
-  }
-
-  public static Command netThrowScore(Drive drive, Superstructure superstructure) {
-    Container<Pose2d> startPose = new Container<>();
-    Timer driveTimer = new Timer();
-    return Commands.runOnce(
-            () -> {
-              startPose.value = RobotState.getInstance().getEstimatedPose();
-              driveTimer.restart();
-            })
-        .andThen(
-            new DriveToPose(
-                    drive,
-                    () ->
-                        startPose.value.transformBy(
-                            GeomUtil.toTransform2d(
-                                Math.min(
-                                    driveTimer.get() * throwDriveVelocity.get(),
-                                    throwDriveDistance.get()),
-                                0)))
+    return Commands.parallel(
+            Commands.either(joystickDrive, autoAlignCommand, disableAlgaeScoreAutoAlign)
                 .alongWith(
+                    Commands.waitUntil(
+                        () ->
+                            autoAlignCommand.withinTolerance(
+                                Double.POSITIVE_INFINITY,
+                                Rotation2d.fromDegrees(throwRaiseThetaToleranceDeg.get()))),
                     superstructure.runGoal(
                         () ->
-                            driveTimer.get() * throwDriveVelocity.get() > throwDriveDistance.get()
+                            eject.getAsBoolean()
                                 ? SuperstructureState.THROW
-                                : SuperstructureState.PRE_THROW)));
+                                : SuperstructureState.PRE_THROW)),
+            Commands.waitUntil(
+                    () -> {
+                      Leds.getInstance().ready = false;
+                      return autoAlignCommand.isRunning()
+                          && autoAlignCommand.withinTolerance(
+                              throwReadyLinearTolerance.get(),
+                              Rotation2d.fromDegrees(throwReadyThetaToleranceDeg.get()))
+                          && superstructure.getState() == SuperstructureState.PRE_THROW;
+                    })
+                .andThen(
+                    Commands.runOnce(() -> Leds.getInstance().ready = true),
+                    controllerRumbleCommand
+                        .withTimeout(0.1)
+                        .andThen(Commands.waitSeconds(0.1).repeatedly())))
+        .beforeStarting(() -> Leds.getInstance().autoScoring = true)
+        .finallyDo(
+            () -> {
+              Leds.getInstance().ready = false;
+              Leds.getInstance().autoScoring = false;
+            });
   }
 }

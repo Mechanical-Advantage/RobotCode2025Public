@@ -25,16 +25,19 @@ import lombok.RequiredArgsConstructor;
 import org.littletonrobotics.frc2025.Constants;
 import org.littletonrobotics.frc2025.FieldConstants.ReefLevel;
 import org.littletonrobotics.frc2025.RobotState;
+import org.littletonrobotics.frc2025.subsystems.superstructure.dispenser.Dispenser;
 import org.littletonrobotics.frc2025.util.GeomUtil;
 import org.littletonrobotics.frc2025.util.LoggedTunableNumber;
 
 public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotation2d> pivotAngle) {
   private static final LoggedTunableNumber intakeHeightBaseline =
-      new LoggedTunableNumber("Superstructure/Intake/ElevatorBaseline", 0.0);
+      new LoggedTunableNumber("Superstructure/Intake/ElevatorBaseline", 0.025);
   private static final LoggedTunableNumber intakeHeightRange =
       new LoggedTunableNumber("Superstructure/Intake/ElevatorRange", 0.0);
   private static final LoggedTunableNumber intakeHeightTimeFactor =
       new LoggedTunableNumber("Superstructure/Intake/ElevatorTimeFactor", 25.0);
+  private static final LoggedTunableNumber intakePivot =
+      new LoggedTunableNumber("Superstructure/Intake/IntakePivot", 12.0);
   private static final LoggedTunableNumber l1Height =
       new LoggedTunableNumber("Superstructure/L1/Elevator", 0.48);
   private static final LoggedTunableNumber l1Pivot =
@@ -78,8 +81,8 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
 
   static {
     // Coral eject distance
-    addInitialValue(ejectDistance, ReefLevel.L2, 0.22, 0.24, "EjectDistance");
-    addInitialValue(ejectDistance, ReefLevel.L3, 0.22, 0.24, "EjectDistance");
+    addInitialValue(ejectDistance, ReefLevel.L2, 0.15, 0.24, "EjectDistance");
+    addInitialValue(ejectDistance, ReefLevel.L3, 0.15, 0.24, "EjectDistance");
     addInitialValue(ejectDistance, ReefLevel.L4, 0.12, 0.12, "EjectDistance");
     // Coral eject angles
     addInitialValue(ejectAngles, ReefLevel.L2, -20.0, 0.0, "EjectAngles");
@@ -184,15 +187,14 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
   @RequiredArgsConstructor
   @Getter
   enum Preset {
-    STOW(intakeHeightBaseline, () -> -18.0),
+    STOW("Stow", 0.025, 12.0),
+    REVERSE_INDEX("ReverseIndex", 0.02, 12.0),
     CORAL_INTAKE(
         () ->
             intakeHeightBaseline.get()
                 + intakeHeightRange.get()
                     * Math.sin(Timer.getTimestamp() * intakeHeightTimeFactor.get()),
-        new LoggedTunableNumber("Superstructure/Intake/IntakePivot", -18.0)),
-    GOODBYE_CORAL(
-        intakeHeightBaseline, new LoggedTunableNumber("Superstructure/Intake/EjectPivot", 0.0)),
+        intakePivot),
     L1(l1Height, l1Pivot),
     L1_EJECT(() -> l1Height.get() + l1LaunchAdjustment.get(), l1Pivot),
     L2(CoralDispenserPose.L2),
@@ -201,16 +203,14 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
     ALGAE_L2(CoralDispenserPose.ALGAE_L2),
     ALGAE_L3(CoralDispenserPose.ALGAE_L3),
     ALGAE_L4(CoralDispenserPose.ALGAE_L4),
-    ALGAE_GROUND_INTAKE("AlgaeGroundIntake", 0.08, -10.0),
+    ALGAE_GROUND_INTAKE("AlgaeGroundIntake", 0.08, Dispenser.minAngle.getDegrees()),
     ALGAE_L2_INTAKE(
         () -> l2ReefIntakeHeight.get() + getReefIntakeAdjustment(),
         new LoggedTunableNumber("Superstructure/AlgaeIntake/L2/Pivot", -55.0)),
     ALGAE_L3_INTAKE(
         () -> l3ReefIntakeHeight.get() + getReefIntakeAdjustment(),
         new LoggedTunableNumber("Superstructure/AlgaeIntake/L3/Pivot", -55.0)),
-    ALGAE_ICE_CREAM_INTAKE("AlgaeIceCreamIntake", 0.15, -45.0),
     THROW("Throw", elevatorMaxTravel, 0.0),
-    ALGAE_STOW("AlgaeStow", intakeHeightBaseline.get(), -15.0),
     PROCESS("Processed", 0.21, -70.0);
 
     private final SuperstructurePose pose;

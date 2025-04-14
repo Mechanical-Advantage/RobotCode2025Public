@@ -30,7 +30,6 @@ import org.littletonrobotics.frc2025.RobotState.ReefPoseEstimate;
 import org.littletonrobotics.frc2025.subsystems.drive.Drive;
 import org.littletonrobotics.frc2025.subsystems.drive.DriveConstants;
 import org.littletonrobotics.frc2025.subsystems.leds.Leds;
-import org.littletonrobotics.frc2025.subsystems.rollers.RollerSystem;
 import org.littletonrobotics.frc2025.subsystems.superstructure.Superstructure;
 import org.littletonrobotics.frc2025.subsystems.superstructure.SuperstructureConstants;
 import org.littletonrobotics.frc2025.subsystems.superstructure.SuperstructurePose.CoralDispenserPose;
@@ -48,7 +47,7 @@ public class AutoScoreCommands {
   private static final LoggedTunableNumber maxDistanceReefLineupY =
       new LoggedTunableNumber("AutoScore/MaxDistanceReefLineupY", 1.2);
   public static final LoggedTunableNumber minDistanceReefClearL4 =
-      new LoggedTunableNumber("AutoScore/MinDistanceReefClear", Units.inchesToMeters(4.0));
+      new LoggedTunableNumber("AutoScore/MinDistanceReefClear", Units.inchesToMeters(6.0));
   public static final LoggedTunableNumber minDistanceReefClearAlgaeL4 =
       new LoggedTunableNumber("AutoScore/MinDistanceReefClearAlgae", 0.45);
   public static final LoggedTunableNumber minAngleReefClear =
@@ -64,29 +63,29 @@ public class AutoScoreCommands {
   private static final LoggedTunableNumber arcDistanceReady =
       new LoggedTunableNumber("AutoScore/ArcDistanceReady", 0.7);
   private static final LoggedTunableNumber arcDistanceReadyAuto =
-      new LoggedTunableNumber("AutoScore/ArcDistanceReadyAuto", 1.5);
+      new LoggedTunableNumber("AutoScore/ArcDistanceReadyAuto", 0.7);
   private static final LoggedTunableNumber[] lowerXToleranceEject = {
     new LoggedTunableNumber("AutoScore/XToleranceEject/Lower/L1", 0.03),
     new LoggedTunableNumber("AutoScore/XToleranceEject/Lower/L2", 0.05),
     new LoggedTunableNumber("AutoScore/XToleranceEject/Lower/L3", 0.05),
-    new LoggedTunableNumber("AutoScore/XToleranceEject/Lower/L4", 0.05)
+    new LoggedTunableNumber("AutoScore/XToleranceEject/Lower/L4", 0.04)
   };
   private static final LoggedTunableNumber[] upperXToleranceEject = {
     new LoggedTunableNumber("AutoScore/XToleranceEject/Upper/L1", 0.03),
-    new LoggedTunableNumber("AutoScore/XToleranceEject/Upper/L2", 0.1),
-    new LoggedTunableNumber("AutoScore/XToleranceEject/Upper/L3", 0.1),
-    new LoggedTunableNumber("AutoScore/XToleranceEject/Upper/L4", 0.1)
+    new LoggedTunableNumber("AutoScore/XToleranceEject/Upper/L2", 0.08),
+    new LoggedTunableNumber("AutoScore/XToleranceEject/Upper/L3", 0.08),
+    new LoggedTunableNumber("AutoScore/XToleranceEject/Upper/L4", 0.04)
   };
   private static final LoggedTunableNumber[] yToleranceEject = {
-    new LoggedTunableNumber("AutoScore/YToleranceEject/L1", 0.05),
-    new LoggedTunableNumber("AutoScore/YToleranceEject/L2", 0.05),
-    new LoggedTunableNumber("AutoScore/YToleranceEject/L3", 0.05),
-    new LoggedTunableNumber("AutoScore/YToleranceEject/L4", 0.05)
+    new LoggedTunableNumber("AutoScore/YToleranceEject/L1", 0.04),
+    new LoggedTunableNumber("AutoScore/YToleranceEject/L2", 0.04),
+    new LoggedTunableNumber("AutoScore/YToleranceEject/L3", 0.04),
+    new LoggedTunableNumber("AutoScore/YToleranceEject/L4", 0.04)
   };
   private static final LoggedTunableNumber[] lookaheadEject = {
     new LoggedTunableNumber("AutoScore/LookaheadToleranceEject/L1", 0.5),
-    new LoggedTunableNumber("AutoScore/LookaheadToleranceEject/L2", 0.5),
-    new LoggedTunableNumber("AutoScore/LookaheadToleranceEject/L3", 0.5),
+    new LoggedTunableNumber("AutoScore/LookaheadToleranceEject/L2", 0.3),
+    new LoggedTunableNumber("AutoScore/LookaheadToleranceEject/L3", 0.3),
     new LoggedTunableNumber("AutoScore/LookaheadToleranceEject/L4", 0.3)
   };
   private static final LoggedTunableNumber l1ThetaEject =
@@ -94,7 +93,7 @@ public class AutoScoreCommands {
   private static final LoggedTunableNumber minBlendTransform =
       new LoggedTunableNumber("AutoScore/MinBlendTransform", 0.8);
   private static final LoggedTunableNumber singleTagTransform =
-      new LoggedTunableNumber("AutoScore/SingleTagTransform", 0.3);
+      new LoggedTunableNumber("AutoScore/SingleTagTransform", 0.15);
   private static final LoggedTunableNumber l4EjectDelay =
       new LoggedTunableNumber("AutoScore/L4EjectDelay", 0.05);
   private static final LoggedTunableNumber l4EjectDelayAuto =
@@ -115,15 +114,15 @@ public class AutoScoreCommands {
       new LoggedTunableNumber("AutoScore/MinDistanceAim", 0.2);
   private static final LoggedTunableNumber[] ejectTimeSeconds = {
     new LoggedTunableNumber("AutoScore/EjectTimeSeconds/L1", 0.5),
-    new LoggedTunableNumber("AutoScore/EjectTimeSeconds/L2", 0.5),
-    new LoggedTunableNumber("AutoScore/EjectTimeSeconds/L3", 0.5),
+    new LoggedTunableNumber("AutoScore/EjectTimeSeconds/L2", 0.3),
+    new LoggedTunableNumber("AutoScore/EjectTimeSeconds/L3", 0.3),
     new LoggedTunableNumber("AutoScore/EjectTimeSeconds/L4", 0.3)
   };
   private static final LoggedTunableNumber[] branchFudgeX = {
     new LoggedTunableNumber("AutoScore/FudgeX/L1", 0.0),
     new LoggedTunableNumber("AutoScore/FudgeX/L2", 0.0),
     new LoggedTunableNumber("AutoScore/FudgeX/L3", 0.0),
-    new LoggedTunableNumber("AutoScore/FudgeX/L4", 0.0)
+    new LoggedTunableNumber("AutoScore/FudgeX/L4", 0.02)
   };
   private static final boolean enableAimingInAuto = true;
 
@@ -132,7 +131,6 @@ public class AutoScoreCommands {
   public static Command autoScore(
       Drive drive,
       Superstructure superstructure,
-      RollerSystem funnel,
       Supplier<ReefLevel> reefLevel,
       Supplier<Optional<CoralObjective>> coralObjective,
       DoubleSupplier driverX,
@@ -161,22 +159,25 @@ public class AutoScoreCommands {
           var reefPoseEstimate = robot.get();
           final double clearDistance =
               hasAlgae ? minDistanceReefClearAlgaeL4.get() : minDistanceReefClearL4.get();
-          if (reefPoseEstimate.blend() <= minBlendTransform.get()
-              && Constants.getRobot() != Constants.RobotType.SIMBOT) {
-            goalPose = goalPose.transformBy(GeomUtil.toTransform2d(-singleTagTransform.get(), 0.0));
-          } else if ((!superstructure.readyForL4() && reefLevel.get() == ReefLevel.L4)
+          double translateX = 0.0;
+          if ((!superstructure.readyForL4() && reefLevel.get() == ReefLevel.L4)
               || (superstructure.readyForL4()
                   && withinDistanceToReef(reefPoseEstimate.pose(), clearDistance - 0.05)
                   && reefLevel.get() != ReefLevel.L4)) {
-            goalPose =
-                goalPose.transformBy(
-                    GeomUtil.toTransform2d(
-                        goalPose.getTranslation().getDistance(Reef.center)
-                            - reefRadius
-                            - (DriveConstants.robotWidth / 2.0)
-                            - clearDistance,
-                        0.0));
+            translateX =
+                Math.min(
+                    translateX,
+                    goalPose.getTranslation().getDistance(Reef.center)
+                        - reefRadius
+                        - (DriveConstants.robotWidth / 2.0)
+                        - clearDistance);
           }
+          if (reefPoseEstimate.blend() <= minBlendTransform.get()
+              && Constants.getRobot() != Constants.RobotType.SIMBOT
+              && DriverStation.isTeleop()) {
+            translateX = Math.min(translateX, -singleTagTransform.get());
+          }
+          goalPose = goalPose.transformBy(GeomUtil.toTransform2d(translateX, 0.0));
           Logger.recordOutput("AutoScore/Goal", AllianceFlipUtil.apply(goalPose));
           if (DriverStation.isAutonomousEnabled() && !enableAimingInAuto) {
             return AllianceFlipUtil.apply(goalPose);
@@ -243,12 +244,7 @@ public class AutoScoreCommands {
             })
         .andThen(
             // Run superstructure
-            preIntake(
-                superstructure,
-                funnel,
-                () -> robot.get().pose(),
-                () -> reefLevel.get() == ReefLevel.L4,
-                disableReefAutoAlign),
+            Commands.waitUntil(superstructure::hasCoral),
             // Check if need wait until pre ready or already ready
             Commands.waitUntil(
                 () -> {
@@ -292,7 +288,8 @@ public class AutoScoreCommands {
 
                       boolean ready =
                           (EqualsUtil.epsilonEquals(reefPose.blend(), 1.0)
-                                      || Constants.getRobot() == Constants.RobotType.SIMBOT)
+                                      || Constants.getRobot() == Constants.RobotType.SIMBOT
+                                      || DriverStation.isAutonomous())
                                   && checkEjectTolerances(
                                       flippedRobot,
                                       objective,
@@ -353,13 +350,11 @@ public class AutoScoreCommands {
   public static Command autoScore(
       Drive drive,
       Superstructure superstructure,
-      RollerSystem funnel,
       Supplier<ReefLevel> reefLevel,
       Supplier<Optional<CoralObjective>> coralObjective) {
     return autoScore(
         drive,
         superstructure,
-        funnel,
         reefLevel,
         coralObjective,
         () -> 0,
@@ -375,14 +370,14 @@ public class AutoScoreCommands {
   public static Command reefIntake(
       Drive drive,
       Superstructure superstructure,
-      Optional<RollerSystem> funnel,
       Supplier<Optional<AlgaeObjective>> algaeObjective,
       DoubleSupplier driverX,
       DoubleSupplier driverY,
       DoubleSupplier driverOmega,
       Command joystickDrive,
       BooleanSupplier robotRelative,
-      BooleanSupplier disableReefAutoAlign) {
+      BooleanSupplier disableReefAutoAlign,
+      boolean isSuper) {
     Supplier<Pose2d> robot =
         () ->
             algaeObjective
@@ -498,14 +493,7 @@ public class AutoScoreCommands {
                         () -> DriveCommands.getOmegaFromJoysticks(driverOmega.getAsDouble())),
                     disableReefAutoAlign)
                 .alongWith(
-                    (funnel.isEmpty()
-                            ? Commands.none()
-                            : preIntake(
-                                superstructure,
-                                funnel.get(),
-                                robot,
-                                () -> false,
-                                disableReefAutoAlign))
+                    (!isSuper ? Commands.none() : Commands.waitUntil(superstructure::hasCoral))
                         .andThen(
                             // Check if need wait until pre ready or already ready
                             Commands.waitUntil(
@@ -566,20 +554,19 @@ public class AutoScoreCommands {
     return reefIntake(
         drive,
         superstructure,
-        Optional.empty(),
         algaeObjective,
         driverX,
         driverY,
         driverOmega,
         joystickDrive,
         robotRelative,
-        disableReefAutoAlign);
+        disableReefAutoAlign,
+        false);
   }
 
   public static Command superAutoScore(
       Drive drive,
       Superstructure superstructure,
-      RollerSystem funnel,
       Supplier<ReefLevel> reefLevel,
       Supplier<Optional<CoralObjective>> coralObjective,
       DoubleSupplier driverX,
@@ -594,7 +581,6 @@ public class AutoScoreCommands {
     return reefIntake(
             drive,
             superstructure,
-            Optional.of(funnel),
             () ->
                 coralObjective.get().map(objective -> new AlgaeObjective(objective.branchId() / 2)),
             driverX,
@@ -602,12 +588,12 @@ public class AutoScoreCommands {
             driverOmega,
             joystickDriveCommandFactory.get(),
             robotRelative,
-            disableReefAutoAlign)
+            disableReefAutoAlign,
+            true)
         .andThen(
             autoScore(
                 drive,
                 superstructure,
-                funnel,
                 reefLevel,
                 coralObjective,
                 driverX,
@@ -707,21 +693,6 @@ public class AutoScoreCommands {
       BooleanSupplier eject) {
     return superstructureAimAndEject(
         superstructure, reefLevel, coralObjective, eject, () -> false, () -> false);
-  }
-
-  private static Command preIntake(
-      Superstructure superstructure,
-      RollerSystem funnel,
-      Supplier<Pose2d> robot,
-      BooleanSupplier shouldClearReef,
-      BooleanSupplier disableReefAutoAlign) {
-    return Commands.waitUntil(
-            () ->
-                outOfDistanceToReef(robot.get(), minDistanceReefClearL4.get())
-                    || !shouldClearReef.getAsBoolean()
-                    || disableReefAutoAlign.getAsBoolean())
-        .andThen(IntakeCommands.intake(superstructure, funnel).until(superstructure::hasCoral))
-        .onlyIf(() -> !superstructure.hasCoral());
   }
 
   /** Get drive target. */
@@ -841,7 +812,9 @@ public class AutoScoreCommands {
 
   public static ReefPoseEstimate getRobotPose(CoralObjective coralObjective, boolean algae) {
     return RobotState.getInstance()
-        .getReefPose(coralObjective.branchId() / 2, getCoralScorePose(coralObjective, algae));
+        .getReefPose(
+            coralObjective.branchId() / 2,
+            AllianceFlipUtil.apply(getCoralScorePose(coralObjective, algae)));
   }
 
   private static ReefPoseEstimate getRobotPose(AlgaeObjective algaeObjective) {

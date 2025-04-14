@@ -8,23 +8,25 @@
 package org.littletonrobotics.frc2025.subsystems.rollers;
 
 import edu.wpi.first.wpilibj.Alert;
-import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import java.util.function.DoubleSupplier;
+import lombok.Setter;
 import org.littletonrobotics.frc2025.Robot;
 import org.littletonrobotics.frc2025.util.LoggedTracer;
-import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
-public class RollerSystem extends SubsystemBase {
+public class RollerSystem {
   private final String name;
+  private final String inputsName;
   private final RollerSystemIO io;
   protected final RollerSystemIOInputsAutoLogged inputs = new RollerSystemIOInputsAutoLogged();
   private final Alert disconnected;
   private final Alert tempFault;
 
-  public RollerSystem(String name, RollerSystemIO io) {
+  @Setter private double volts = 0.0;
+  private boolean brakeModeEnabled = true;
+
+  public RollerSystem(String name, String inputsName, RollerSystemIO io) {
     this.name = name;
+    this.inputsName = inputsName;
     this.io = io;
 
     disconnected = new Alert(name + " motor disconnected!", Alert.AlertType.kWarning);
@@ -33,16 +35,34 @@ public class RollerSystem extends SubsystemBase {
 
   public void periodic() {
     io.updateInputs(inputs);
-    Logger.processInputs(name, inputs);
+    Logger.processInputs(inputsName, inputs);
     disconnected.set(!inputs.data.connected() && !Robot.isJITing());
     tempFault.set(inputs.data.tempFault());
 
+    // Run roller
+    io.runVolts(volts);
+
     // Record cycle time
     LoggedTracer.record(name);
+
+    Logger.recordOutput(inputsName + "/BrakeModeEnabled", brakeModeEnabled);
   }
 
-  @AutoLogOutput
-  public Command runRoller(DoubleSupplier inputVolts) {
-    return runEnd(() -> io.runVolts(inputVolts.getAsDouble()), io::stop);
+  public void setBrakeMode(boolean enabled) {
+    if (brakeModeEnabled == enabled) return;
+    brakeModeEnabled = enabled;
+    io.setBrakeMode(enabled);
+  }
+
+  public double getTorqueCurrent() {
+    return inputs.data.torqueCurrentAmps();
+  }
+
+  public double getVelocity() {
+    return inputs.data.velocityRadsPerSec();
+  }
+
+  public void stop() {
+    volts = 0.0;
   }
 }

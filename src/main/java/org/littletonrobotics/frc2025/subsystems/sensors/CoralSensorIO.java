@@ -5,14 +5,14 @@
 // license that can be found in the LICENSE file at
 // the root directory of this project.
 
-package org.littletonrobotics.frc2025.subsystems.superstructure.sensors;
+package org.littletonrobotics.frc2025.subsystems.sensors;
 
 import org.littletonrobotics.junction.AutoLog;
 
 public interface CoralSensorIO {
   @AutoLog
   class CoralSensorIOInputs {
-    public CoralSensorIOData data = new CoralSensorIOData(0, false);
+    public CoralSensorIOData data = new CoralSensorIOData(0.0, false);
   }
 
   record CoralSensorIOData(double distanceMeters, boolean valid) {}

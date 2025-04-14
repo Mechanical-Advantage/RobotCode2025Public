@@ -21,7 +21,6 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
-import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
@@ -30,15 +29,11 @@ import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.littletonrobotics.frc2025.Constants;
 import org.littletonrobotics.frc2025.Constants.RobotType;
-import org.littletonrobotics.frc2025.FieldConstants;
 import org.littletonrobotics.frc2025.Robot;
-import org.littletonrobotics.frc2025.RobotState;
-import org.littletonrobotics.frc2025.subsystems.leds.Leds;
 import org.littletonrobotics.frc2025.subsystems.rollers.RollerSystemIO;
 import org.littletonrobotics.frc2025.subsystems.rollers.RollerSystemIOInputsAutoLogged;
-import org.littletonrobotics.frc2025.subsystems.superstructure.sensors.CoralSensorIO;
-import org.littletonrobotics.frc2025.subsystems.superstructure.sensors.CoralSensorIOInputsAutoLogged;
-import org.littletonrobotics.frc2025.util.AllianceFlipUtil;
+import org.littletonrobotics.frc2025.subsystems.sensors.CoralSensorIO;
+import org.littletonrobotics.frc2025.subsystems.sensors.CoralSensorIOInputsAutoLogged;
 import org.littletonrobotics.frc2025.util.EqualsUtil;
 import org.littletonrobotics.frc2025.util.LoggedTracer;
 import org.littletonrobotics.frc2025.util.LoggedTunableNumber;
@@ -67,9 +62,9 @@ public class Dispenser {
   private static final LoggedTunableNumber algaeMaxAccelerationDegPerSec2 =
       new LoggedTunableNumber("Dispenser/AlgaeMaxAccelerationDegreesPerSec2", 1500.0);
   private static final LoggedTunableNumber slowMaxVelocityDegPerSec =
-      new LoggedTunableNumber("Dispenser/SlowMaxVelocityDegreesPerSec", 200.0);
+      new LoggedTunableNumber("Dispenser/SlowMaxVelocityDegreesPerSec", 800.0);
   private static final LoggedTunableNumber slowMaxAccelerationDegPerSec2 =
-      new LoggedTunableNumber("Dispenser/SlowMaxAccelerationDegreesPerSec2", 400.0);
+      new LoggedTunableNumber("Dispenser/SlowMaxAccelerationDegreesPerSec2", 1500.0);
   private static final LoggedTunableNumber staticCharacterizationVelocityThresh =
       new LoggedTunableNumber("Dispenser/StaticCharacterizationVelocityThresh", 0.1);
   private static final LoggedTunableNumber staticCharacterizationRampRate =
@@ -77,15 +72,19 @@ public class Dispenser {
   private static final LoggedTunableNumber algaeCurrentThresh =
       new LoggedTunableNumber("Dispenser/AlgaeCurrentThreshold", 10.0);
   private static final LoggedTunableNumber coralProxThreshold =
-      new LoggedTunableNumber("Dispenser/CoralProxThresh", 0.06);
+      new LoggedTunableNumber("Dispenser/CoralProxThresh", 0.15);
   public static final LoggedTunableNumber gripperHoldVolts =
-      new LoggedTunableNumber("Dispenser/GripperHoldVolts", 1.0);
+      new LoggedTunableNumber("Dispenser/GripperHoldVolts", 0.8);
   public static final LoggedTunableNumber gripperIntakeVolts =
       new LoggedTunableNumber("Dispenser/GripperIntakeVolts", 9.0);
   public static final LoggedTunableNumber gripperEjectVolts =
       new LoggedTunableNumber("Dispenser/GripperEjectVolts", -12.0);
-  public static final LoggedTunableNumber gripperL1EjectVolts =
-      new LoggedTunableNumber("Dispenser/GripperL1EjectVolts", -5.0);
+  public static final LoggedTunableNumber gripperIdleReverseTime =
+      new LoggedTunableNumber("Dispenser/GripperIdleReverseTime", 0.4);
+  public static final LoggedTunableNumber gripperHardstopVolts =
+      new LoggedTunableNumber("Dispenser/GripperHardstopVolts", -12.0);
+  public static final LoggedTunableNumber gripperReverseHardstopVolts =
+      new LoggedTunableNumber("Dispenser/GripperReverseHardstopVolts", 12.0);
   public static final LoggedTunableNumber gripperCurrentLimit =
       new LoggedTunableNumber("Dispenser/GripperCurrentLimit", 50.0);
   public static final LoggedTunableNumber[] tunnelDispenseVolts = {
@@ -100,27 +99,35 @@ public class Dispenser {
     new LoggedTunableNumber("Dispenser/TunnelDispenseVoltsAlgae/L4", 5.0)
   };
   public static final LoggedTunableNumber tunnelIntakeVolts =
-      new LoggedTunableNumber("Dispenser/TunnelIntakeVolts", 3.0);
+      new LoggedTunableNumber("Dispenser/TunnelIntakeVolts", 1.5);
+  public static final LoggedTunableNumber tunnelL1ReverseVolts =
+      new LoggedTunableNumber("Dispenser/TunnelL1ReverseVolts", -3.0);
+  public static final LoggedTunableNumber tunnelIndexReverseVolts =
+      new LoggedTunableNumber("Dispenser/TunnelIndexReverseVolts", -2.0);
+  public static final LoggedTunableNumber tunnelPreIndexTimeout =
+      new LoggedTunableNumber("Dispenser/TunnelPreIndexTimeout", 0.4);
+  public static final LoggedTunableNumber tunnelIndexTimeout =
+      new LoggedTunableNumber("Dispenser/TunnelIndexTimeout", 0.2);
   public static final LoggedTunableNumber tunnelPositionMaxVolts =
       new LoggedTunableNumber("Dispenser/TunnelPositionMaxVolts", 1.0);
-  public static final LoggedTunableNumber tunnelPositionOffsetRads =
-      new LoggedTunableNumber("Dispenser/TunnelPositionOffsetRads", -1.5);
+  public static final LoggedTunableNumber tunnelPreIndexOffsetRads =
+      new LoggedTunableNumber("Dispenser/TunnelPreIndexOffsetRads", 2.5);
+  public static final LoggedTunableNumber tunnelHardstopIndexOffsetRads =
+      new LoggedTunableNumber("Dispenser/TunnelHardstopIndexOffsetRads", -0.7);
+  public static final LoggedTunableNumber tunnelIndexOffsetRads =
+      new LoggedTunableNumber("Dispenser/TunnelIndexOffsetRads", 1.3);
   public static final LoggedTunableNumber tolerance =
       new LoggedTunableNumber("Dispenser/Tolerance", 0.4);
-  public static final LoggedTunableNumber forceEjectReverseVolts =
-      new LoggedTunableNumber("Dispenser/ForceEjectReverseVolts", -3.0);
-  public static final LoggedTunableNumber intakeReverseVolts =
-      new LoggedTunableNumber("Dispenser/IntakeReverseVolts", -1.0);
-  public static final LoggedTunableNumber intakeReverseTime =
-      new LoggedTunableNumber("Dispenser/IntakeReverseTime", 0.15);
-  public static final LoggedTunableNumber homingTimeSecs =
-      new LoggedTunableNumber("Dispenser/HomingTimeSecs", 0.2);
-  public static final LoggedTunableNumber homingVolts =
-      new LoggedTunableNumber("Dispenser/HomingVolts", 3.0);
-  public static final LoggedTunableNumber homingVelocityThresh =
-      new LoggedTunableNumber("Dispenser/HomingVelocityThreshold", 0.1);
   public static final LoggedTunableNumber simIntakingTime =
       new LoggedTunableNumber("Dispenser/SimIntakingTime", 0.5);
+  private static final LoggedTunableNumber coralEjectDebounceTime =
+      new LoggedTunableNumber("Dispenser/CoralEjectDebounceTime", 0.2);
+  private static final LoggedTunableNumber coralHardstopTime =
+      new LoggedTunableNumber("Dispenser/CoralHardstopTime", 0.3);
+  private static final LoggedTunableNumber algaeDebounceTime =
+      new LoggedTunableNumber("Dispenser/AlgaeDebounceTime", 0.6);
+  public static final LoggedTunableNumber gripperHardstopTime =
+      new LoggedTunableNumber("Dispenser/GripperHardstopTime", 0.25);
 
   static {
     switch (Constants.getRobot()) {
@@ -143,7 +150,8 @@ public class Dispenser {
     IDLE,
     GRIP,
     EJECT,
-    L1_EJECT
+    HARDSTOP,
+    REVERSE_HARDSTOP
   }
 
   // Hardware
@@ -176,25 +184,29 @@ public class Dispenser {
   @Setter private boolean isIntaking = false;
   @Setter private boolean forceFastConstraints = false;
   @Setter private boolean forceEjectForward = false;
-  @Setter private boolean forceEjectReverse = false;
+  @Setter private boolean coralIndexed = false;
 
   @Accessors(fluent = true)
   @Setter
   private boolean forceSlowConstraints = false;
 
-  private final Timer intakingReverseTimer = new Timer();
-
   @Getter
   @AutoLogOutput(key = "Dispenser/Profile/AtGoal")
   private boolean atGoal = false;
 
-  @Setter private double tunnelVolts = 0.0;
-  @AutoLogOutput @Setter private GripperGoal gripperGoal = GripperGoal.IDLE;
+  @AutoLogOutput @Setter private double tunnelVolts = 0.0;
+  @AutoLogOutput private GripperGoal gripperGoal = GripperGoal.IDLE;
+  private Timer gripperGoalTimer = new Timer();
 
   @AutoLogOutput
   @Accessors(fluent = true)
-  @Getter()
+  @Getter
   private boolean hasCoral = false;
+
+  @AutoLogOutput
+  @Accessors(fluent = true)
+  @Getter
+  private boolean rawHasCoral = false;
 
   private boolean lastHasCoral = hasCoral;
 
@@ -205,10 +217,10 @@ public class Dispenser {
 
   @Getter private boolean doNotStopIntaking = false;
 
-  private static final double coralDebounceTime = 0.1;
-  private static final double algaeDebounceTime = 0.6;
-  private Debouncer coralDebouncer = new Debouncer(coralDebounceTime, DebounceType.kRising);
-  private Debouncer algaeDebouncer = new Debouncer(algaeDebounceTime, DebounceType.kBoth);
+  private Debouncer coralEjectedDebouncer =
+      new Debouncer(coralEjectDebounceTime.get(), DebounceType.kRising);
+  private Debouncer coralHardstopDebouncer = new Debouncer(coralHardstopTime.get());
+  private Debouncer algaeDebouncer = new Debouncer(algaeDebounceTime.get(), DebounceType.kRising);
   private Debouncer toleranceDebouncer = new Debouncer(0.25, DebounceType.kRising);
 
   @Setter @Getter @AutoLogOutput private double coralThresholdOffset = 0.0;
@@ -223,7 +235,6 @@ public class Dispenser {
   private final Alert gripperDisconnectedAlert =
       new Alert("Dispenser gripper disconnected!", Alert.AlertType.kWarning);
 
-  private final Timer simIntakingTimer = new Timer();
   private boolean lastAlgaeButtonPressed = false;
   private boolean lastCoralButtonPressed = false;
 
@@ -236,7 +247,6 @@ public class Dispenser {
     this.tunnelIO = tunnelIO;
     this.gripperIO = gripperIO;
     this.coralSensorIO = coralSensorIO;
-
     tunnelPositionController = new PIDController(tunnelkP.get(), 0.0, tunnelkD.get());
 
     profile =
@@ -244,7 +254,7 @@ public class Dispenser {
             new TrapezoidProfile.Constraints(
                 Units.degreesToRadians(maxVelocityDegPerSec.get()),
                 Units.degreesToRadians(maxAccelerationDegPerSec2.get())));
-    intakingReverseTimer.start();
+    gripperGoalTimer.start();
   }
 
   public void periodic() {
@@ -305,6 +315,15 @@ public class Dispenser {
     if (gripperCurrentLimit.hasChanged(hashCode())) {
       gripperIO.setCurrentLimit(gripperCurrentLimit.get());
     }
+    if (coralEjectDebounceTime.hasChanged(hashCode())) {
+      coralEjectedDebouncer.setDebounceTime(coralEjectDebounceTime.get());
+    }
+    if (coralHardstopTime.hasChanged(hashCode())) {
+      coralHardstopDebouncer.setDebounceTime(coralHardstopTime.get());
+    }
+    if (algaeDebounceTime.hasChanged(hashCode())) {
+      algaeDebouncer.setDebounceTime(algaeDebounceTime.get());
+    }
 
     // Set coast mode
     setBrakeMode(!coastOverride.getAsBoolean());
@@ -360,82 +379,33 @@ public class Dispenser {
       pivotIO.stop();
     }
 
-    // Run tunnel and gripper
-    if (forceEjectForward) {
-      tunnelIO.runVolts(tunnelDispenseVolts[3].get());
-      gripperIO.runVolts(gripperEjectVolts.get());
-    } else if (forceEjectReverse) {
-      tunnelIO.runVolts(forceEjectReverseVolts.get());
-    } else if (!isEStopped) {
-      double intakeVolts = tunnelVolts;
-      if (hasCoral) {
-        if (!lastHasCoral) {
-          tunnelPositionController.setSetpoint(
-              tunnelInputs.data.positionRads() + tunnelPositionOffsetRads.get());
-        }
-        if (isIntaking || EqualsUtil.epsilonEquals(tunnelVolts, 0.0)) {
-          intakeVolts =
-              MathUtil.clamp(
-                  tunnelPositionController.calculate(tunnelInputs.data.positionRads()),
-                  -tunnelPositionMaxVolts.get(),
-                  tunnelPositionMaxVolts.get());
-        }
-      }
-      tunnelIO.runVolts(intakeVolts);
-
-      switch (gripperGoal) {
-        case IDLE -> gripperIO.stop();
-        case GRIP -> {
-          if (hasAlgae) {
-            gripperIO.runVolts(gripperHoldVolts.get());
-          } else {
-            gripperIO.runVolts(gripperIntakeVolts.get());
-          }
-        }
-        case EJECT -> gripperIO.runVolts(gripperEjectVolts.get());
-        case L1_EJECT -> gripperIO.runVolts(gripperL1EjectVolts.get());
-      }
-    } else {
-      tunnelIO.stop();
-      gripperIO.stop();
-    }
-    lastHasCoral = hasCoral;
-
     // Check algae & coral states
     if (Constants.getRobot() != Constants.RobotType.SIMBOT) {
-      if (gripperGoal == GripperGoal.GRIP || DriverStation.isDisabled()) {
+      if (Math.abs(gripperInputs.data.appliedVoltage()) >= 0.5 || DriverStation.isDisabled()) {
         hasAlgae =
             algaeDebouncer.calculate(
                 gripperInputs.data.torqueCurrentAmps() >= algaeCurrentThresh.get());
       } else {
         algaeDebouncer.calculate(hasAlgae);
       }
-      if (tunnelVolts > 0.0 && !(isIntaking && hasCoral)) {
-        hasCoral =
-            (Constants.getRobot() != RobotType.DEVBOT)
-                ? coralDebouncer.calculate(
-                    coralSensorInputs.data.valid()
-                        && coralSensorInputs.data.distanceMeters() < coralProxThreshold.get())
-                : coralDebouncer.calculate(pivotInputs.data.velocityRadPerSec() < 1.0);
-      } else {
-        coralDebouncer.calculate(hasCoral);
+      if (isIntaking) {
+        if (tunnelVolts > 0.0) {
+          rawHasCoral =
+              coralSensorInputs.data.valid()
+                  && coralSensorInputs.data.distanceMeters() < coralProxThreshold.get();
+          if (gripperGoal == GripperGoal.HARDSTOP) {
+            hasCoral = coralHardstopDebouncer.calculate(rawHasCoral);
+          } else {
+            hasCoral = rawHasCoral;
+          }
+        } else {
+          coralHardstopDebouncer.calculate(hasCoral);
+        }
+        coralEjectedDebouncer.calculate(false);
+      } else if (coralEjectedDebouncer.calculate(Math.abs(tunnelVolts) >= 0.5)) {
+        hasCoral = false;
       }
     } else if (DriverStation.isAutonomous()) {
-      var flippedRobot = AllianceFlipUtil.apply(RobotState.getInstance().getEstimatedPose());
-      var intakingError =
-          flippedRobot.relativeTo(
-              flippedRobot.nearest(
-                  List.of(
-                      FieldConstants.CoralStation.leftCenterFace,
-                      FieldConstants.CoralStation.rightCenterFace)));
-      if (isIntaking
-          && intakingError.getX() <= Units.inchesToMeters(48.0)
-          && Math.abs(intakingError.getY()) <= Units.inchesToMeters(48.0)) {
-        hasCoral = simIntakingTimer.hasElapsed(simIntakingTime.get());
-      } else {
-        simIntakingTimer.restart();
-      }
-
       if (!isIntaking && tunnelInputs.data.velocityRadsPerSec() >= 50.0) {
         hasCoral = false;
       }
@@ -452,8 +422,56 @@ public class Dispenser {
       lastCoralButtonPressed = coralButtonPressed;
     }
 
-    // Update coral grabbed LEDs
-    Leds.getInstance().coralGrabbed = isIntaking && hasCoral;
+    // Run tunnel and gripper
+    if (forceEjectForward) {
+      tunnelIO.runVolts(tunnelDispenseVolts[3].get());
+      gripperIO.runVolts(gripperEjectVolts.get());
+    } else if (!isEStopped) {
+      double intakeVolts = tunnelVolts;
+      if (hasCoral) {
+        if (!lastHasCoral) {
+          tunnelPositionController.setSetpoint(
+              tunnelInputs.data.positionRads()
+                  + (gripperGoal == GripperGoal.HARDSTOP
+                      ? tunnelHardstopIndexOffsetRads.get()
+                      : tunnelPreIndexOffsetRads.get()));
+        }
+        if ((isIntaking && tunnelVolts >= 0.0) || EqualsUtil.epsilonEquals(tunnelVolts, 0.0)) {
+          intakeVolts =
+              MathUtil.clamp(
+                  tunnelPositionController.calculate(tunnelInputs.data.positionRads()),
+                  -tunnelPositionMaxVolts.get(),
+                  tunnelPositionMaxVolts.get());
+        }
+      }
+      tunnelIO.runVolts(intakeVolts);
+
+      switch (gripperGoal) {
+        case IDLE ->
+            gripperIO.runVolts(
+                gripperGoalTimer.hasElapsed(gripperIdleReverseTime.get())
+                    ? 0.0
+                    : gripperReverseHardstopVolts.get());
+        case GRIP -> {
+          if (hasAlgae) {
+            gripperIO.runVolts(gripperHoldVolts.get());
+          } else {
+            gripperIO.runVolts(gripperIntakeVolts.get());
+          }
+        }
+        case EJECT -> gripperIO.runVolts(gripperEjectVolts.get());
+        case HARDSTOP ->
+            gripperIO.runVolts(
+                gripperGoalTimer.hasElapsed(gripperHardstopTime.get())
+                    ? 0.0
+                    : gripperHardstopVolts.get());
+        case REVERSE_HARDSTOP -> gripperIO.runVolts(gripperReverseHardstopVolts.get());
+      }
+    } else {
+      tunnelIO.stop();
+      gripperIO.stop();
+    }
+    lastHasCoral = hasCoral;
 
     // Display hasCoral & hasAlgae
     SmartDashboard.putBoolean("Has Coral?", hasCoral);
@@ -476,6 +494,12 @@ public class Dispenser {
     atGoal = false;
   }
 
+  public void setGripperGoal(GripperGoal goal) {
+    if (goal == gripperGoal) return;
+    gripperGoal = goal;
+    gripperGoalTimer.restart();
+  }
+
   public double getGoal() {
     return goal.getAsDouble();
   }
@@ -485,17 +509,20 @@ public class Dispenser {
     return pivotInputs.data.internalPosition();
   }
 
+  public void triggerReindex() {
+    tunnelPositionController.setSetpoint(
+        tunnelInputs.data.positionRads() + tunnelIndexOffsetRads.get());
+  }
+
   public void resetHasCoral(boolean value) {
     hasCoral = value;
     lastHasCoral = value;
     tunnelPositionController.setSetpoint(tunnelInputs.data.positionRads());
-    coralDebouncer = new Debouncer(coralDebounceTime, DebounceType.kRising);
-    coralDebouncer.calculate(value);
   }
 
   public void resetHasAlgae(boolean value) {
     hasAlgae = value;
-    algaeDebouncer = new Debouncer(algaeDebounceTime, DebounceType.kRising);
+    algaeDebouncer = new Debouncer(algaeDebounceTime.get(), DebounceType.kRising);
     algaeDebouncer.calculate(value);
   }
 

@@ -5,7 +5,7 @@
 // license that can be found in the LICENSE file at
 // the root directory of this project.
 
-package org.littletonrobotics.frc2025.subsystems.superstructure.sensors;
+package org.littletonrobotics.frc2025.subsystems.sensors;
 
 import au.grapplerobotics.ConfigurationFailedException;
 import au.grapplerobotics.LaserCan;
@@ -14,9 +14,8 @@ import au.grapplerobotics.interfaces.LaserCanInterface;
 public class CoralSensorIOLaserCan implements CoralSensorIO {
   private final LaserCan laserCan;
 
-  public CoralSensorIOLaserCan() {
-    laserCan = new LaserCan(55);
-
+  public CoralSensorIOLaserCan(int id) {
+    laserCan = new LaserCan(id);
     try {
       laserCan.setTimingBudget(LaserCanInterface.TimingBudget.TIMING_BUDGET_20MS);
       laserCan.setRangingMode(LaserCanInterface.RangingMode.SHORT);

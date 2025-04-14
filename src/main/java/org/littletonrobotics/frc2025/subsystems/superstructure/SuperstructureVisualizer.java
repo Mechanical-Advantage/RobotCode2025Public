@@ -126,7 +126,8 @@ public class SuperstructureVisualizer {
           new Pose3d[] {
             new Pose3d(RobotState.getInstance().getEstimatedPose())
                 .transformBy(new Transform3d(Pose3d.kZero, pivotPose3d))
-                .transformBy(new Transform3d(pivotToTunnelFront, 0.0, 0, new Rotation3d(0, 0, 0)))
+                .transformBy(
+                    new Transform3d(pivotToTunnelFront / 2.0, 0.0, 0, new Rotation3d(0, 0, 0)))
           });
     } else {
       Logger.recordOutput("Mechanism3d/" + name + "/Coral", new Pose3d[] {});

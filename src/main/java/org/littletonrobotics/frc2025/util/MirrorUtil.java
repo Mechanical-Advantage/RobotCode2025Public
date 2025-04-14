@@ -9,8 +9,8 @@ package org.littletonrobotics.frc2025.util;
 
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import java.util.function.BooleanSupplier;
-import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.ExtensionMethod;
 import org.littletonrobotics.frc2025.FieldConstants;
@@ -20,10 +20,10 @@ import org.littletonrobotics.vehicletrajectoryservice.VehicleTrajectoryServiceOu
 
 @ExtensionMethod({TrajectoryGenerationHelpers.class})
 public class MirrorUtil {
-  @Setter @Getter private static BooleanSupplier mirror;
+  @Setter private static BooleanSupplier mirror;
 
   public static CoralObjective apply(CoralObjective coralObjective) {
-    if (!mirror.getAsBoolean()) return coralObjective;
+    if (!shouldMirror()) return coralObjective;
     int shiftedBranchId = coralObjective.branchId() - 1;
     if (shiftedBranchId == -1) {
       shiftedBranchId = 11;
@@ -33,16 +33,24 @@ public class MirrorUtil {
     return new CoralObjective(flippedBranchId, coralObjective.reefLevel());
   }
 
+  public static double apply(double y) {
+    return shouldMirror() ? FieldConstants.fieldWidth - y : y;
+  }
+
+  public static Translation2d apply(Translation2d translation) {
+    if (!shouldMirror()) return translation;
+    return new Translation2d(translation.getX(), apply(translation.getY()));
+  }
+
   public static Pose2d apply(Pose2d pose) {
-    if (!mirror.getAsBoolean()) return pose;
+    if (!shouldMirror()) return pose;
     return new Pose2d(
-        pose.getX(),
-        FieldConstants.fieldWidth - pose.getY(),
+        apply(pose.getTranslation()),
         new Rotation2d(pose.getRotation().getCos(), -pose.getRotation().getSin()));
   }
 
   public static VehicleState apply(VehicleState state) {
-    if (!mirror.getAsBoolean()) return state;
+    if (!shouldMirror()) return state;
     Pose2d pose = apply(state.getPose());
     return VehicleState.newBuilder()
         .setX(pose.getX())
@@ -61,5 +69,9 @@ public class MirrorUtil {
                             .build())
                 .toList())
         .build();
+  }
+
+  public static boolean shouldMirror() {
+    return mirror != null && mirror.getAsBoolean();
   }
 }

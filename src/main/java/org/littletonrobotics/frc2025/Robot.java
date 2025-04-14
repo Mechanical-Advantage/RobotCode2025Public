@@ -30,13 +30,7 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import org.littletonrobotics.frc2025.Constants.RobotType;
 import org.littletonrobotics.frc2025.subsystems.leds.Leds;
-import org.littletonrobotics.frc2025.util.CanivoreReader;
-import org.littletonrobotics.frc2025.util.DummyLogReceiver;
-import org.littletonrobotics.frc2025.util.LoggedTracer;
-import org.littletonrobotics.frc2025.util.NTClientLogger;
-import org.littletonrobotics.frc2025.util.PhoenixUtil;
-import org.littletonrobotics.frc2025.util.SystemTimeValidReader;
-import org.littletonrobotics.frc2025.util.VirtualSubsystem;
+import org.littletonrobotics.frc2025.util.*;
 import org.littletonrobotics.junction.AutoLogOutputManager;
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
@@ -324,6 +318,9 @@ public class Robot extends LoggedRobot {
   /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */
   @Override
   public void autonomousInit() {
+    if (Constants.getRobot() == RobotType.SIMBOT) {
+      AutoCoralSim.resetCorals();
+    }
     autoStart = Timer.getTimestamp();
     autonomousCommand = robotContainer.getAutonomousCommand();
 

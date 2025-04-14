@@ -29,6 +29,4 @@ public interface ClimberIO {
   default void runTorqueCurrent(double current) {}
 
   default void stop() {}
-
-  default void setBrakeMode(boolean enabled) {}
 }

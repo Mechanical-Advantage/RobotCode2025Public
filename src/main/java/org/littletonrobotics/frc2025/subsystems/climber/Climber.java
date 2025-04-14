@@ -7,6 +7,8 @@
 
 package org.littletonrobotics.frc2025.subsystems.climber;
 
+import edu.wpi.first.math.filter.Debouncer;
+import edu.wpi.first.math.filter.Debouncer.DebounceType;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Translation3d;
@@ -16,9 +18,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import java.util.function.BooleanSupplier;
 import lombok.Getter;
-import lombok.Setter;
 import org.littletonrobotics.frc2025.Robot;
 import org.littletonrobotics.frc2025.subsystems.leds.Leds;
 import org.littletonrobotics.frc2025.subsystems.rollers.RollerSystemIO;
@@ -30,17 +30,19 @@ import org.littletonrobotics.junction.Logger;
 
 public class Climber extends SubsystemBase {
   private static final LoggedTunableNumber deployCurrent =
-      new LoggedTunableNumber("Climber/DeployCurrent", 30);
+      new LoggedTunableNumber("Climber/DeployCurrent", -3);
   private static final LoggedTunableNumber deployAngle =
-      new LoggedTunableNumber("Climber/DeployAngle", 135);
-  private static final LoggedTunableNumber undeployAngle =
-      new LoggedTunableNumber("Climber/UndeployAngle", 145);
+      new LoggedTunableNumber("Climber/DeployAngle", -80);
   private static final LoggedTunableNumber climbCurrent =
-      new LoggedTunableNumber("Climber/ClimbCurrent", 65);
+      new LoggedTunableNumber("Climber/ClimbCurrent", 100);
   private static final LoggedTunableNumber climbCurrentRampRate =
       new LoggedTunableNumber("Climber/ClimbCurrentRampRate", 120);
-  static final LoggedTunableNumber climbStopAngle =
-      new LoggedTunableNumber("Climber/ClimbStopAngle", 220);
+  private static final LoggedTunableNumber climbStopAngle =
+      new LoggedTunableNumber("Climber/ClimbStopAngle", 35);
+  private static final LoggedTunableNumber climbFailedMeasurementStartAngle =
+      new LoggedTunableNumber("Climber/ClimbFailedMeasurementStartAngle", 20);
+  private static final LoggedTunableNumber climbFailedCurrentThreshold =
+      new LoggedTunableNumber("Climber/ClimbFailedCurrentThreshold", 15);
   private static final LoggedTunableNumber gripVolts =
       new LoggedTunableNumber("Climber/GripVolts", 12.0);
 
@@ -52,27 +54,23 @@ public class Climber extends SubsystemBase {
   private final RollerSystemIO gripperIO;
   private final RollerSystemIOInputsAutoLogged gripperInputs = new RollerSystemIOInputsAutoLogged();
 
-  @Setter private BooleanSupplier coastOverride = () -> false;
   @AutoLogOutput private double climbStopOffsetDegrees = 0.0;
-
-  @AutoLogOutput(key = "Climber/BrakeModeEnabled")
-  private boolean brakeModeEnabled = true;
-
   @Getter @AutoLogOutput private ClimbState climbState = ClimbState.START;
 
   private final Timer climbTimer = new Timer();
+  private boolean stopPull = false;
+  private final Debouncer climbFailedDebouncer = new Debouncer(0.1, DebounceType.kRising);
 
   private final Alert climberDisconnected =
       new Alert("Climber motor disconnected!", Alert.AlertType.kWarning);
-  // private final Alert climberGripperDisconnected =
-  //     new Alert("Climber gripper motor disconnected!", Alert.AlertType.kWarning);
+  private final Alert climberGripperDisconnected =
+      new Alert("Climber gripper motor disconnected!", Alert.AlertType.kWarning);
   private final Alert climberGripperTempFault =
       new Alert("Climber gripper motor too hot! 🥵", Alert.AlertType.kWarning);
 
   public Climber(ClimberIO climberIO, RollerSystemIO gripperIO) {
     this.climberIO = climberIO;
     this.gripperIO = gripperIO;
-    climberIO.setBrakeMode(true);
   }
 
   public void periodic() {
@@ -82,7 +80,7 @@ public class Climber extends SubsystemBase {
     Logger.processInputs("Climber/Gripper", gripperInputs);
 
     climberDisconnected.set(!climberInputs.data.motorConnected() && !Robot.isJITing());
-    // climberGripperDisconnected.set(!gripperInputs.data.connected() && !Robot.isJITing());
+    climberGripperDisconnected.set(!gripperInputs.data.connected() && !Robot.isJITing());
     climberGripperTempFault.set(gripperInputs.data.tempFault());
 
     // Stop when disabled
@@ -91,17 +89,18 @@ public class Climber extends SubsystemBase {
       climbState = ClimbState.START;
     }
 
-    // Set brake mode
-    boolean coast = coastOverride.getAsBoolean() && DriverStation.isDisabled();
-    setBrakeMode(!coast);
-    Logger.recordOutput("Climber/CoastOverride", !coast);
-
     Logger.recordOutput("Climber/GripperReady", false);
     Logger.recordOutput(
         "Mechanism3d/Measured/Climber",
         new Pose3d(climberOrigin3d, new Rotation3d(0.0, climberInputs.data.positionRads(), 0.0)));
 
     // Handle state
+    if (climbState != ClimbState.PULL) {
+      stopPull = false;
+      Leds.getInstance().superClimbed = false;
+      climbTimer.restart();
+      climbFailedDebouncer.calculate(false);
+    }
     switch (climbState) {
       case START -> {
         Leds.getInstance().ready = false;
@@ -113,13 +112,11 @@ public class Climber extends SubsystemBase {
         Leds.getInstance().superClimbed = false;
         double position = climberInputs.data.positionRads();
         boolean gripperReady = false;
-        if (position <= Units.degreesToRadians(deployAngle.get())) {
+        if (position >= Units.degreesToRadians(deployAngle.get())) {
           climberIO.runTorqueCurrent(deployCurrent.get());
-        } else if (position <= Units.degreesToRadians(undeployAngle.get())) {
+        } else {
           gripperReady = true;
           climberIO.stop();
-        } else {
-          climberIO.runTorqueCurrent(-deployCurrent.get());
         }
 
         if (gripperReady) {
@@ -133,16 +130,21 @@ public class Climber extends SubsystemBase {
       }
       case PULL -> {
         gripperIO.stop();
-        boolean stopped =
-            climberInputs.data.positionRads()
-                >= Units.degreesToRadians(climbStopAngle.get() + climbStopOffsetDegrees);
-        Leds.getInstance().superClimbed = false;
-        if (stopped) {
-          climbTimer.restart();
+        if (climberInputs.data.positionRads()
+            >= Units.degreesToRadians(climbStopAngle.get() + climbStopOffsetDegrees)) {
+          stopPull = true;
           Leds.getInstance().superClimbed = true;
         }
+        if (climberInputs.data.positionRads()
+                >= Units.degreesToRadians(climbFailedMeasurementStartAngle.get())
+            && !stopPull) {
+          boolean failed =
+              climbFailedDebouncer.calculate(
+                  climberInputs.data.torqueCurrentAmps() < climbFailedCurrentThreshold.get());
+          if (failed) climbState = ClimbState.READY;
+        }
         climberIO.runTorqueCurrent(
-            stopped
+            stopPull
                 ? 0.0
                 : Math.min(climbCurrentRampRate.get() * climbTimer.get(), climbCurrent.get()));
       }
@@ -156,7 +158,6 @@ public class Climber extends SubsystemBase {
     return runOnce(
         () -> {
           if (climbState == ClimbState.READY) {
-            climbTimer.restart();
             climbState = ClimbState.PULL;
           } else {
             climbState = ClimbState.READY;
@@ -166,13 +167,6 @@ public class Climber extends SubsystemBase {
 
   public void adjustClimbOffset(double offset) {
     climbStopOffsetDegrees += offset;
-  }
-
-  private void setBrakeMode(boolean enabled) {
-    if (brakeModeEnabled == enabled) return;
-    brakeModeEnabled = enabled;
-    climberIO.setBrakeMode(enabled);
-    gripperIO.setBrakeMode(enabled);
   }
 
   public enum ClimbState {

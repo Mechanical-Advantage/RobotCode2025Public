@@ -37,11 +37,17 @@ import org.littletonrobotics.frc2025.subsystems.climber.ClimberIO;
 import org.littletonrobotics.frc2025.subsystems.climber.ClimberIOSim;
 import org.littletonrobotics.frc2025.subsystems.climber.ClimberIOTalonFX;
 import org.littletonrobotics.frc2025.subsystems.drive.*;
+import org.littletonrobotics.frc2025.subsystems.intake.Intake;
+import org.littletonrobotics.frc2025.subsystems.intake.SlamIO;
+import org.littletonrobotics.frc2025.subsystems.intake.SlamIOSim;
+import org.littletonrobotics.frc2025.subsystems.intake.SlamIOTalonFX;
 import org.littletonrobotics.frc2025.subsystems.leds.Leds;
 import org.littletonrobotics.frc2025.subsystems.objectivetracker.ObjectiveTracker;
 import org.littletonrobotics.frc2025.subsystems.objectivetracker.ReefControlsIO;
 import org.littletonrobotics.frc2025.subsystems.objectivetracker.ReefControlsIOServer;
 import org.littletonrobotics.frc2025.subsystems.rollers.*;
+import org.littletonrobotics.frc2025.subsystems.sensors.CoralSensorIO;
+import org.littletonrobotics.frc2025.subsystems.sensors.CoralSensorIOLaserCan;
 import org.littletonrobotics.frc2025.subsystems.superstructure.Superstructure;
 import org.littletonrobotics.frc2025.subsystems.superstructure.SuperstructureState;
 import org.littletonrobotics.frc2025.subsystems.superstructure.dispenser.*;
@@ -49,8 +55,6 @@ import org.littletonrobotics.frc2025.subsystems.superstructure.elevator.Elevator
 import org.littletonrobotics.frc2025.subsystems.superstructure.elevator.ElevatorIO;
 import org.littletonrobotics.frc2025.subsystems.superstructure.elevator.ElevatorIOSim;
 import org.littletonrobotics.frc2025.subsystems.superstructure.elevator.ElevatorIOTalonFX;
-import org.littletonrobotics.frc2025.subsystems.superstructure.sensors.CoralSensorIO;
-import org.littletonrobotics.frc2025.subsystems.superstructure.sensors.CoralSensorIOLaserCan;
 import org.littletonrobotics.frc2025.subsystems.vision.Vision;
 import org.littletonrobotics.frc2025.subsystems.vision.VisionIO;
 import org.littletonrobotics.frc2025.subsystems.vision.VisionIONorthstar;
@@ -64,7 +68,7 @@ public class RobotContainer {
   private Drive drive;
   private Vision vision;
   private final Superstructure superstructure;
-  private RollerSystem funnel;
+  private Intake intake;
   private Climber climber;
   private ObjectiveTracker objectiveTracker;
   private final Leds leds = Leds.getInstance();
@@ -78,7 +82,7 @@ public class RobotContainer {
   private final Trigger superstructureCoast = overrides.driverSwitch(2);
   private final Trigger dimLeds = overrides.operatorSwitch(0);
   private final Trigger disableReefAutoAlign = overrides.operatorSwitch(1);
-  private final Trigger disableCoralStationAutoAlign = overrides.operatorSwitch(2);
+  private final Trigger disableIntakeAutoAlign = overrides.operatorSwitch(2);
   private final Trigger disableAlgaeScoreAutoAlign = overrides.operatorSwitch(3);
   private final Trigger forceSimpleCoralStrategy = overrides.operatorSwitch(4);
 
@@ -96,7 +100,7 @@ public class RobotContainer {
   private final LoggedNetworkNumber endgameAlert2 =
       new LoggedNetworkNumber("/SmartDashboard/Endgame Alert #2", 15.0);
 
-  private boolean superstructureCoastOverride = false;
+  private boolean coastOverride = false;
 
   // Dashboard inputs
   private final LoggedDashboardChooser<Command> autoChooser;
@@ -128,10 +132,16 @@ public class RobotContainer {
                   new PivotIOTalonFX(),
                   new RollerSystemIOTalonFX(6, "", 40, false, true, 3.0),
                   new RollerSystemIOTalonFX(7, "", 40, false, true, (30.0 / 12.0) * (48.0 / 18.0)),
-                  new CoralSensorIOLaserCan());
-          funnel =
-              new RollerSystem("Funnel", new RollerSystemIOTalonFX(3, "", 30, true, false, 1.0));
-          climber = new Climber(new ClimberIOTalonFX(), new RollerSystemIO() {});
+                  new CoralSensorIOLaserCan(55));
+          intake =
+              new Intake(
+                  new SlamIOTalonFX(),
+                  new RollerSystemIOTalonFX(4, "", 60, false, false, 1.0),
+                  new RollerSystemIOTalonFX(8, "", 40, true, false, 1.0),
+                  new CoralSensorIOLaserCan(56));
+          climber =
+              new Climber(
+                  new ClimberIOTalonFX(), new RollerSystemIOTalonFX(2, "", 60, true, false, 3.4));
         }
         case DEVBOT -> {
           drive =
@@ -153,7 +163,6 @@ public class RobotContainer {
                   new RollerSystemIOSpark(5, true),
                   new RollerSystemIO() {},
                   new CoralSensorIO() {});
-          funnel = new RollerSystem("Funnel", new RollerSystemIOSpark(4, false));
         }
         case SIMBOT -> {
           drive =
@@ -173,9 +182,12 @@ public class RobotContainer {
           climber =
               new Climber(
                   new ClimberIOSim(), new RollerSystemIOSim(DCMotor.getKrakenX60Foc(1), 3.4, 0.05));
-          funnel =
-              new RollerSystem(
-                  "Funnel", new RollerSystemIOSim(DCMotor.getKrakenX60Foc(1), 1.0, 0.02));
+          intake =
+              new Intake(
+                  new SlamIOSim(),
+                  new RollerSystemIOSim(DCMotor.getKrakenX60Foc(1), 4.0, 0.005),
+                  new RollerSystemIOSim(DCMotor.getKrakenX60Foc(1), 2.0, 0.01),
+                  new CoralSensorIO() {});
         }
       }
     }
@@ -214,8 +226,13 @@ public class RobotContainer {
               new RollerSystemIO() {},
               new CoralSensorIO() {});
     }
-    if (funnel == null) {
-      funnel = new RollerSystem("Funnel", new RollerSystemIO() {});
+    if (intake == null) {
+      intake =
+          new Intake(
+              new SlamIO() {},
+              new RollerSystemIO() {},
+              new RollerSystemIO() {},
+              new CoralSensorIO() {});
     }
     if (climber == null) {
       climber = new Climber(new ClimberIO() {}, new RollerSystemIO() {});
@@ -238,10 +255,9 @@ public class RobotContainer {
     MirrorUtil.setMirror(mirror::get);
 
     // Set up characterization routines
-    var autoBuilder = new AutoBuilder(drive, superstructure, funnel, upInThePush::get);
+    var autoBuilder = new AutoBuilder(drive, superstructure, intake, upInThePush::get);
     autoChooser.addDefaultOption("Dead In The Water Auto", Commands.none());
-    autoChooser.addOption("Up In The Water Auto", autoBuilder.upInTheWaterAuto(false));
-    autoChooser.addOption("Super Up In The Water Auto", autoBuilder.upInTheWaterAuto(true));
+    autoChooser.addOption("Up In The Air Auto", autoBuilder.upInTheAirAuto());
     autoChooser.addOption("Up In The Simplicity Auto", autoBuilder.upInTheSimplicityAuto());
     autoChooser.addOption("Up In The Inspirational Auto", autoBuilder.upInTheInspirationalAuto());
     autoChooser.addOption(
@@ -259,12 +275,16 @@ public class RobotContainer {
         superstructure.setCharacterizationMode().andThen(dispenser.staticCharacterization()));
 
     // Set up overrides
-    superstructure.setOverrides(superstructureDisable);
-    elevator.setOverrides(() -> superstructureCoastOverride, superstructureDisable);
-    dispenser.setOverrides(() -> superstructureCoastOverride, superstructureDisable);
-    climber.setCoastOverride(() -> superstructureCoastOverride);
+    superstructure.setDisableOverride(superstructureDisable);
+    elevator.setOverrides(() -> coastOverride, superstructureDisable);
+    dispenser.setOverrides(() -> coastOverride, superstructureDisable);
+    intake.setCoastOverride(() -> coastOverride);
     objectiveTracker.setOverrides(forceSimpleCoralStrategy);
     Leds.getInstance().setShouldDimSupplier(dimLeds);
+
+    // Set up communication for superstructure and intake
+    superstructure.setIntakeInterface(intake::setSuperstructureReady, intake::setHasCoral);
+    intake.setCoralIndexedConsumer(superstructure::setCoralIndexed);
 
     // Configure the button bindings
     configureButtonBindings();
@@ -302,6 +322,9 @@ public class RobotContainer {
     // ***** DRIVER CONTROLLER *****
 
     // Bind coral score function
+    final Trigger firstPriorityTrigger = driver.rightTrigger();
+    final Trigger secondPriorityTrigger = driver.rightBumper();
+    final Trigger coralIntakingTrigger = driver.leftTrigger();
     BiConsumer<Trigger, Boolean> bindAutoScore =
         (trigger, firstPriority) -> {
           Container<ReefLevel> lockedReefLevel = new Container<>();
@@ -326,7 +349,6 @@ public class RobotContainer {
                   AutoScoreCommands.autoScore(
                           drive,
                           superstructure,
-                          funnel,
                           () -> lockedReefLevel.value,
                           () -> objectiveTracker.getCoralObjective(lockedReefLevel.value),
                           driverX,
@@ -377,7 +399,6 @@ public class RobotContainer {
                   AutoScoreCommands.superAutoScore(
                           drive,
                           superstructure,
-                          funnel,
                           () -> lockedReefLevel.value,
                           () ->
                               objectiveTracker.getSuperCoralObjective(
@@ -406,33 +427,77 @@ public class RobotContainer {
                       controllerRumbleCommand().withTimeout(0.1)));
         };
     // Score coral #1
-    bindAutoScore.accept(driver.rightTrigger(), true);
+    bindAutoScore.accept(firstPriorityTrigger, true);
     // Score coral #2
-    bindAutoScore.accept(driver.rightBumper(), false);
+    bindAutoScore.accept(secondPriorityTrigger, false);
+
+    // Intake commands
+    Trigger scoringTriggers = firstPriorityTrigger.or(secondPriorityTrigger);
+    Trigger hasCoralTrigger =
+        new Trigger(() -> intake.isCoralIndexed() || superstructure.hasCoral());
+    Container<Boolean> hasCoral = new Container<>(false);
+    coralIntakingTrigger.onTrue(
+        Commands.runOnce(() -> hasCoral.value = hasCoralTrigger.getAsBoolean()));
+    coralIntakingTrigger
+        .and(coralIntakingTrigger.doublePress().negate())
+        .and(() -> !hasCoral.value)
+        .and(scoringTriggers.negate())
+        .whileTrue(
+            intake
+                .intake()
+                .alongWith(superstructure.runGoal(SuperstructureState.CORAL_INTAKE))
+                .withName("Coral Intake"));
+    coralIntakingTrigger
+        .doublePress()
+        .and(() -> !hasCoral.value)
+        .and(scoringTriggers.negate())
+        .whileTrue(
+            IntakeCommands.teleopAutoIntake(
+                    drive,
+                    intake,
+                    hasCoralTrigger,
+                    driverX,
+                    driverY,
+                    driverOmega,
+                    joystickDriveCommandFactory.get(),
+                    robotRelative,
+                    disableIntakeAutoAlign)
+                .alongWith(superstructure.runGoal(SuperstructureState.CORAL_INTAKE))
+                .withName("Coral Auto Intake"));
+    coralIntakingTrigger
+        .and(() -> !hasCoral.value)
+        .and(scoringTriggers)
+        .whileTrueContinuous(intake.intake().withName("Coral Intake"));
+    coralIntakingTrigger.whileTrue(
+        Commands.waitUntil(hasCoralTrigger).andThen(controllerRumbleCommand().withTimeout(0.3)));
+    coralIntakingTrigger
+        .and(hasCoralTrigger)
+        .whileTrueContinuous(
+            Commands.startEnd(
+                () -> Leds.getInstance().coralGrabbed = true,
+                () -> Leds.getInstance().coralGrabbed = false));
+    // L1 with intake
+    coralIntakingTrigger
+        .doublePress()
+        .and(() -> hasCoral.value)
+        .onTrue(intake.l1Sequence(driver.b(), hasCoralTrigger))
+        .onTrue(
+            superstructure
+                .runGoal(SuperstructureState.REVERSE_CORAL_EJECT)
+                .until(() -> !superstructure.hasCoral()));
+
+    // Unslam
+    driver.rightStick().onTrue(intake.retract().withName("Undeploy Slam"));
 
     // Climbing controls
     driver
         .y()
         .doublePress()
-        .onTrue(climber.readyClimb().withName("Ready Climber"))
+        .onTrue(
+            intake
+                .prepareToClimb()
+                .alongWith(climber.readyClimb().withName("Ready Climber & Intake")))
         .onTrue(controllerRumbleCommand().withTimeout(0.25));
-
-    // Coral intake
-    driver
-        .leftTrigger()
-        .whileTrue(
-            Commands.either(
-                    joystickDriveCommandFactory.get(),
-                    new DriveToStation(drive, driverX, driverY, driverOmega, false),
-                    disableCoralStationAutoAlign)
-                .deadlineFor(
-                    Commands.startEnd(
-                        () -> Leds.getInstance().autoScoring = true,
-                        () -> Leds.getInstance().autoScoring = false))
-                .alongWith(
-                    IntakeCommands.intake(superstructure, funnel),
-                    Commands.runOnce(superstructure::resetHasCoral))
-                .withName("Coral Station Intake"));
 
     // Algae reef intake & score
     Trigger onOpposingSide =
@@ -490,7 +555,7 @@ public class RobotContainer {
                     driverY,
                     driverOmega,
                     robotRelative,
-                    () -> false)
+                    disableIntakeAutoAlign)
                 .withName("Algae Ground Intake"));
 
     // Algae pre-processor
@@ -534,41 +599,22 @@ public class RobotContainer {
                     disableAlgaeScoreAutoAlign)
                 .withName("Algae Processing"));
 
-    // Algae pre-net
-    driver
-        .leftBumper()
-        .and(shouldProcess.negate())
-        .and(() -> hasAlgae.value)
-        .and(driver.a().negate())
-        .whileTrue(
-            AlgaeScoreCommands.netThrowLineup(
-                    drive,
-                    superstructure,
-                    driverX,
-                    driverY,
-                    joystickDriveCommandFactory.get(),
-                    disableAlgaeScoreAutoAlign)
-                .withName("Algae Pre-Net"))
-        .onTrue(Commands.runOnce(() -> Leds.getInstance().autoScoring = true))
-        .onFalse(Commands.runOnce(() -> Leds.getInstance().autoScoring = false))
-        // Indicate ready for score
-        .and(() -> superstructure.getState() == SuperstructureState.PRE_THROW)
-        .whileTrue(
-            controllerRumbleCommand()
-                .withTimeout(0.1)
-                .andThen(Commands.waitSeconds(0.1))
-                .repeatedly())
-        .onTrue(Commands.runOnce(() -> Leds.getInstance().ready = true))
-        .onFalse(Commands.runOnce(() -> Leds.getInstance().ready = false));
-
     // Algae net score
     driver
         .leftBumper()
         .and(shouldProcess.negate())
         .and(() -> hasAlgae.value)
-        .and(driver.a())
         .whileTrue(
-            AlgaeScoreCommands.netThrowScore(drive, superstructure).withName("Algae Net Score"));
+            AlgaeScoreCommands.netScore(
+                    drive,
+                    superstructure,
+                    driverX,
+                    driverY,
+                    joystickDriveCommandFactory.get(),
+                    driver.a(),
+                    controllerRumbleCommand(),
+                    disableAlgaeScoreAutoAlign)
+                .withName("Algae Net Score"));
 
     // Algae eject
     driver
@@ -576,13 +622,8 @@ public class RobotContainer {
         .and(driver.leftBumper().negate())
         .whileTrue(superstructure.runGoal(SuperstructureState.TOSS).withName("Algae Toss"));
 
-    // Strobe LEDs at human player
-    driver
-        .leftStick()
-        .whileTrue(
-            Commands.startEnd(
-                    () -> leds.hpAttentionAlert = true, () -> leds.hpAttentionAlert = false)
-                .withName("Strobe LEDs at HP"));
+    // Run intake reverse
+    driver.leftStick().whileTrue(intake.outtake());
 
     // Coral eject
     driver
@@ -592,7 +633,6 @@ public class RobotContainer {
         .whileTrue(
             superstructure
                 .runGoal(SuperstructureState.GOODBYE_CORAL_EJECT)
-                .alongWith(funnel.runRoller(IntakeCommands.outtakeVolts))
                 .withName("Coral Eject"));
 
     // Nudge climber up and down
@@ -609,19 +649,7 @@ public class RobotContainer {
     driver
         .povUp()
         .toggleOnTrue(
-            superstructure
-                .runGoal(SuperstructureState.L3_CORAL)
-                .alongWith(funnel.runRoller(IntakeCommands.outtakeVolts))
-                .withName("Force Raise Elevator"));
-
-    // Force Reverse Dispenser/Funnel Eject
-    driver
-        .povDown()
-        .toggleOnTrue(
-            superstructure
-                .forceEjectBackward()
-                .alongWith(funnel.runRoller(IntakeCommands.outtakeVolts))
-                .withName("Force Reverse Eject Funnel/Dispenser"));
+            superstructure.runGoal(SuperstructureState.L3_CORAL).withName("Force Raise Elevator"));
 
     // ***** OPERATOR CONTROLLER *****
 
@@ -648,17 +676,19 @@ public class RobotContainer {
                 .withName("Operator Algae L3 Intake"));
 
     // Coral intake
-    operator
-        .rightBumper()
-        .whileTrue(
-            IntakeCommands.intake(superstructure, funnel)
-                .alongWith(Commands.runOnce(superstructure::resetHasCoral))
-                .withName("Operator Coral Intake"));
+    operator.rightBumper().whileTrue(intake.intake());
 
-    // Home elevator
+    // Run intake reverse
+    operator.rightStick().whileTrue(intake.outtake());
+
+    // Home elevator & intake
     operator
         .leftBumper()
-        .onTrue(superstructure.runHomingSequence().withName("Operator Home Elevator"));
+        .onTrue(
+            superstructure
+                .runHomingSequence()
+                .alongWith(intake.runHomingSequence())
+                .withName("Operator Home Elevator & Intake"));
 
     // Force net
     operator
@@ -731,7 +761,7 @@ public class RobotContainer {
             Commands.runOnce(
                     () -> {
                       if (DriverStation.isDisabled()) {
-                        superstructureCoastOverride = true;
+                        coastOverride = true;
                         leds.superstructureCoast = true;
                       }
                     })
@@ -740,7 +770,7 @@ public class RobotContainer {
         .onFalse(
             Commands.runOnce(
                     () -> {
-                      superstructureCoastOverride = false;
+                      coastOverride = false;
                       leds.superstructureCoast = false;
                     })
                 .withName("Superstructure Uncoast")
@@ -749,7 +779,7 @@ public class RobotContainer {
         .onFalse(
             Commands.runOnce(
                     () -> {
-                      superstructureCoastOverride = false;
+                      coastOverride = false;
                       leds.superstructureCoast = false;
                     })
                 .ignoringDisable(true));
@@ -781,7 +811,15 @@ public class RobotContainer {
                 .finallyDo(() -> leds.endgameAlert = false)
                 .withName("Controller Endgame Alert 2")); // Rumble three times
 
-    // Algae alert
+    // Coral grabbed alert
+    new Trigger(() -> superstructure.hasCoral() || superstructure.isCoralIndexed())
+        .onTrue(
+            controllerRumbleCommand()
+                .withTimeout(0.25)
+                .beforeStarting(() -> leds.coralGrabbed = true)
+                .finallyDo(() -> leds.coralGrabbed = false));
+
+    // Algae grabbed alert
     new Trigger(superstructure::hasAlgae)
         .onTrue(
             controllerRumbleCommand()

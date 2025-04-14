@@ -9,14 +9,13 @@ package org.littletonrobotics.frc2025.util.gslam;
 
 import org.littletonrobotics.junction.AutoLog;
 
-public interface GenericSlamElevatorIO {
+public interface GenericSlamIO {
   @AutoLog
-  class GenericSlamElevatorIOInputs {
-    public GenericSlamElevatorIOData data =
-        new GenericSlamElevatorIOData(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  class GenericSlamIOInputs {
+    public GenericSlamIOData data = new GenericSlamIOData(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
   }
 
-  record GenericSlamElevatorIOData(
+  record GenericSlamIOData(
       boolean motorConnected,
       double positionRads,
       double velocityRadsPerSec,
@@ -26,10 +25,10 @@ public interface GenericSlamElevatorIO {
       double tempCelsius) {}
 
   /** Update the inputs. */
-  default void updateInputs(GenericSlamElevatorIOInputs inputs) {}
+  default void updateInputs(GenericSlamIOInputs inputs) {}
 
   /** Run slam elevator at amps */
-  default void runCurrent(double amps) {}
+  default void runTorqueCurrent(double amps) {}
 
   /** Stop slam elevator */
   default void stop() {}

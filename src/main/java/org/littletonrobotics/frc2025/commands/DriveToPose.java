@@ -99,7 +99,7 @@ public class DriveToPose extends Command {
     drivekP.initDefault(1.0);
     drivekD.initDefault(0.0);
     thetakP.initDefault(4.0);
-    thetakD.initDefault(0.0);
+    thetakD.initDefault(0.5);
 
     driveMaxVelocity.initDefault(4.0);
     driveMaxVelocityTop.initDefault(4.0);
@@ -107,8 +107,8 @@ public class DriveToPose extends Command {
     driveMaxAccelerationTop.initDefault(1.5);
     driveMaxVelocityAuto.initDefault(4.0);
     driveMaxVelocityAutoTop.initDefault(4.0);
-    driveMaxAccelerationAuto.initDefault(3.5);
-    driveMaxAccelerationAutoTop.initDefault(1.5);
+    driveMaxAccelerationAuto.initDefault(4.5);
+    driveMaxAccelerationAutoTop.initDefault(2.5);
 
     thetaMaxVelocity.initDefault(Units.degreesToRadians(360.0));
     thetaMaxVelocityTop.initDefault(Units.degreesToRadians(200.0));
@@ -319,12 +319,13 @@ public class DriveToPose extends Command {
     // Reset profiles if enough input or far enough away from setpoint
     if (linearS >= minLinearFFSReset.get()
         || thetaS >= minThetaFFSReset.get()
-        || Math.abs(driveSetpoint.position - driveErrorAbs) >= minLinearErrorReset.get()
-        || Math.abs(
-                MathUtil.angleModulus(
-                    currentPose.getRotation().getRadians()
-                        - thetaController.getSetpoint().position))
-            >= minThetaErrorReset.get()) {
+        || (DriverStation.isTeleop()
+            && (Math.abs(driveSetpoint.position - driveErrorAbs) >= minLinearErrorReset.get()
+                || Math.abs(
+                        MathUtil.angleModulus(
+                            currentPose.getRotation().getRadians()
+                                - thetaController.getSetpoint().position))
+                    >= minThetaErrorReset.get()))) {
       resetProfile();
     }
 

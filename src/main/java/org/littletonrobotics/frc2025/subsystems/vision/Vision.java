@@ -320,6 +320,7 @@ public class Vision extends VirtualSubsystem {
             Rotation2d angle = null;
             for (int i = 0; i < frame.length; i += 10) {
               if (frame[i + 1] > algaeDetectConfidenceThreshold) {
+                // Read data from frame
                 double[] tx = new double[4];
                 double[] ty = new double[4];
                 for (int z = 0; z < 4; z++) {
@@ -327,6 +328,13 @@ public class Vision extends VirtualSubsystem {
                   ty[z] = frame[i + 2 + (2 * z) + 1];
                 }
 
+                // Check if at bottom of frame
+                double maxTy = Math.max(ty[2], ty[3]);
+                if (maxTy < 0.4) {
+                  continue;
+                }
+
+                // Check if largest algae
                 double size = Math.abs(tx[0] - tx[1]);
                 if (size > largestSize) {
                   largestSize = size;

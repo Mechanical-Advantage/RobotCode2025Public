@@ -23,7 +23,7 @@ public class PivotIOSim implements PivotIO {
   private static final double reduction = 3.0;
 
   public static final double moi =
-      (0.5)
+      (1.0 / 3.0)
           * (ElevatorIOSim.carriageMassKg)
           * Math.pow(SuperstructureConstants.pivotToTunnelFront, 2.0);
   private static final double cgRadius = Units.inchesToMeters(10.0);
@@ -74,7 +74,7 @@ public class PivotIOSim implements PivotIO {
             simState.get(0),
             simState.get(1),
             pivotAppliedVolts,
-            0.0,
+            (pivotAppliedVolts / 12.0) * inputTorqueCurrent,
             inputTorqueCurrent,
             0.0);
   }

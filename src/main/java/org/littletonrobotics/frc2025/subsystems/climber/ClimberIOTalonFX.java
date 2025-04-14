@@ -18,7 +18,6 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.filter.Debouncer;
-import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
@@ -27,7 +26,7 @@ import edu.wpi.first.units.measure.Voltage;
 import org.littletonrobotics.frc2025.util.PhoenixUtil;
 
 public class ClimberIOTalonFX implements ClimberIO {
-  public static final double reduction = 600.0;
+  public static final double reduction = 125.0;
 
   // Hardware
   private final TalonFX talon;
@@ -57,8 +56,7 @@ public class ClimberIOTalonFX implements ClimberIO {
     config.CurrentLimits.StatorCurrentLimit = 120.0;
     config.CurrentLimits.StatorCurrentLimitEnable = true;
     config.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
-    config.SoftwareLimitSwitch.ForwardSoftLimitThreshold = Units.degreesToRotations(245);
-    config.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
+    config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
 
     tryUntilOk(5, () -> talon.getConfigurator().apply(config, 0.25));
     tryUntilOk(5, () -> talon.setPosition(0.0));
@@ -101,18 +99,5 @@ public class ClimberIOTalonFX implements ClimberIO {
   @Override
   public void stop() {
     talon.stopMotor();
-  }
-
-  @Override
-  public void setBrakeMode(boolean enabled) {
-    new Thread(
-            () -> {
-              tryUntilOk(
-                  5,
-                  () ->
-                      talon.setNeutralMode(
-                          enabled ? NeutralModeValue.Brake : NeutralModeValue.Coast, 0.25));
-            })
-        .start();
   }
 }

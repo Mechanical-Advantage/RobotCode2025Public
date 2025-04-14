@@ -10,10 +10,12 @@ package org.littletonrobotics.frc2025.subsystems.superstructure;
 import static org.littletonrobotics.frc2025.subsystems.superstructure.SuperstructureConstants.*;
 import static org.littletonrobotics.frc2025.subsystems.superstructure.SuperstructurePose.algaeSuperPositionDeg;
 
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.Pair;
+import edu.wpi.first.math.filter.Debouncer;
+import edu.wpi.first.math.filter.Debouncer.DebounceType;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.util.function.BooleanConsumer;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.*;
@@ -36,11 +38,11 @@ import org.littletonrobotics.frc2025.FieldConstants;
 import org.littletonrobotics.frc2025.RobotState;
 import org.littletonrobotics.frc2025.commands.AutoScoreCommands;
 import org.littletonrobotics.frc2025.subsystems.leds.Leds;
-import org.littletonrobotics.frc2025.subsystems.superstructure.SuperstructureStateData.Height;
 import org.littletonrobotics.frc2025.subsystems.superstructure.dispenser.Dispenser;
 import org.littletonrobotics.frc2025.subsystems.superstructure.elevator.Elevator;
 import org.littletonrobotics.frc2025.util.AllianceFlipUtil;
 import org.littletonrobotics.frc2025.util.LoggedTracer;
+import org.littletonrobotics.frc2025.util.SuppliedWaitCommand;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.LoggedNetworkBoolean;
@@ -75,7 +77,7 @@ public class Superstructure extends SubsystemBase {
   private LoggedNetworkBoolean characterizationModeOn =
       new LoggedNetworkBoolean("/SmartDashboard/Characterization Mode On", false);
 
-  private BooleanSupplier disableOverride = () -> false;
+  @Setter private BooleanSupplier disableOverride = () -> false;
   private final Alert driverDisableAlert =
       new Alert("Superstructure disabled due to driver override.", Alert.AlertType.kWarning);
   private final Alert emergencyDisableAlert =
@@ -92,7 +94,13 @@ public class Superstructure extends SubsystemBase {
   @Setter private Optional<SuperstructureState> reefDangerState = Optional.empty();
 
   @AutoLogOutput @Getter private boolean requestFunnelOuttake = false;
+  @Getter @Setter private boolean coralIndexed = false;
   @AutoLogOutput private boolean forceFastConstraints = false;
+  private final Debouncer intakeReadyDebouncer = new Debouncer(0.1, DebounceType.kRising);
+
+  // Intake interface
+  private BooleanConsumer intakeReadyConsumer = a -> {};
+  private BooleanConsumer hasCoralConsumer = a -> {};
 
   public Superstructure(Elevator elevator, Dispenser dispenser) {
     this.elevator = elevator;
@@ -119,9 +127,8 @@ public class Superstructure extends SubsystemBase {
                         runDispenserPivot(
                             () ->
                                 Rotation2d.fromDegrees(
-                                    MathUtil.clamp(
+                                    Math.min(
                                         dispenser.getPivotAngle().getDegrees(),
-                                        pivotMinSafeAngleDeg.get(),
                                         pivotMaxSafeAngleDeg.get()))),
                         Commands.parallel(
                                 Commands.waitSeconds(0.2).andThen(elevator.homingSequence()))
@@ -154,9 +161,8 @@ public class Superstructure extends SubsystemBase {
                 runDispenserPivot(
                         () ->
                             Rotation2d.fromDegrees(
-                                MathUtil.clamp(
+                                Math.min(
                                     dispenser.getPivotAngle().getDegrees(),
-                                    pivotMinSafeAngleDeg.get(),
                                     pivotMaxSafeAngleDeg.get())))
                     .andThen(
                         runSuperstructureExtras(SuperstructureState.STOW),
@@ -183,8 +189,7 @@ public class Superstructure extends SubsystemBase {
             SuperstructureState.ALGAE_STOW_INTAKE,
             SuperstructureState.ALGAE_GROUND_INTAKE,
             SuperstructureState.ALGAE_L2_INTAKE,
-            SuperstructureState.ALGAE_L3_INTAKE,
-            SuperstructureState.ALGAE_ICE_CREAM_INTAKE);
+            SuperstructureState.ALGAE_L3_INTAKE);
 
     final Set<SuperstructureState> freeAlgaeStates =
         Set.of(
@@ -197,7 +202,6 @@ public class Superstructure extends SubsystemBase {
             SuperstructureState.ALGAE_STOW_INTAKE,
             SuperstructureState.ALGAE_L2_INTAKE,
             SuperstructureState.ALGAE_L3_INTAKE,
-            SuperstructureState.ALGAE_ICE_CREAM_INTAKE,
             SuperstructureState.PRE_THROW);
 
     final Set<SuperstructureState> algaeIntakeStates =
@@ -205,8 +209,7 @@ public class Superstructure extends SubsystemBase {
             SuperstructureState.ALGAE_STOW_INTAKE,
             SuperstructureState.ALGAE_GROUND_INTAKE,
             SuperstructureState.ALGAE_L2_INTAKE,
-            SuperstructureState.ALGAE_L3_INTAKE,
-            SuperstructureState.ALGAE_ICE_CREAM_INTAKE);
+            SuperstructureState.ALGAE_L3_INTAKE);
 
     // Add all free edges
     for (var from : freeNoAlgaeStates) {
@@ -244,7 +247,8 @@ public class Superstructure extends SubsystemBase {
     final Set<Pair<SuperstructureState, SuperstructureState>> pairedStates =
         Set.of(
             Pair.of(SuperstructureState.STOW, SuperstructureState.CORAL_INTAKE),
-            Pair.of(SuperstructureState.ALGAE_STOW, SuperstructureState.ALGAE_CORAL_INTAKE),
+            Pair.of(SuperstructureState.STOW, SuperstructureState.REVERSE_CORAL),
+            Pair.of(SuperstructureState.REVERSE_CORAL, SuperstructureState.REVERSE_CORAL_EJECT),
             Pair.of(SuperstructureState.GOODBYE_CORAL, SuperstructureState.GOODBYE_CORAL_EJECT),
             Pair.of(SuperstructureState.L1_CORAL, SuperstructureState.L1_CORAL_EJECT),
             Pair.of(SuperstructureState.L2_CORAL, SuperstructureState.L2_CORAL_EJECT),
@@ -325,6 +329,10 @@ public class Superstructure extends SubsystemBase {
                 reefDangerState = Optional.empty();
               }
 
+              // Check if should intake
+              if (coralIndexed && !hasCoral() && !hasAlgae()) {
+                return SuperstructureState.CORAL_INTAKE;
+              }
               return dispenser.hasAlgae()
                   ? SuperstructureState.ALGAE_STOW
                   : SuperstructureState.STOW;
@@ -381,10 +389,10 @@ public class Superstructure extends SubsystemBase {
 
     // Tell dispenser if intaking
     dispenser.setIntaking(
-        state == SuperstructureState.CORAL_INTAKE
-            || next == SuperstructureState.CORAL_INTAKE
-            || state == SuperstructureState.ALGAE_CORAL_INTAKE
-            || next == SuperstructureState.ALGAE_CORAL_INTAKE);
+        state == SuperstructureState.CORAL_INTAKE || next == SuperstructureState.CORAL_INTAKE);
+
+    // Tell dispenser if coral indexed
+    dispenser.setCoralIndexed(coralIndexed);
 
     // Force fast constraints
     elevator.setForceFastConstraints(forceFastConstraints);
@@ -397,9 +405,25 @@ public class Superstructure extends SubsystemBase {
     elevator.setEStopped(isEStopped);
     dispenser.setEStopped(isEStopped);
 
+    // Tell intake state
+    intakeReadyConsumer.accept(
+        intakeReadyDebouncer.calculate(
+            state == SuperstructureState.CORAL_INTAKE && goal == SuperstructureState.CORAL_INTAKE));
+    hasCoralConsumer.accept(hasCoral());
+
     driverDisableAlert.set(disableOverride.getAsBoolean());
     emergencyDisableAlert.set(isEStopped);
     Leds.getInstance().superstructureEstopped = isEStopped;
+
+    // Sim intake
+    if (DriverStation.isAutonomousEnabled()
+        && Constants.getRobot() == RobotType.SIMBOT
+        && coralIndexed
+        && state == SuperstructureState.CORAL_INTAKE
+        && goal == SuperstructureState.CORAL_INTAKE
+        && !hasCoral()) {
+      dispenser.resetHasCoral(true);
+    }
 
     // Log state
     Logger.recordOutput("Superstructure/State", state);
@@ -437,8 +461,10 @@ public class Superstructure extends SubsystemBase {
     LoggedTracer.record("Superstructure");
   }
 
-  public void setOverrides(BooleanSupplier disableOverride) {
-    this.disableOverride = disableOverride;
+  public void setIntakeInterface(
+      BooleanConsumer intakeReadyConsumer, BooleanConsumer hasCoralConsumer) {
+    this.intakeReadyConsumer = intakeReadyConsumer;
+    this.hasCoralConsumer = hasCoralConsumer;
   }
 
   @AutoLogOutput(key = "Superstructure/AtGoal")
@@ -454,6 +480,7 @@ public class Superstructure extends SubsystemBase {
     return dispenser.hasCoral();
   }
 
+  @AutoLogOutput
   public boolean readyForL4() {
     return elevator.getPositionMeters() >= elevatorL4ClearHeight.get();
   }
@@ -519,13 +546,8 @@ public class Superstructure extends SubsystemBase {
         () -> dispenser.setForceEjectForward(true), () -> dispenser.setForceEjectForward(false));
   }
 
-  public Command forceEjectBackward() {
-    return startEnd(
-        () -> dispenser.setForceEjectReverse(true), () -> dispenser.setForceEjectReverse(false));
-  }
-
   public void setAutoStart() {
-    state = SuperstructureState.AUTO_START;
+    state = SuperstructureState.START;
     next = null;
     if (edgeCommand != null) {
       edgeCommand.getCommand().cancel();
@@ -654,50 +676,47 @@ public class Superstructure extends SubsystemBase {
               Commands.waitUntil(this::mechanismsAtGoal));
     }
 
-    boolean passesThroughCrossMember =
-        from.getValue().getHeight().equals(Height.BOTTOM)
-            != to.getValue().getHeight().equals(Height.BOTTOM);
-    if (passesThroughCrossMember) {
-      boolean isGoingDown = to.getValue().getHeight().lowerThan(from.getValue().getHeight());
-      SuperstructurePose safeSuperstructureSetpoint =
-          new SuperstructurePose(
-              () -> {
-                // Attempt to reach nearest safe point on elevator
-                var currentAngle = from.getValue().getPose().pivotAngle().get();
-                if (currentAngle.getDegrees() <= pivotMaxSafeAngleDeg.get()
-                    && currentAngle.getDegrees() >= pivotMinSafeAngleDeg.get()) {
-                  return to.getValue().getPose().elevatorHeight().getAsDouble();
-                }
-                return isGoingDown
-                    ? from.getValue().getHeight().getPosition() + 0.1
-                    : to.getValue().getHeight().getPosition() - 0.1;
-              },
-              () ->
-                  Rotation2d.fromDegrees(
-                      MathUtil.clamp(
-                          to.getValue().getPose().pivotAngle().get().getDegrees(),
-                          pivotMinSafeAngleDeg.get(),
-                          pivotMaxSafeAngleDeg.get())));
-      return runSuperstructurePose(safeSuperstructureSetpoint)
-          .andThen(
-              Commands.waitUntil(dispenser::isAtGoal),
-              runElevator(to.getValue().getPose().elevatorHeight()),
-              Commands.waitUntil(
-                  () ->
-                      (isGoingDown
-                              ? elevator.getPositionMeters()
-                                  <= to.getValue().getHeight().getPosition()
-                              : elevator.getPositionMeters()
-                                  >= to.getValue().getHeight().getPosition())
-                          || elevator.isAtGoal()),
-              runSuperstructurePose(to.getValue().getPose()),
-              Commands.waitUntil(this::mechanismsAtGoal))
-          .deadlineFor(runSuperstructureExtras(to));
-    } else {
+    if (to == SuperstructureState.CORAL_INTAKE) {
       return runSuperstructurePose(to.getValue().getPose())
-          .andThen(Commands.waitUntil(this::mechanismsAtGoal))
-          .deadlineFor(runSuperstructureExtras(to));
+          .andThen(
+              Commands.runOnce(() -> dispenser.setGripperGoal(to.getValue().getGripperGoal())),
+              Commands.parallel(
+                  Commands.waitUntil(this::mechanismsAtGoal),
+                  new SuppliedWaitCommand(Dispenser.gripperHardstopTime)),
+              Commands.runOnce(
+                  () -> dispenser.setTunnelVolts(to.getValue().getTunnelVolts().getAsDouble())));
+    } else if (from == SuperstructureState.CORAL_INTAKE) {
+      return runSuperstructurePose(to.getValue().getPose())
+          .andThen(
+              Commands.waitUntil(() -> !dispenser.rawHasCoral() || dispenser.hasCoral()),
+              Commands.runOnce(
+                  () -> {
+                    dispenser.setTunnelVolts(0.0);
+                    dispenser.setGripperGoal(Dispenser.GripperGoal.REVERSE_HARDSTOP);
+                  }),
+              new SuppliedWaitCommand(Dispenser.gripperHardstopTime),
+              Commands.runOnce(() -> dispenser.setGripperGoal(Dispenser.GripperGoal.IDLE)),
+              Commands.waitUntil(this::mechanismsAtGoal));
     }
+
+    return runElevator(to.getValue().getPose().elevatorHeight())
+        .andThen(
+            runDispenserPivot(
+                    () ->
+                        Rotation2d.fromDegrees(
+                            Math.min(
+                                to.getValue().getPose().pivotAngle().get().getDegrees(),
+                                SuperstructureConstants.pivotMaxSafeAngleDeg.get())))
+                .andThen(Commands.waitUntil(elevator::isAtGoal))
+                .onlyIf(
+                    () ->
+                        from.getValue().getPose().elevatorHeight().getAsDouble()
+                                > SuperstructureConstants.elevatorCrossMemberDangerHeight.get()
+                            || to.getValue().getPose().elevatorHeight().getAsDouble()
+                                > SuperstructureConstants.elevatorCrossMemberDangerHeight.get()),
+            runDispenserPivot(to.getValue().getPose().pivotAngle()),
+            Commands.waitUntil(this::mechanismsAtGoal))
+        .deadlineFor(runSuperstructureExtras(to));
   }
 
   public Command runHomingSequence() {

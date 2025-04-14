@@ -19,6 +19,7 @@ import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -27,9 +28,7 @@ import lombok.Setter;
 import lombok.experimental.ExtensionMethod;
 import org.littletonrobotics.frc2025.subsystems.drive.DriveConstants;
 import org.littletonrobotics.frc2025.subsystems.vision.VisionConstants;
-import org.littletonrobotics.frc2025.util.AllianceFlipUtil;
-import org.littletonrobotics.frc2025.util.GeomUtil;
-import org.littletonrobotics.frc2025.util.LoggedTunableNumber;
+import org.littletonrobotics.frc2025.util.*;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
@@ -37,7 +36,7 @@ import org.littletonrobotics.junction.Logger;
 public class RobotState {
   // Must be less than 2.0
   private static final LoggedTunableNumber txTyObservationStaleSecs =
-      new LoggedTunableNumber("RobotState/TxTyObservationStaleSeconds", 0.05);
+      new LoggedTunableNumber("RobotState/TxTyObservationStaleSeconds", 0.2);
   private static final LoggedTunableNumber minDistanceTagPoseBlend =
       new LoggedTunableNumber("RobotState/MinDistanceTagPoseBlend", Units.inchesToMeters(24.0));
   private static final LoggedTunableNumber maxDistanceTagPoseBlend =
@@ -45,7 +44,7 @@ public class RobotState {
   private static final LoggedTunableNumber coralOverlap =
       new LoggedTunableNumber("RobotState/CoralOverlap", .5);
   private static final LoggedTunableNumber coralPersistanceTime =
-      new LoggedTunableNumber("RobotState/CoralPersistanceTime", 2.0);
+      new LoggedTunableNumber("RobotState/CoralPersistanceTime", 0.75);
   private static final LoggedTunableNumber algaePersistanceTime =
       new LoggedTunableNumber("RobotState/AlgaePersistanceTime", 0.1);
 
@@ -363,6 +362,9 @@ public class RobotState {
   }
 
   public Set<Translation2d> getCoralTranslations() {
+    if (Constants.getRobot() == Constants.RobotType.SIMBOT && DriverStation.isAutonomousEnabled()) {
+      return AutoCoralSim.getCorals();
+    }
     return coralPoses.stream()
         .filter((x) -> Timer.getTimestamp() - x.timestamp() < coralPersistanceTime.get())
         .map(CoralPoseRecord::translation)

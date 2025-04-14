@@ -22,7 +22,7 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.units.measure.*;
 import org.littletonrobotics.frc2025.util.PhoenixUtil;
 
-public class GenericSlamElevatorIOKrakenFOC implements GenericSlamElevatorIO {
+public class GenericSlamIOKrakenFOC implements GenericSlamIO {
   // Hardware
   private final TalonFX talon;
 
@@ -38,7 +38,7 @@ public class GenericSlamElevatorIOKrakenFOC implements GenericSlamElevatorIO {
   private final TorqueCurrentFOC currentControl = new TorqueCurrentFOC(0.0).withUpdateFreqHz(0.0);
   private final NeutralOut neutralOut = new NeutralOut();
 
-  public GenericSlamElevatorIOKrakenFOC(
+  public GenericSlamIOKrakenFOC(
       int id, String bus, int currentLimitAmps, boolean invert, double reduction) {
     talon = new TalonFX(id, bus);
 
@@ -74,9 +74,9 @@ public class GenericSlamElevatorIOKrakenFOC implements GenericSlamElevatorIO {
   }
 
   @Override
-  public void updateInputs(GenericSlamElevatorIOInputs inputs) {
+  public void updateInputs(GenericSlamIOInputs inputs) {
     inputs.data =
-        new GenericSlamElevatorIOData(
+        new GenericSlamIOData(
             BaseStatusSignal.isAllGood(
                 position, velocity, appliedVoltage, supplyCurrent, torqueCurrent, temp),
             position.getValue().in(Radians),
@@ -88,7 +88,7 @@ public class GenericSlamElevatorIOKrakenFOC implements GenericSlamElevatorIO {
   }
 
   @Override
-  public void runCurrent(double amps) {
+  public void runTorqueCurrent(double amps) {
     talon.setControl(currentControl.withOutput(amps));
   }
 

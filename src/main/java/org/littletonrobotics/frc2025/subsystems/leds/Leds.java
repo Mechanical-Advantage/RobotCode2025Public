@@ -42,6 +42,7 @@ public class Leds extends VirtualSubsystem {
   public boolean autoScoringReef = false;
   public boolean autoScoring = false;
   public boolean superAutoScoring = false;
+  public boolean coralIntaking = false;
   public boolean superstructureCoast = false;
   public boolean superstructureEstopped = false;
   public boolean lowBatteryAlert = false;
@@ -82,6 +83,7 @@ public class Leds extends VirtualSubsystem {
   private static final int virtualLength = length + virtualSectionLength;
   private static final Section virtualSection =
       new Section(sideSectionLength, sideSectionLength + virtualSectionLength);
+  private static final Section fullSectionRaw = new Section(0, fullLength);
   private static final Section fullSection = new Section(0, virtualLength);
   private static final Section firstPrioritySection = new Section(0, 4 * virtualLength / 5);
   private static final Section secondPrioritySection =
@@ -89,6 +91,7 @@ public class Leds extends VirtualSubsystem {
   private static final Section straightSection = new Section(sideSectionLength, virtualLength);
   private static final Section sideSection = new Section(0, sideSectionLength);
   private static final double strobeDuration = 0.1;
+  private static final double strobeSlowDuration = 0.2;
   private static final double breathFastDuration = 0.5;
   private static final double breathSlowDuration = 1.0;
   private static final double rainbowCycleLength = 25.0;
@@ -189,7 +192,7 @@ public class Leds extends VirtualSubsystem {
       } else if (prideLeds) {
         // Pride stripes
         stripes(
-            fullSection,
+            fullSectionRaw,
             List.of(
                 Color.kBlack,
                 Color.kRed,
@@ -259,6 +262,11 @@ public class Leds extends VirtualSubsystem {
       // Ready alert
       if (ready) {
         strobe(straightSection, Color.kWhite, Color.kBlue, strobeDuration);
+      }
+
+      // Intaking
+      if (coralIntaking) {
+        strobe(fullSection, Color.kWhite, Color.kBlack, strobeSlowDuration);
       }
 
       // Coral grab alert
@@ -356,11 +364,15 @@ public class Leds extends VirtualSubsystem {
 
   private void stripes(Section section, List<Color> colors, int stripeLength, double duration) {
     int offset = (int) (Timer.getTimestamp() % duration / duration * stripeLength * colors.size());
-    for (int i = section.end() - 1; i >= section.start(); i--) {
+    for (int i = section.start(); i < section.end(); i++) {
       int colorIndex =
           (int) (Math.floor((double) (i - offset) / stripeLength) + colors.size()) % colors.size();
       colorIndex = colors.size() - 1 - colorIndex;
-      setLED(i, colors.get(colorIndex));
+      var dimmedColor =
+          shouldDimSupplier.getAsBoolean()
+              ? Color.lerpRGB(Color.kBlack, colors.get(colorIndex), dimMultiplier)
+              : colors.get(colorIndex);
+      buffer.setLED(i, dimmedColor);
     }
   }
 

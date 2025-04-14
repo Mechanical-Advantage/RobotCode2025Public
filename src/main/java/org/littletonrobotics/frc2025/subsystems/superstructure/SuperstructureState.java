@@ -25,8 +25,9 @@ public enum SuperstructureState {
       SuperstructureStateData.builder()
           .pose(Preset.CORAL_INTAKE.getPose())
           .tunnelVolts(Dispenser.tunnelIntakeVolts)
+          .gripperGoal(Dispenser.GripperGoal.HARDSTOP)
           .build()),
-  GOODBYE_CORAL(SuperstructureStateData.builder().pose(Preset.GOODBYE_CORAL.getPose()).build()),
+  GOODBYE_CORAL(SuperstructureStateData.builder().pose(Preset.STOW.getPose()).build()),
   L1_CORAL(SuperstructureStateData.builder().pose(Preset.L1.getPose()).build()),
   L2_CORAL(
       SuperstructureStateData.builder()
@@ -45,6 +46,12 @@ public enum SuperstructureState {
           .build()),
   GOODBYE_CORAL_EJECT(
       GOODBYE_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts[3]).build()),
+  REVERSE_CORAL(SuperstructureStateData.builder().pose(Preset.REVERSE_INDEX.getPose()).build()),
+  REVERSE_CORAL_EJECT(
+      SuperstructureStateData.builder()
+          .pose(Preset.REVERSE_INDEX.getPose())
+          .tunnelVolts(Dispenser.tunnelL1ReverseVolts)
+          .build()),
   L1_CORAL_EJECT(
       SuperstructureStateData.builder()
           .pose(Preset.L1_EJECT.getPose())
@@ -58,11 +65,9 @@ public enum SuperstructureState {
       L4_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts[3]).build()),
   ALGAE_STOW(
       SuperstructureStateData.builder()
-          .pose(Preset.ALGAE_STOW.getPose())
+          .pose(Preset.STOW.getPose())
           .gripperGoal(Dispenser.GripperGoal.GRIP)
           .build()),
-  ALGAE_CORAL_INTAKE(
-      CORAL_INTAKE.getValue().toBuilder().gripperGoal(Dispenser.GripperGoal.GRIP).build()),
   ALGAE_GOODBYE_CORAL(
       GOODBYE_CORAL.getValue().toBuilder().gripperGoal(Dispenser.GripperGoal.GRIP).build()),
   ALGAE_GROUND_INTAKE(
@@ -115,11 +120,6 @@ public enum SuperstructureState {
           .pose(Preset.ALGAE_L3_INTAKE.getPose())
           .gripperGoal(Dispenser.GripperGoal.GRIP)
           .height(Height.FIRST_STAGE)
-          .build()),
-  ALGAE_ICE_CREAM_INTAKE(
-      SuperstructureStateData.builder()
-          .pose(Preset.ALGAE_ICE_CREAM_INTAKE.getPose())
-          .gripperGoal(Dispenser.GripperGoal.GRIP)
           .build()),
   PRE_THROW(
       SuperstructureStateData.builder()

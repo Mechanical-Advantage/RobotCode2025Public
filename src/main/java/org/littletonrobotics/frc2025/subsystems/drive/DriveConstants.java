@@ -41,7 +41,7 @@ public class DriveConstants {
     new Translation2d(-trackWidthX / 2, -trackWidthY / 2)
   };
 
-  public static final double wheelRadius = Units.inchesToMeters(2.000);
+  public static final double wheelRadius = Units.inchesToMeters(1.9413001940413326);
 
   public static final ModuleLimits moduleLimitsFree =
       new ModuleLimits(maxLinearSpeed, maxLinearAcceleration, Units.degreesToRadians(1080.0));
