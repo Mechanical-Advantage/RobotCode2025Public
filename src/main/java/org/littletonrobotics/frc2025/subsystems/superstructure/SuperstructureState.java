@@ -65,7 +65,7 @@ public enum SuperstructureState {
       L4_CORAL.getValue().toBuilder().tunnelVolts(Dispenser.tunnelDispenseVolts[3]).build()),
   ALGAE_STOW(
       SuperstructureStateData.builder()
-          .pose(Preset.STOW.getPose())
+          .pose(Preset.ALGAE_STOW.getPose())
           .gripperGoal(Dispenser.GripperGoal.GRIP)
           .build()),
   ALGAE_GOODBYE_CORAL(

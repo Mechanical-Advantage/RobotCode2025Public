@@ -32,17 +32,13 @@ public class Climber extends SubsystemBase {
   private static final LoggedTunableNumber deployCurrent =
       new LoggedTunableNumber("Climber/DeployCurrent", -3);
   private static final LoggedTunableNumber deployAngle =
-      new LoggedTunableNumber("Climber/DeployAngle", -80);
+      new LoggedTunableNumber("Climber/DeployAngle", -77);
   private static final LoggedTunableNumber climbCurrent =
       new LoggedTunableNumber("Climber/ClimbCurrent", 100);
   private static final LoggedTunableNumber climbCurrentRampRate =
       new LoggedTunableNumber("Climber/ClimbCurrentRampRate", 120);
   private static final LoggedTunableNumber climbStopAngle =
       new LoggedTunableNumber("Climber/ClimbStopAngle", 35);
-  private static final LoggedTunableNumber climbFailedMeasurementStartAngle =
-      new LoggedTunableNumber("Climber/ClimbFailedMeasurementStartAngle", 20);
-  private static final LoggedTunableNumber climbFailedCurrentThreshold =
-      new LoggedTunableNumber("Climber/ClimbFailedCurrentThreshold", 15);
   private static final LoggedTunableNumber gripVolts =
       new LoggedTunableNumber("Climber/GripVolts", 12.0);
 
@@ -134,14 +130,6 @@ public class Climber extends SubsystemBase {
             >= Units.degreesToRadians(climbStopAngle.get() + climbStopOffsetDegrees)) {
           stopPull = true;
           Leds.getInstance().superClimbed = true;
-        }
-        if (climberInputs.data.positionRads()
-                >= Units.degreesToRadians(climbFailedMeasurementStartAngle.get())
-            && !stopPull) {
-          boolean failed =
-              climbFailedDebouncer.calculate(
-                  climberInputs.data.torqueCurrentAmps() < climbFailedCurrentThreshold.get());
-          if (failed) climbState = ClimbState.READY;
         }
         climberIO.runTorqueCurrent(
             stopPull

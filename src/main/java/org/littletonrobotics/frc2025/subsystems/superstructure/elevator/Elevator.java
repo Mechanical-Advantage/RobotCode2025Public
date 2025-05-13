@@ -65,21 +65,21 @@ public class Elevator {
   private static final LoggedTunableNumber maxVelocityMetersPerSec =
       new LoggedTunableNumber("Elevator/MaxVelocityMetersPerSec", 3.0);
   private static final LoggedTunableNumber maxAccelerationMetersPerSec2 =
-      new LoggedTunableNumber("Elevator/MaxAccelerationMetersPerSec2", 10.0);
+      new LoggedTunableNumber("Elevator/MaxAccelerationMetersPerSec2", 6.0);
   private static final LoggedTunableNumber algaeMaxVelocityMetersPerSec =
       new LoggedTunableNumber("Elevator/AlgaeMaxVelocityMetersPerSec", 3.0);
   private static final LoggedTunableNumber algaeMaxAccelerationMetersPerSec2 =
-      new LoggedTunableNumber("Elevator/AlgaeMaxAccelerationMetersPerSec2", 10.0);
+      new LoggedTunableNumber("Elevator/AlgaeMaxAccelerationMetersPerSec2", 6.0);
   private static final LoggedTunableNumber homingVolts =
-      new LoggedTunableNumber("Elevator/HomingVolts", -2.0);
+      new LoggedTunableNumber("Elevator/HomingVolts", -4.0);
   private static final LoggedTunableNumber homingTimeSecs =
-      new LoggedTunableNumber("Elevator/HomingTimeSecs", 0.25);
+      new LoggedTunableNumber("Elevator/HomingTimeSecs", 0.1);
   private static final LoggedTunableNumber homingVelocityThresh =
       new LoggedTunableNumber("Elevator/HomingVelocityThresh", 5.0);
   private static final LoggedTunableNumber stowStopCheckHeight =
       new LoggedTunableNumber("Elevator/StowStopCheckHeight", .08);
   private static final LoggedTunableNumber tolerance =
-      new LoggedTunableNumber("Elevator/Tolerance", 0.5);
+      new LoggedTunableNumber("Elevator/Tolerance", 0.8);
 
   static {
     switch (Constants.getRobot()) {
@@ -89,7 +89,7 @@ public class Elevator {
         for (int stage = 0; stage < 3; stage++) {
           kS[stage].initDefault(0);
           kG[stage].initDefault(40);
-          kA[stage].initDefault(80);
+          kA[stage].initDefault(0);
         }
       }
       case SIMBOT -> {

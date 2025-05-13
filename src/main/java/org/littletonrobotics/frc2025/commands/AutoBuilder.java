@@ -38,7 +38,7 @@ public class AutoBuilder {
   private static final LoggedTunableNumber autoDangerTime =
       new LoggedTunableNumber("Auto/AutoDangerTime", 14.9);
   private static final LoggedTunableNumber intakeRestartTime =
-      new LoggedTunableNumber("Auto/IntakeRestartTime", 2.0);
+      new LoggedTunableNumber("Auto/IntakeRestartTime", 1.2);
 
   private final Drive drive;
   private final Superstructure superstructure;
@@ -50,29 +50,36 @@ public class AutoBuilder {
   public Command upInTheAirAuto() {
     Timer autoTimer = new Timer();
     Container<Integer> coralIndex = new Container<>(0);
+    Container<ReefLevel> level = new Container<>(null);
+    Container<Optional<CoralObjective>> coralObjective = new Container<>(Optional.empty());
     return Commands.runOnce(
             () -> {
               RobotState.getInstance().resetPose(autoTracker.getStartingPose());
               superstructure.setAutoStart();
               autoTimer.restart();
               coralIndex.value = 0;
+              level.value = autoTracker.getLevel().orElse(null);
             })
         .andThen(
             getUpInThePush(),
             Commands.sequence(
-                    Commands.runOnce(() -> coralIndex.value++),
+                    Commands.runOnce(
+                        () -> {
+                          coralIndex.value++;
+                          level.value = autoTracker.getLevel().orElse(null);
+                          if (level.value != null) {
+                            coralObjective.value = autoTracker.getCoralObjective(level.value);
+                          } else {
+                            coralObjective.value = Optional.empty();
+                          }
+                        }),
                     // Score coral
                     AutoScoreCommands.autoScore(
-                            drive,
-                            superstructure,
-                            () -> ReefLevel.L4,
-                            autoTracker::getCoralObjective)
+                            drive, superstructure, () -> level.value, () -> coralObjective.value)
                         .finallyDo(
                             interrupted -> {
                               if (!interrupted) {
-                                autoTracker
-                                    .getCoralObjective()
-                                    .ifPresent(autoTracker::setObjectiveScored);
+                                coralObjective.value.ifPresent(autoTracker::setObjectiveScored);
                                 System.out.printf(
                                     "Coral #" + coralIndex.value + " scored at %.2f seconds \n",
                                     autoTimer.get());
@@ -80,38 +87,39 @@ public class AutoBuilder {
                             })
                         .deadlineFor(
                             Commands.either(
-                                intake.intake(), intake.deploy(), () -> coralIndex.value == 1)),
+                                intake.deploy(), intake.intake(), () -> coralIndex.value == 1)),
                     // Begin intake
                     intakeSequence())
                 .repeatedly()
                 .until(
                     () ->
-                        autoTimer.hasElapsed(autoDangerTime.get())
-                            && AutoScoreCommands.withinDistanceToReef(
-                                RobotState.getInstance().getEstimatedPose(),
-                                AutoScoreCommands.minDistanceReefClearL4.get())
-                            && superstructure.readyForL4()),
+                        level.value == null
+                            || (autoTimer.hasElapsed(autoDangerTime.get())
+                                && AutoScoreCommands.withinDistanceToReef(
+                                    RobotState.getInstance().getEstimatedPose(),
+                                    AutoScoreCommands.minDistanceReefClearL4.get())
+                                && superstructure.readyForL4())),
             new DriveToPose(
                     drive,
                     () ->
                         RobotState.getInstance()
                             .getEstimatedPose()
-                            .transformBy(GeomUtil.toTransform2d(-0.5, 0.0)))
+                            .transformBy(GeomUtil.toTransform2d(-1.0, 0.0)))
                 .deadlineFor(superstructure.runGoal(SuperstructureState.STOW)))
         .until(() -> autoTimer.hasElapsed(15.0));
   }
 
   public Command intakeSequence() {
     Timer intakeTimer = new Timer();
-    Container<IntakingLocation> lastIntakingLocation = new Container<>(null);
+    Container<IntakingLocation> previousIntakingLocation = new Container<>(null);
+    Container<IntakingLocation> currentIntakingLocation = new Container<>(null);
+    Container<Boolean> hasBackedUp = new Container<>(false);
     return Commands.sequence(
             new DriveToPose(
                     drive,
                     () -> {
-                      var intakingLocation =
-                          autoTracker.getIntakeLocation(lastIntakingLocation.value);
                       Pose2d robot = RobotState.getInstance().getEstimatedPose();
-                      if (intakingLocation.isEmpty()) {
+                      if (currentIntakingLocation.value == null) {
                         if (AutoScoreCommands.withinDistanceToReef(
                             robot, AutoScoreCommands.minDistanceReefClearL4.get())) {
                           return robot.transformBy(GeomUtil.toTransform2d(-0.5, 0.0));
@@ -121,23 +129,33 @@ public class AutoBuilder {
                       }
 
                       Pose2d intakePose =
-                          AutoConstants.getIntakePose(robot, intakingLocation.get());
+                          AutoConstants.getIntakePose(robot, currentIntakingLocation.value);
                       if ((AutoScoreCommands.withinDistanceToReef(robot, 0.6)
                               && superstructure.readyForL4())
-                          || AutoScoreCommands.withinDistanceToReef(robot, 0.4)) {
+                          || AutoScoreCommands.withinDistanceToReef(robot, 0.9)) {
                         final double yError = intakePose.relativeTo(robot).getY();
                         return robot
                             .transformBy(
                                 GeomUtil.toTransform2d(
-                                    -1.0, Math.abs(yError) > 0.3 ? Math.signum(yError) * 0.3 : 0.0))
+                                    -1.8, Math.abs(yError) > 0.5 ? Math.signum(yError) * 0.5 : 0.0))
                             .transformBy(
                                 GeomUtil.toTransform2d(
-                                    robot
-                                        .getRotation()
-                                        .interpolate(intakePose.getRotation(), 0.25)
-                                        .minus(robot.getRotation())));
+                                        robot
+                                            .getRotation()
+                                            .interpolate(intakePose.getRotation(), 0.05)
+                                            .minus(robot.getRotation()))
+                                    .times(0.35));
                       }
-                      if (intakingLocation.get() == IntakingLocation.STATION) {
+                      if (currentIntakingLocation.value == IntakingLocation.STATION) {
+                        var robotToStationIntakePose = robot.relativeTo(intakePose);
+                        if (Math.abs(robotToStationIntakePose.getX()) <= 0.15
+                            && Math.abs(robotToStationIntakePose.getY()) <= 0.15
+                            && Math.abs(robotToStationIntakePose.getRotation().getDegrees())
+                                <= 10.0) {
+                          hasBackedUp.value = true;
+                        }
+                        if (hasBackedUp.value)
+                          return intakePose.transformBy(GeomUtil.toTransform2d(-1.4, 0.0));
                         return intakePose;
                       } else {
                         return intakePose.transformBy(
@@ -154,12 +172,16 @@ public class AutoBuilder {
                                 0.0));
                       }
                     })
+                .beforeStarting(
+                    () -> {
+                      currentIntakingLocation.value =
+                          autoTracker
+                              .getIntakeLocation(previousIntakingLocation.value)
+                              .orElse(null);
+                      hasBackedUp.value = false;
+                    })
+                .finallyDo(() -> previousIntakingLocation.value = currentIntakingLocation.value)
                 .raceWith(new SuppliedWaitCommand(intakeRestartTime))
-                .finallyDo(
-                    () ->
-                        autoTracker
-                            .getIntakeLocation(lastIntakingLocation.value)
-                            .ifPresent(location -> lastIntakingLocation.value = location))
                 .repeatedly()
                 .until(() -> autoTracker.getNearestValidCoral().isPresent())
                 .deadlineFor(intake.intake()),
@@ -188,7 +210,7 @@ public class AutoBuilder {
                     })
                 .andThen(superstructure.runGoal(SuperstructureState.CORAL_INTAKE)))
         .until(() -> intake.isCoralIndexed() || superstructure.hasCoral())
-        .finallyDo(() -> lastIntakingLocation.value = null);
+        .beforeStarting(() -> previousIntakingLocation.value = null);
   }
 
   public Command upInTheSimplicityAuto() {

@@ -10,7 +10,6 @@ package org.littletonrobotics.frc2025.commands;
 import static org.littletonrobotics.frc2025.FieldConstants.*;
 import static org.littletonrobotics.frc2025.commands.AutoConstants.*;
 import static org.littletonrobotics.frc2025.commands.IntakeCommands.angleDifferenceWeight;
-import static org.littletonrobotics.frc2025.commands.IntakeCommands.coralMaxAngleDeg;
 
 import edu.wpi.first.math.Pair;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -44,9 +43,11 @@ public class AutoTracker extends VirtualSubsystem {
   private static final LoggedTunableNumber coralMaxViewAngle =
       new LoggedTunableNumber("Auto/Tracker/CoralMaxViewAngle", 35.0);
   private static final LoggedTunableNumber iceCreamYDistance =
-      new LoggedTunableNumber("Auto/Tracker/CoralPresentYDistance", 0.8);
-  private static final LoggedTunableNumber iceCreamXDistance =
-      new LoggedTunableNumber("Auto/Tracker/CoralPresentXDistance", 1.2);
+      new LoggedTunableNumber("Auto/Tracker/IceCreamYDistance", 0.5);
+  private static final LoggedTunableNumber iceCreamFrontXDistance =
+      new LoggedTunableNumber("Auto/Tracker/IceCreamFrontXDistance", 0.5);
+  private static final LoggedTunableNumber iceCreamBackXDistance =
+      new LoggedTunableNumber("Auto/Tracker/IceCreamBackXDistance", 1.5);
 
   private static final Set<IntakingLocation> iceCreamLocations =
       Set.of(
@@ -79,7 +80,7 @@ public class AutoTracker extends VirtualSubsystem {
       }
     }
     for (var endingBranch : EndingBranch.values()) {
-      if (endingBranch == EndingBranch.HALFWAY) {
+      if (endingBranch == EndingBranch.SAFE) {
         endingBranchChooser.addDefaultOption(endingBranch.name(), endingBranch);
       } else {
         endingBranchChooser.addOption(endingBranch.name(), endingBranch);
@@ -87,8 +88,13 @@ public class AutoTracker extends VirtualSubsystem {
     }
     for (var intakingLocation : IntakingLocation.values()) {
       var chooser = new LoggedDashboardChooser<Boolean>("Intake from " + intakingLocation + "?");
-      chooser.addDefaultOption("YES", true);
-      chooser.addOption("NO", false);
+      if (intakingLocation == IntakingLocation.STATION) {
+        chooser.addDefaultOption("YES", true);
+        chooser.addOption("NO", false);
+      } else {
+        chooser.addOption("YES", true);
+        chooser.addDefaultOption("NO", false);
+      }
       intakingLocationChoosers.add(Pair.of(intakingLocation, chooser));
     }
   }
@@ -163,7 +169,7 @@ public class AutoTracker extends VirtualSubsystem {
               .filter(
                   coral ->
                       Constants.getRobot() != Constants.RobotType.SIMBOT
-                          || (predictedRobot.getTranslation().getDistance(coral) <= 2.0
+                          || (predictedRobot.getTranslation().getDistance(coral) <= 3.0
                               && Math.abs(
                                       predictedRobot
                                               .getRotation()
@@ -173,7 +179,7 @@ public class AutoTracker extends VirtualSubsystem {
                                               .minus(predictedRobot.getTranslation())
                                               .getAngle()
                                               .getDegrees()))
-                                  <= coralMaxAngleDeg.get()))
+                                  <= 60.0))
               .min(
                   Comparator.comparingDouble(
                       coral ->
@@ -244,25 +250,37 @@ public class AutoTracker extends VirtualSubsystem {
     return AllianceFlipUtil.apply(MirrorUtil.apply(startingBranch.startingPose));
   }
 
-  /** Returns empty optional if no valid objectives left to score on. */
-  public Optional<CoralObjective> getCoralObjective() {
+  public Optional<ReefLevel> getLevel() {
     return openAutoObjectives.stream()
+        .max(Comparator.comparingInt(objective -> objective.reefLevel().levelNumber))
+        .map(CoralObjective::reefLevel);
+  }
+
+  /** Returns empty optional if no valid objectives left to score on. */
+  public Optional<CoralObjective> getCoralObjective(ReefLevel level) {
+    return openAutoObjectives.stream()
+        .filter(objective -> objective.reefLevel() == level)
         .min(
             Comparator.comparingDouble(
                 objective ->
                     predictedRobot
-                            .getTranslation()
-                            .getDistance(
-                                AllianceFlipUtil.apply(
-                                        MirrorUtil.apply(
-                                            AutoScoreCommands.getCoralScorePose(objective, false)))
-                                    .getTranslation())
-                        + (objective.reefLevel() == ReefLevel.L2 ? 100.0 : 0.0)))
+                        .getTranslation()
+                        .getDistance(
+                            AllianceFlipUtil.apply(
+                                    MirrorUtil.apply(
+                                        AutoScoreCommands.getCoralScorePose(objective, false)))
+                                .getTranslation())))
         .map(MirrorUtil::apply);
   }
 
   public Optional<IntakingLocation> getIntakeLocation(IntakingLocation previousLocation) {
     return openIntakingLocations.stream()
+        .filter(
+            intakingLocation -> {
+              if (openIntakingLocations.size() == 1) return true;
+              if (previousLocation == null) return true;
+              return intakingLocation != previousLocation;
+            })
         .min(
             Comparator.comparingDouble(
                 intakingLocation ->
@@ -294,10 +312,12 @@ public class AutoTracker extends VirtualSubsystem {
 
   private static boolean isIceCreamCoral(
       IntakingLocation iceCream, Translation2d transformedCoralTranslation) {
+    if (iceCream == IntakingLocation.STATION) return false;
     Translation2d error =
         transformedCoralTranslation.minus(StagingPositions.iceCreams[iceCream.iceCreamIndex]);
     return Math.abs(error.getY()) <= iceCreamYDistance.get()
-        && Math.abs(error.getX()) <= iceCreamXDistance.get();
+        && error.getX() <= iceCreamFrontXDistance.get()
+        && error.getX() >= -iceCreamBackXDistance.get();
   }
 
   @RequiredArgsConstructor

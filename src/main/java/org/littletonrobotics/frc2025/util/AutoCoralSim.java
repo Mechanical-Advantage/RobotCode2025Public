@@ -36,7 +36,8 @@ public class AutoCoralSim {
                   FieldConstants.CoralStation.rightCenterFace
                       .transformBy(
                           GeomUtil.toTransform2d(
-                              0.5 + random.nextDouble() * 2.0, 0.5 - random.nextDouble() * 2.0))
+                              0.35 + (1.5 - random.nextDouble() * 2.0),
+                              -0.6 + (0.5 - random.nextDouble() * 1.5)))
                       .getTranslation())));
     }
   }

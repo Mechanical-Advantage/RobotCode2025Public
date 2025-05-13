@@ -24,17 +24,21 @@ import org.littletonrobotics.frc2025.util.MirrorUtil;
 @RequiredArgsConstructor
 public class AutoConstants {
   private static final LoggedTunableNumber stationIntakeRadius =
-      new LoggedTunableNumber("Auto/StationIntakeRadius", 2.5);
+      new LoggedTunableNumber("Auto/StationIntakeRadius", 4.0);
   private static final LoggedTunableNumber stationIntakeXOffset =
-      new LoggedTunableNumber("Auto/StationIntakeXOffset", -0.5);
+      new LoggedTunableNumber("Auto/StationIntakeXOffset", -1.0);
   private static final LoggedTunableNumber stationIntakeYOffset =
-      new LoggedTunableNumber("Auto/StationIntakeYOffset", 0.0);
+      new LoggedTunableNumber("Auto/StationIntakeYOffset", -0.5);
+  private static final LoggedTunableNumber stationIntakeAimXOffset =
+      new LoggedTunableNumber("Auto/StationIntakeAimXOffset", 0.0);
+  private static final LoggedTunableNumber stationIntakeAimYOffset =
+      new LoggedTunableNumber("Auto/StationIntakeAimYOffset", -0.4);
   private static final LoggedTunableNumber maxTurnIceCreamIntake =
-      new LoggedTunableNumber("Auto/MaxTurnIceCreamIntake", 75.0);
+      new LoggedTunableNumber("Auto/MaxTurnIceCreamIntake", 100.0);
   private static final LoggedTunableNumber iceCreamIntakeOffset =
       new LoggedTunableNumber("Auto/IceCreamIntakeOffset", 0.05);
 
-  protected static final Pose2d closeCageStart =
+  static final Pose2d closeCageStart =
       new Pose2d(
           startingLineX - DriveConstants.robotWidth / 2.0,
           fieldWidth
@@ -42,7 +46,7 @@ public class AutoConstants {
               - Barge.cageWidth / 2.0
               - DriveConstants.robotWidth / 2.0,
           Rotation2d.kCCW_Pi_2);
-  protected static final Pose2d farCageStart =
+  static final Pose2d farCageStart =
       new Pose2d(
           startingLineX - DriveConstants.robotWidth / 2.0,
           fieldWidth
@@ -60,12 +64,21 @@ public class AutoConstants {
               .transformBy(
                   GeomUtil.toTransform2d(stationIntakeXOffset.get(), stationIntakeYOffset.get()))
               .getTranslation();
+      Translation2d aimCenter =
+          CoralStation.rightCenterFace
+              .transformBy(
+                  GeomUtil.toTransform2d(
+                      stationIntakeAimXOffset.get(), stationIntakeAimYOffset.get()))
+              .getTranslation();
       return AllianceFlipUtil.apply(
           MirrorUtil.apply(
               new Pose2d(
-                      circleCenter,
-                      transformedRobot.getTranslation().minus(circleCenter).getAngle())
-                  .transformBy(GeomUtil.toTransform2d(stationIntakeRadius.get(), 0.0))));
+                  new Pose2d(
+                          circleCenter,
+                          transformedRobot.getTranslation().minus(circleCenter).getAngle())
+                      .transformBy(GeomUtil.toTransform2d(stationIntakeRadius.get(), 0.0))
+                      .getTranslation(),
+                  transformedRobot.getTranslation().minus(aimCenter).getAngle())));
     }
     // Ice cream intake
     Translation2d iceCreamTranslation =

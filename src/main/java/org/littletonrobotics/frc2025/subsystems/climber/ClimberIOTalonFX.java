@@ -26,7 +26,7 @@ import edu.wpi.first.units.measure.Voltage;
 import org.littletonrobotics.frc2025.util.PhoenixUtil;
 
 public class ClimberIOTalonFX implements ClimberIO {
-  public static final double reduction = 125.0;
+  public static final double reduction = (74.0 / 16.0) / (72.0 / 18.0) * 125.0;
 
   // Hardware
   private final TalonFX talon;

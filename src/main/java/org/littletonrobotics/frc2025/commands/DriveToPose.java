@@ -96,19 +96,19 @@ public class DriveToPose extends Command {
       new LoggedTunableNumber("DriveToPose/Reset/MinThetaFF");
 
   static {
-    drivekP.initDefault(1.0);
+    drivekP.initDefault(1.8);
     drivekD.initDefault(0.0);
-    thetakP.initDefault(4.0);
+    thetakP.initDefault(5.0);
     thetakD.initDefault(0.5);
 
     driveMaxVelocity.initDefault(4.0);
     driveMaxVelocityTop.initDefault(4.0);
     driveMaxAcceleration.initDefault(3.5);
     driveMaxAccelerationTop.initDefault(1.5);
-    driveMaxVelocityAuto.initDefault(4.0);
-    driveMaxVelocityAutoTop.initDefault(4.0);
-    driveMaxAccelerationAuto.initDefault(4.5);
-    driveMaxAccelerationAutoTop.initDefault(2.5);
+    driveMaxVelocityAuto.initDefault(3.5);
+    driveMaxVelocityAutoTop.initDefault(3.5);
+    driveMaxAccelerationAuto.initDefault(4.0);
+    driveMaxAccelerationAutoTop.initDefault(2.0);
 
     thetaMaxVelocity.initDefault(Units.degreesToRadians(360.0));
     thetaMaxVelocityTop.initDefault(Units.degreesToRadians(200.0));

@@ -57,7 +57,7 @@ public class IntakeCommands {
   private static final LoggedTunableNumber thetaTolerance =
       new LoggedTunableNumber("IntakeCommands/SLA/ThetaTolerance", 45.0);
   private static final LoggedTunableNumber intakingOffset =
-      new LoggedTunableNumber("IntakeCommands/IntakingOffset", Units.inchesToMeters(3.0));
+      new LoggedTunableNumber("IntakeCommands/IntakingOffset", Units.inchesToMeters(4.0));
   private static final LoggedTunableNumber algaeSearchSpeed =
       new LoggedTunableNumber("IntakeCommands/Algae/SearchSpeed", 2.0);
   private static final LoggedTunableNumber algaeKp =
@@ -310,7 +310,7 @@ public class IntakeCommands {
                                         coral, robot.getTranslation().minus(coral).getAngle())
                                     .transformBy(
                                         new Transform2d(
-                                            DriveConstants.robotWidth / 2.0,
+                                            DriveConstants.robotWidth / 2.0 + intakingOffset.get(),
                                             0.0,
                                             Rotation2d.kZero));
                               })
@@ -361,7 +361,7 @@ public class IntakeCommands {
                     && Math.abs(
                             predictedIntakePose.getRotation().getDegrees()
                                 - (coral
-                                    .minus(predictedRobot.getTranslation())
+                                    .minus(predictedIntakePose.getTranslation())
                                     .getAngle()
                                     .getDegrees()))
                         <= coralMaxAngleDeg.get())

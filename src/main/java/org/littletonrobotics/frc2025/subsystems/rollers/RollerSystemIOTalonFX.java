@@ -62,6 +62,7 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
     config.CurrentLimits.SupplyCurrentLimit = currentLimitAmps;
     config.CurrentLimits.SupplyCurrentLimitEnable = true;
     config.Feedback.VelocityFilterTimeConstant = 0.1;
+    config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
     tryUntilOk(5, () -> talon.getConfigurator().apply(config));
 
     position = talon.getPosition();
@@ -142,17 +143,5 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
           config.withCurrentLimits(config.CurrentLimits.withStatorCurrentLimit(currentLimit));
           tryUntilOk(5, () -> talon.getConfigurator().apply(config));
         });
-  }
-
-  @Override
-  public void setBrakeMode(boolean enabled) {
-    new Thread(
-            () ->
-                tryUntilOk(
-                    5,
-                    () ->
-                        talon.setNeutralMode(
-                            enabled ? NeutralModeValue.Brake : NeutralModeValue.Coast)))
-        .start();
   }
 }

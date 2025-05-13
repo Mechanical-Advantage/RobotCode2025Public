@@ -52,7 +52,7 @@ public class Intake extends SubsystemBase {
   private static final LoggedTunableNumber indexerReverseVolts =
       new LoggedTunableNumber("Intake/Reverse/Indexer", -3.0);
   private static final LoggedTunableNumber l1ReverseTimeSecs =
-      new LoggedTunableNumber("Intake/Reverse/L1ReverseTimeSecs", 0.02);
+      new LoggedTunableNumber("Intake/Reverse/L1ReverseTimeSecs", 0.43);
   private static final LoggedTunableNumber coralProximity =
       new LoggedTunableNumber("Intake/CoralProximity", 0.05);
 
@@ -66,6 +66,7 @@ public class Intake extends SubsystemBase {
   @AutoLogOutput private Goal goal = Goal.RETRACT;
   private final Timer goalTimer = new Timer();
   @Getter @AutoLogOutput private boolean coralIndexed;
+  @Getter @AutoLogOutput private boolean coralIndexedRaw;
   private final Debouncer coralIndexedDebouncer = new Debouncer(0.5, DebounceType.kFalling);
   @Setter private boolean hasCoral;
   @AutoLogOutput @Setter private boolean superstructureReady;
@@ -84,13 +85,13 @@ public class Intake extends SubsystemBase {
     this.indexer = new RollerSystem("Intake indexer", "Intake/Indexer", indexerIO);
     this.coralSensorIO = coralSensorIO;
     goalTimer.start();
+    roller.setBrakeMode(true);
+    indexer.setBrakeMode(true);
   }
 
   public void periodic() {
     // Set coast mode
     slam.setBrakeMode(!coastOverride.getAsBoolean());
-    roller.setBrakeMode(!coastOverride.getAsBoolean());
-    indexer.setBrakeMode(!coastOverride.getAsBoolean());
 
     slam.periodic();
     roller.periodic();
@@ -100,7 +101,7 @@ public class Intake extends SubsystemBase {
 
     // Update coral index state
     if (Constants.getRobot() != Constants.RobotType.SIMBOT) {
-      boolean coralIndexedRaw =
+      coralIndexedRaw =
           coralSensorInputs.data.valid()
               && coralSensorInputs.data.distanceMeters() <= coralProximity.get();
       coralIndexed = coralIndexedDebouncer.calculate(coralIndexedRaw);
@@ -125,7 +126,7 @@ public class Intake extends SubsystemBase {
     double indexerVolts = 0.0;
     switch (goal) {
       case RETRACT -> {
-        slamGoal = Slam.Goal.DEPLOY;
+        slamGoal = Slam.Goal.RETRACT;
         if (slam.getGoal() == Slam.Goal.DEPLOY && slam.atGoal()) {
           if (hasCoral) {
             rollerVolts = rollerOuttakeVolts.get();
@@ -207,6 +208,10 @@ public class Intake extends SubsystemBase {
     return startEnd(() -> setGoal(Goal.INTAKE), () -> setGoal(Goal.DEPLOY));
   }
 
+  public Command intakeTeleop() {
+    return startEnd(() -> setGoal(Goal.INTAKE), () -> setGoal(Goal.RETRACT));
+  }
+
   public Command outtake() {
     return startEnd(() -> setGoal(Goal.OUTTAKE), () -> setGoal(Goal.DEPLOY));
   }
@@ -229,8 +234,8 @@ public class Intake extends SubsystemBase {
         .until(hasCoral)
         .andThen(
             setGoalCommand(Goal.REVERSE),
-            Commands.waitUntil(() -> coralIndexed),
-            Commands.waitUntil(() -> !coralIndexed),
+            Commands.waitUntil(() -> coralIndexedRaw),
+            Commands.waitUntil(() -> !coralIndexedRaw),
             Commands.runOnce(reverseTimer::restart),
             setGoalCommand(Goal.REVERSE),
             Commands.waitUntil(() -> reverseTimer.hasElapsed(l1ReverseTimeSecs.get())),

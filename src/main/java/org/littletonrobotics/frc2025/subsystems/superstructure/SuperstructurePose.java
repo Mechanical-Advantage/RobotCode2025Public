@@ -188,7 +188,8 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
   @Getter
   enum Preset {
     STOW("Stow", 0.025, 12.0),
-    REVERSE_INDEX("ReverseIndex", 0.02, 12.0),
+    ALGAE_STOW("AlgaeStow", 0.1, -40.0),
+    REVERSE_INDEX("ReverseIndex", 0.025, 12.0),
     CORAL_INTAKE(
         () ->
             intakeHeightBaseline.get()
@@ -203,7 +204,7 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
     ALGAE_L2(CoralDispenserPose.ALGAE_L2),
     ALGAE_L3(CoralDispenserPose.ALGAE_L3),
     ALGAE_L4(CoralDispenserPose.ALGAE_L4),
-    ALGAE_GROUND_INTAKE("AlgaeGroundIntake", 0.08, Dispenser.minAngle.getDegrees()),
+    ALGAE_GROUND_INTAKE("AlgaeGroundIntake", 0.075, Dispenser.minAngle.getDegrees()),
     ALGAE_L2_INTAKE(
         () -> l2ReefIntakeHeight.get() + getReefIntakeAdjustment(),
         new LoggedTunableNumber("Superstructure/AlgaeIntake/L2/Pivot", -55.0)),

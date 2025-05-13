@@ -70,17 +70,17 @@ public class Dispenser {
   private static final LoggedTunableNumber staticCharacterizationRampRate =
       new LoggedTunableNumber("Dispenser/StaticCharacterizationRampRate", 0.2);
   private static final LoggedTunableNumber algaeCurrentThresh =
-      new LoggedTunableNumber("Dispenser/AlgaeCurrentThreshold", 10.0);
+      new LoggedTunableNumber("Dispenser/AlgaeCurrentThreshold", 20.0);
   private static final LoggedTunableNumber coralProxThreshold =
       new LoggedTunableNumber("Dispenser/CoralProxThresh", 0.15);
   public static final LoggedTunableNumber gripperHoldVolts =
-      new LoggedTunableNumber("Dispenser/GripperHoldVolts", 0.8);
+      new LoggedTunableNumber("Dispenser/GripperHoldVolts", 1.0);
   public static final LoggedTunableNumber gripperIntakeVolts =
       new LoggedTunableNumber("Dispenser/GripperIntakeVolts", 9.0);
   public static final LoggedTunableNumber gripperEjectVolts =
       new LoggedTunableNumber("Dispenser/GripperEjectVolts", -12.0);
   public static final LoggedTunableNumber gripperIdleReverseTime =
-      new LoggedTunableNumber("Dispenser/GripperIdleReverseTime", 0.4);
+      new LoggedTunableNumber("Dispenser/GripperIdleReverseTime", 0.5);
   public static final LoggedTunableNumber gripperHardstopVolts =
       new LoggedTunableNumber("Dispenser/GripperHardstopVolts", -12.0);
   public static final LoggedTunableNumber gripperReverseHardstopVolts =
@@ -127,7 +127,7 @@ public class Dispenser {
   private static final LoggedTunableNumber algaeDebounceTime =
       new LoggedTunableNumber("Dispenser/AlgaeDebounceTime", 0.6);
   public static final LoggedTunableNumber gripperHardstopTime =
-      new LoggedTunableNumber("Dispenser/GripperHardstopTime", 0.25);
+      new LoggedTunableNumber("Dispenser/GripperHardstopTime", 0.5);
 
   static {
     switch (Constants.getRobot()) {
@@ -179,6 +179,7 @@ public class Dispenser {
   @Getter private State setpoint = new State();
   private DoubleSupplier goal = () -> 0.0;
   private boolean stopProfile = false;
+  @AutoLogOutput private double appliedGripperVolts = 0.0;
   @Getter private boolean shouldEStop = false;
   @Setter private boolean isEStopped = false;
   @Setter private boolean isIntaking = false;
@@ -381,7 +382,7 @@ public class Dispenser {
 
     // Check algae & coral states
     if (Constants.getRobot() != Constants.RobotType.SIMBOT) {
-      if (Math.abs(gripperInputs.data.appliedVoltage()) >= 0.5 || DriverStation.isDisabled()) {
+      if (Math.abs(appliedGripperVolts) >= 0.5 || DriverStation.isDisabled()) {
         hasAlgae =
             algaeDebouncer.calculate(
                 gripperInputs.data.torqueCurrentAmps() >= algaeCurrentThresh.get());
@@ -425,7 +426,8 @@ public class Dispenser {
     // Run tunnel and gripper
     if (forceEjectForward) {
       tunnelIO.runVolts(tunnelDispenseVolts[3].get());
-      gripperIO.runVolts(gripperEjectVolts.get());
+      appliedGripperVolts = gripperEjectVolts.get();
+      gripperIO.runVolts(appliedGripperVolts);
     } else if (!isEStopped) {
       double intakeVolts = tunnelVolts;
       if (hasCoral) {
@@ -448,28 +450,30 @@ public class Dispenser {
 
       switch (gripperGoal) {
         case IDLE ->
-            gripperIO.runVolts(
+            appliedGripperVolts =
                 gripperGoalTimer.hasElapsed(gripperIdleReverseTime.get())
                     ? 0.0
-                    : gripperReverseHardstopVolts.get());
+                    : gripperReverseHardstopVolts.get();
         case GRIP -> {
           if (hasAlgae) {
-            gripperIO.runVolts(gripperHoldVolts.get());
+            appliedGripperVolts = gripperHoldVolts.get();
           } else {
-            gripperIO.runVolts(gripperIntakeVolts.get());
+            appliedGripperVolts = gripperIntakeVolts.get();
           }
         }
-        case EJECT -> gripperIO.runVolts(gripperEjectVolts.get());
+        case EJECT -> appliedGripperVolts = gripperEjectVolts.get();
         case HARDSTOP ->
-            gripperIO.runVolts(
+            appliedGripperVolts =
                 gripperGoalTimer.hasElapsed(gripperHardstopTime.get())
                     ? 0.0
-                    : gripperHardstopVolts.get());
-        case REVERSE_HARDSTOP -> gripperIO.runVolts(gripperReverseHardstopVolts.get());
+                    : gripperHardstopVolts.get();
+        case REVERSE_HARDSTOP -> appliedGripperVolts = gripperReverseHardstopVolts.get();
       }
+      gripperIO.runVolts(appliedGripperVolts);
     } else {
       tunnelIO.stop();
       gripperIO.stop();
+      appliedGripperVolts = 0.0;
     }
     lastHasCoral = hasCoral;
 

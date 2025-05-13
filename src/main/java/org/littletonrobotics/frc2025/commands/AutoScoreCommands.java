@@ -55,15 +55,15 @@ public class AutoScoreCommands {
   public static final LoggedTunableNumber algaeBackupTime =
       new LoggedTunableNumber("AutoScore/AlgaeBackupTime", 0.5);
   private static final LoggedTunableNumber distanceSuperstructureReady =
-      new LoggedTunableNumber("AutoScore/DistanceSuperstructureReady", 2);
+      new LoggedTunableNumber("AutoScore/DistanceSuperstructureReady", 2.0);
   private static final LoggedTunableNumber distanceSuperstructureReadyAuto =
       new LoggedTunableNumber("AutoScore/DistanceSuperstructureReadyAuto", 2.0);
   private static final LoggedTunableNumber thetaToleranceReady =
       new LoggedTunableNumber("AutoScore/ThetaToleranceReady", 35.0);
   private static final LoggedTunableNumber arcDistanceReady =
-      new LoggedTunableNumber("AutoScore/ArcDistanceReady", 0.7);
+      new LoggedTunableNumber("AutoScore/ArcDistanceReady", 1.5);
   private static final LoggedTunableNumber arcDistanceReadyAuto =
-      new LoggedTunableNumber("AutoScore/ArcDistanceReadyAuto", 0.7);
+      new LoggedTunableNumber("AutoScore/ArcDistanceReadyAuto", 1.5);
   private static final LoggedTunableNumber[] lowerXToleranceEject = {
     new LoggedTunableNumber("AutoScore/XToleranceEject/Lower/L1", 0.03),
     new LoggedTunableNumber("AutoScore/XToleranceEject/Lower/L2", 0.05),
@@ -80,7 +80,7 @@ public class AutoScoreCommands {
     new LoggedTunableNumber("AutoScore/YToleranceEject/L1", 0.04),
     new LoggedTunableNumber("AutoScore/YToleranceEject/L2", 0.04),
     new LoggedTunableNumber("AutoScore/YToleranceEject/L3", 0.04),
-    new LoggedTunableNumber("AutoScore/YToleranceEject/L4", 0.04)
+    new LoggedTunableNumber("AutoScore/YToleranceEject/L4", 0.03)
   };
   private static final LoggedTunableNumber[] lookaheadEject = {
     new LoggedTunableNumber("AutoScore/LookaheadToleranceEject/L1", 0.5),

@@ -95,11 +95,14 @@ public class RobotContainer {
       new Alert("Operator controller disconnected (port 1).", AlertType.kWarning);
   private final Alert overrideDisconnected =
       new Alert("Override controller disconnected (port 5).", AlertType.kInfo);
+  private final Alert deadInTheWaterAlert =
+      new Alert("Please select an auto routine!!! 😳", AlertType.kWarning);
   private final LoggedNetworkNumber endgameAlert1 =
       new LoggedNetworkNumber("/SmartDashboard/Endgame Alert #1", 30.0);
   private final LoggedNetworkNumber endgameAlert2 =
       new LoggedNetworkNumber("/SmartDashboard/Endgame Alert #2", 15.0);
 
+  private Command deadInTheWater = Commands.none();
   private boolean coastOverride = false;
 
   // Dashboard inputs
@@ -256,7 +259,7 @@ public class RobotContainer {
 
     // Set up characterization routines
     var autoBuilder = new AutoBuilder(drive, superstructure, intake, upInThePush::get);
-    autoChooser.addDefaultOption("Dead In The Water Auto", Commands.none());
+    autoChooser.addDefaultOption("Dead In The Water Auto", deadInTheWater);
     autoChooser.addOption("Up In The Air Auto", autoBuilder.upInTheAirAuto());
     autoChooser.addOption("Up In The Simplicity Auto", autoBuilder.upInTheSimplicityAuto());
     autoChooser.addOption("Up In The Inspirational Auto", autoBuilder.upInTheInspirationalAuto());
@@ -444,7 +447,7 @@ public class RobotContainer {
         .and(scoringTriggers.negate())
         .whileTrue(
             intake
-                .intake()
+                .intakeTeleop()
                 .alongWith(superstructure.runGoal(SuperstructureState.CORAL_INTAKE))
                 .withName("Coral Intake"));
     coralIntakingTrigger
@@ -467,7 +470,7 @@ public class RobotContainer {
     coralIntakingTrigger
         .and(() -> !hasCoral.value)
         .and(scoringTriggers)
-        .whileTrueContinuous(intake.intake().withName("Coral Intake"));
+        .whileTrueContinuous(intake.intakeTeleop().withName("Coral Intake"));
     coralIntakingTrigger.whileTrue(
         Commands.waitUntil(hasCoralTrigger).andThen(controllerRumbleCommand().withTimeout(0.3)));
     coralIntakingTrigger
@@ -859,6 +862,12 @@ public class RobotContainer {
       aprilTagLayoutAlert.setText(
           "Non-default AprilTag layout in use (" + getSelectedAprilTagLayout().toString() + ").");
     }
+
+    // Auto alert
+    deadInTheWaterAlert.set(
+        DriverStation.isAutonomous()
+            && !DriverStation.isEnabled()
+            && autoChooser.get() == deadInTheWater);
   }
 
   /** Returns the current AprilTag layout type. */

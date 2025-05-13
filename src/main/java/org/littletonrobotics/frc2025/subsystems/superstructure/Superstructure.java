@@ -18,6 +18,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.util.function.BooleanConsumer;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.*;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import java.util.*;
@@ -97,6 +98,8 @@ public class Superstructure extends SubsystemBase {
   @Getter @Setter private boolean coralIndexed = false;
   @AutoLogOutput private boolean forceFastConstraints = false;
   private final Debouncer intakeReadyDebouncer = new Debouncer(0.1, DebounceType.kRising);
+  private final Timer readyToHomeTimer = new Timer();
+  private boolean hasHomed = false;
 
   // Intake interface
   private BooleanConsumer intakeReadyConsumer = a -> {};
@@ -105,6 +108,7 @@ public class Superstructure extends SubsystemBase {
   public Superstructure(Elevator elevator, Dispenser dispenser) {
     this.elevator = elevator;
     this.dispenser = dispenser;
+    readyToHomeTimer.start();
 
     // Updating E Stop based on disabled override
     new Trigger(() -> disableOverride.getAsBoolean())
@@ -360,6 +364,8 @@ public class Superstructure extends SubsystemBase {
 
     if (DriverStation.isDisabled()) {
       next = null;
+      hasHomed = false;
+      readyToHomeTimer.restart();
     } else if (edgeCommand == null || !edgeCommand.getCommand().isScheduled()) {
       // Update edge to new state
       if (next != null) {
@@ -376,6 +382,27 @@ public class Superstructure extends SubsystemBase {
                   edgeCommand = graph.getEdge(state, next);
                   edgeCommand.getCommand().schedule();
                 });
+      }
+
+      // Auto home
+      if (state == SuperstructureState.STOW
+          && goal == SuperstructureState.STOW
+          && !hasCoral()
+          && !hasAlgae()
+          && DriverStation.isTeleop()) {
+        if (readyToHomeTimer.hasElapsed(0.75) && !hasHomed) {
+          hasHomed = true;
+          state = SuperstructureState.START;
+          next = null;
+          if (edgeCommand != null) {
+            edgeCommand.command.cancel();
+          }
+        }
+      } else {
+        if (state != SuperstructureState.START) {
+          hasHomed = false;
+        }
+        readyToHomeTimer.restart();
       }
     }
 
@@ -549,6 +576,7 @@ public class Superstructure extends SubsystemBase {
   public void setAutoStart() {
     state = SuperstructureState.START;
     next = null;
+    goal = SuperstructureState.STOW;
     if (edgeCommand != null) {
       edgeCommand.getCommand().cancel();
     }
@@ -651,9 +679,8 @@ public class Superstructure extends SubsystemBase {
               Commands.waitUntil(elevator::isAtGoal),
               runSuperstructurePose(to.getValue().getPose()),
               Commands.waitUntil(this::mechanismsAtGoal));
-    } else if ((from == SuperstructureState.PRE_PROCESS
-            || from == SuperstructureState.ALGAE_GROUND_INTAKE)
-        && to == SuperstructureState.ALGAE_STOW) {
+    } else if ((from == SuperstructureState.PRE_PROCESS && to != SuperstructureState.PROCESS)
+        || from == SuperstructureState.ALGAE_GROUND_INTAKE) {
       return runDispenserPivot(to.getValue().getPose().pivotAngle())
           .andThen(
               Commands.waitUntil(dispenser::isAtGoal),
@@ -692,11 +719,20 @@ public class Superstructure extends SubsystemBase {
               Commands.runOnce(
                   () -> {
                     dispenser.setTunnelVolts(0.0);
-                    dispenser.setGripperGoal(Dispenser.GripperGoal.REVERSE_HARDSTOP);
+                    dispenser.setGripperGoal(Dispenser.GripperGoal.IDLE);
                   }),
-              new SuppliedWaitCommand(Dispenser.gripperHardstopTime),
-              Commands.runOnce(() -> dispenser.setGripperGoal(Dispenser.GripperGoal.IDLE)),
               Commands.waitUntil(this::mechanismsAtGoal));
+    }
+
+    if (to == SuperstructureState.PRE_THROW) {
+      return runDispenserPivot(() -> Rotation2d.fromDegrees(-40.0))
+          .andThen(
+              Commands.waitUntil(dispenser::isAtGoal),
+              runElevator(to.getValue().getPose().elevatorHeight()),
+              Commands.waitUntil(elevator::isAtGoal),
+              runSuperstructurePose(to.getValue().getPose()),
+              Commands.waitUntil(this::mechanismsAtGoal))
+          .alongWith(runSuperstructureExtras(to));
     }
 
     return runElevator(to.getValue().getPose().elevatorHeight())

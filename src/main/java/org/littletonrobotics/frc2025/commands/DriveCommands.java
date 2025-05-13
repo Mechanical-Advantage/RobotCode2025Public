@@ -37,6 +37,8 @@ public class DriveCommands {
   private static final double ffRampRate = 0.1; // Volts/Sec
   private static final double wheelRadiusMaxVelocity = 0.25; // Rad/Sec
   private static final double wheelRadiusRampRate = 0.05; // Rad/Sec^2
+  private static final double elevatorMinExtension = 0.4;
+  private static final double maxExtensionAngularVelocityScalar = 0.2;
 
   private DriveCommands() {}
 
@@ -83,7 +85,17 @@ public class DriveCommands {
               new ChassisSpeeds(
                   linearVelocity.getX(),
                   linearVelocity.getY(),
-                  omega * DriveConstants.maxAngularSpeed);
+                  omega
+                      * DriveConstants.maxAngularSpeed
+                      * MathUtil.interpolate(
+                          1.0,
+                          maxExtensionAngularVelocityScalar,
+                          MathUtil.clamp(
+                              (RobotState.getInstance().getElevatorExtensionPercent()
+                                      - elevatorMinExtension)
+                                  / (1.0 - elevatorMinExtension),
+                              0.0,
+                              1.0)));
 
           drive.runVelocity(
               robotRelative.getAsBoolean()

@@ -43,7 +43,7 @@ public class AlgaeScoreCommands {
   private static final LoggedTunableNumber throwDriveStart =
       new LoggedTunableNumber("AlgaeScoreCommands/ThrowDriveStart", 2.0);
   private static final LoggedTunableNumber throwDriveEnd =
-      new LoggedTunableNumber("AlgaeScoreCommands/ThrowDriveEnd", 1.0);
+      new LoggedTunableNumber("AlgaeScoreCommands/ThrowDriveEnd", 1.2);
   private static final LoggedTunableNumber throwReadyLinearTolerance =
       new LoggedTunableNumber("AlgaeScoreCommands/ThrowReadyLinearTolerance", 0.5);
   private static final LoggedTunableNumber throwReadyThetaToleranceDeg =
