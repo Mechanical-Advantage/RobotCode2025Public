@@ -39,7 +39,7 @@ public class IntakeCommands {
   public static final LoggedTunableNumber angleDifferenceWeight =
       new LoggedTunableNumber("IntakeCommands/AngleDifferenceWeight", 0.3);
   private static final LoggedTunableNumber coralMaxDistance =
-      new LoggedTunableNumber("IntakeCommands/CoralMaxDistance", 1.5);
+      new LoggedTunableNumber("IntakeCommands/CoralMaxDistance", 4.0);
   public static final LoggedTunableNumber coralMaxAngleDeg =
       new LoggedTunableNumber("IntakeCommands/CoralMaxAngleDegrees", 60.0);
   private static final LoggedTunableNumber coralMaxXDistance =
@@ -346,6 +346,11 @@ public class IntakeCommands {
 
   private static Optional<Translation2d> getNearestCoral() {
     Pose2d robot = RobotState.getInstance().getEstimatedPose();
+    Pose2d robotFlipped = robot.transformBy(new Transform2d(Translation2d.kZero, Rotation2d.kPi));
+    Pose2d intakePose =
+        robot.transformBy(
+            new Transform2d(
+                -(DriveConstants.robotWidth + intakingOffset.get()), 0.0, Rotation2d.kPi));
     ChassisSpeeds robotVelocity = RobotState.getInstance().getRobotVelocity();
     Pose2d predictedRobot = robot.exp(robotVelocity.toTwist2d(lookAheadSecs.get()));
     Pose2d predictedIntakePose =
@@ -357,13 +362,12 @@ public class IntakeCommands {
     return RobotState.getInstance().getCoralTranslations().stream()
         .filter(
             coral ->
-                coral.getDistance(predictedIntakePose.getTranslation()) <= coralMaxDistance.get()
+                coral.getDistance(intakePose.getTranslation()) <= coralMaxDistance.get()
                     && Math.abs(
-                            predictedIntakePose.getRotation().getDegrees()
-                                - (coral
-                                    .minus(predictedIntakePose.getTranslation())
-                                    .getAngle()
-                                    .getDegrees()))
+                            robotFlipped
+                                .getRotation()
+                                .minus(coral.minus(robotFlipped.getTranslation()).getAngle())
+                                .getDegrees())
                         <= coralMaxAngleDeg.get())
         .min(
             Comparator.comparingDouble(
@@ -371,9 +375,9 @@ public class IntakeCommands {
                     coral.getDistance(predictedIntakePose.getTranslation())
                         + Math.abs(
                             coral
-                                    .minus(predictedIntakePose.getTranslation())
+                                    .minus(robotFlipped.getTranslation())
                                     .getAngle()
-                                    .minus(predictedIntakePose.getRotation())
+                                    .minus(robotFlipped.getRotation())
                                     .getRadians()
                                 * angleDifferenceWeight.get())));
   }

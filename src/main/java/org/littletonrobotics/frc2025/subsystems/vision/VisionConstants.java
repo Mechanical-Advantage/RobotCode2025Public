@@ -141,9 +141,9 @@ public class VisionConstants {
                   .pose(
                       () ->
                           new Pose3d(
-                              Units.inchesToMeters(3),
+                              Units.inchesToMeters(3.209),
                               Units.inchesToMeters(-10),
-                              Units.inchesToMeters(25),
+                              Units.inchesToMeters(26.485),
                               new Rotation3d(
                                   0.0,
                                   Units.degreesToRadians(25.0 + pitchAdjustments[2].get()),

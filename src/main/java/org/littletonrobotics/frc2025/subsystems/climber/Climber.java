@@ -43,7 +43,7 @@ public class Climber extends SubsystemBase {
       new LoggedTunableNumber("Climber/GripVolts", 12.0);
 
   private static final Translation3d climberOrigin3d =
-      new Translation3d(Units.inchesToMeters(-12.0), 0.0, Units.inchesToMeters(14.875));
+      new Translation3d(-0.0508005, 0.342900, 0.32);
 
   private final ClimberIO climberIO;
   private final ClimberIOInputsAutoLogged climberInputs = new ClimberIOInputsAutoLogged();
@@ -86,9 +86,6 @@ public class Climber extends SubsystemBase {
     }
 
     Logger.recordOutput("Climber/GripperReady", false);
-    Logger.recordOutput(
-        "Mechanism3d/Measured/Climber",
-        new Pose3d(climberOrigin3d, new Rotation3d(0.0, climberInputs.data.positionRads(), 0.0)));
 
     // Handle state
     if (climbState != ClimbState.PULL) {
@@ -137,6 +134,14 @@ public class Climber extends SubsystemBase {
                 : Math.min(climbCurrentRampRate.get() * climbTimer.get(), climbCurrent.get()));
       }
     }
+
+    // Visualize climber position
+    Logger.recordOutput(
+        "Mechanism3d/Measured/Climber",
+        new Pose3d(
+            climberOrigin3d,
+            new Rotation3d(
+                climberInputs.data.positionRads() - Units.degreesToRadians(35.0), 0.0, 0.0)));
 
     // Record cycle time
     LoggedTracer.record("Climber");

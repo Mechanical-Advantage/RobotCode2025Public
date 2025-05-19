@@ -9,6 +9,9 @@ package org.littletonrobotics.frc2025.subsystems.intake;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.Debouncer;
+import edu.wpi.first.math.geometry.Pose3d;
+import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.State;
 import edu.wpi.first.math.util.Units;
@@ -30,6 +33,7 @@ import org.littletonrobotics.junction.Logger;
 
 public class Slam {
   protected static final double maxAngle = Units.degreesToRadians(140.0);
+  private static final Translation3d intakeOrigin3d = new Translation3d(-0.285750, 0.0, 0.285750);
 
   private static final LoggedTunableNumber kP = new LoggedTunableNumber("Slam/kP");
   private static final LoggedTunableNumber kD = new LoggedTunableNumber("Slam/kD");
@@ -37,9 +41,9 @@ public class Slam {
   private static final LoggedTunableNumber kG = new LoggedTunableNumber("Slam/kG");
   private static final LoggedTunableNumber kA = new LoggedTunableNumber("Slam/kA");
   private static final LoggedTunableNumber maxVelocityMetersPerSec =
-      new LoggedTunableNumber("Slam/MaxVelocityMetersPerSec", 6.0);
+      new LoggedTunableNumber("Slam/MaxVelocityMetersPerSec", 8.0);
   private static final LoggedTunableNumber maxAccelerationMetersPerSec2 =
-      new LoggedTunableNumber("Slam/MaxAccelerationMetersPerSec2", 20.0);
+      new LoggedTunableNumber("Slam/MaxAccelerationMetersPerSec2", 80.0);
   private static final LoggedTunableNumber homingVolts =
       new LoggedTunableNumber("Slam/HomingVolts", -3.0);
   private static final LoggedTunableNumber homingTimeSecs =
@@ -51,7 +55,7 @@ public class Slam {
     switch (Constants.getRobot()) {
       default -> {
         kP.initDefault(1800);
-        kD.initDefault(50);
+        kD.initDefault(100);
         kS.initDefault(0);
         kG.initDefault(20);
         kA.initDefault(0);
@@ -69,7 +73,7 @@ public class Slam {
   @RequiredArgsConstructor
   public enum Goal {
     DEPLOY(new LoggedTunableNumber("Slam/DeployedDegrees", 8.0)),
-    RETRACT(new LoggedTunableNumber("Slam/RetractedDegrees", 130.0)),
+    RETRACT(new LoggedTunableNumber("Slam/RetractedDegrees", 100.0)),
     REVERSE(new LoggedTunableNumber("Slam/ReverseDegrees", 18)),
     L1(new LoggedTunableNumber("Slam/L1Degrees", 90)),
     L1_EJECT(new LoggedTunableNumber("Slam/L1EjectDegrees", 90.0)),
@@ -202,6 +206,11 @@ public class Slam {
     Logger.recordOutput(
         "Intake/Slam/MeasuredVelocityMetersPerSec", inputs.data.velocityRadPerSec());
 
+    // Visualize mechanism
+    visualizeSlam("Measured", getMeasuredAngleRad());
+    visualizeSlam("Setpoint", setpoint.position);
+    visualizeSlam("Goal", goal.getAngleRad());
+
     // Record cycle time
     LoggedTracer.record("Slam");
   }
@@ -222,6 +231,12 @@ public class Slam {
   public void setHome() {
     homedPosition = inputs.data.positionRad();
     homed = true;
+  }
+
+  private void visualizeSlam(String key, double position) {
+    Logger.recordOutput(
+        "Mechanism3d/" + key + "/Intake",
+        new Pose3d(intakeOrigin3d, new Rotation3d(0.0, position, 0.0)));
   }
 
   private Command homingSequence() {

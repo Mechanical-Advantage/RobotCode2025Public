@@ -9,7 +9,7 @@ package org.littletonrobotics.frc2025.subsystems.intake;
 
 import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.filter.Debouncer.DebounceType;
-import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.*;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.util.function.BooleanConsumer;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -35,6 +35,15 @@ import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
 public class Intake extends SubsystemBase {
+  private static final Transform3d coralIndexedTransform =
+      GeomUtil.toTransform3d(
+          new Pose3d(
+                  new Translation3d(0.0, 0.0, 0.25),
+                  new Rotation3d(0.0, Units.degreesToRadians(-10.0), 0.0))
+              .transformBy(
+                  GeomUtil.toTransform3d(
+                      new Pose3d(-Units.inchesToMeters(11.0) / 2.0, 0.0, 0.0, Rotation3d.kZero))));
+
   private static final LoggedTunableNumber rollerIntakeVolts =
       new LoggedTunableNumber("Intake/Intake/Roller", 12.0);
   private static final LoggedTunableNumber indexerIntakeVolts =
@@ -199,6 +208,16 @@ public class Intake extends SubsystemBase {
     if (DriverStation.isDisabled()) {
       goal = slam.wantsToDeploy() ? Goal.DEPLOY : Goal.RETRACT;
     }
+
+    // Visualize coral indexed
+    Logger.recordOutput(
+        "Mechanism3d/Measured/CoralIndexed",
+        coralIndexed
+            ? new Pose3d[] {
+              new Pose3d(RobotState.getInstance().getEstimatedPose())
+                  .transformBy(coralIndexedTransform)
+            }
+            : new Pose3d[] {});
 
     // Record cycle time
     LoggedTracer.record("Intake");

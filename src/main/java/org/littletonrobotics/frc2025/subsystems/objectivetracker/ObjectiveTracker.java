@@ -45,6 +45,8 @@ import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 import org.littletonrobotics.junction.networktables.LoggedNetworkString;
 
 public class ObjectiveTracker extends VirtualSubsystem {
+  private static final boolean is7ForRP = false;
+
   private static final String inactiveColor = "#242424";
   private static final String completeColor = "#00ff00";
   private static final String incompleteColor = "#ff0000";
@@ -84,7 +86,7 @@ public class ObjectiveTracker extends VirtualSubsystem {
   @Getter private Optional<AlgaeObjective> algaeObjective;
 
   private final LoggedNetworkString strategyInput =
-      new LoggedNetworkString("/SmartDashboard/Strategy", "747372714321");
+      new LoggedNetworkString("/SmartDashboard/Strategy", is7ForRP ? "74737271" : "54535251");
   private String previousStrategy = null;
   private final StringPublisher[] strategyNamesPublishers = new StringPublisher[8];
   private final StringPublisher[] strategyCompletedPublishers = new StringPublisher[8];
@@ -220,10 +222,11 @@ public class ObjectiveTracker extends VirtualSubsystem {
       uncompletedPriorities.clear();
       Optional<CoralPriority> uselessPriority = Optional.empty();
       if (coopState) {
-        // Decide which 7 coral we should give up on based on completion
+        // Decide which co-op coral priority we should give up on based on completion
         uselessPriority =
-            Set.of(CoralPriority._74, CoralPriority._73, CoralPriority._72, CoralPriority._71)
-                .stream()
+            Arrays.stream(CoralPriority.values())
+                .filter(
+                    priority -> priority.fillType == (is7ForRP ? FillType.SEVEN : FillType.FIVE))
                 .filter(coralPriority -> !coralPriority.complete(reefState))
                 .sorted(
                     Comparator.comparingInt(
@@ -501,7 +504,8 @@ public class ObjectiveTracker extends VirtualSubsystem {
         .min(nearestCoralObjectiveComparator(predictedRobot));
   }
 
-  private static final Set<Character> allowedCharacters = Set.of('1', '2', '3', '4', '7');
+  private static final Set<Character> allowedCharacters = Set.of('1', '2', '3', '4', '5', '7');
+  private static final Set<Character> coopCharacters = Set.of('5', '7');
 
   private void parseStrategy() {
     previousStrategy = getStrategyString();
@@ -520,16 +524,18 @@ public class ObjectiveTracker extends VirtualSubsystem {
     Logger.recordOutput("ObjectiveTracker/Strategy/StrategyInput", filtered);
     // Populate with proper enums
     for (int i = 0; i < filtered.length(); i++) {
-      if (filtered.charAt(i) == '7' && i + 1 < filtered.length() && filtered.charAt(i + 1) != '7') {
+      if (coopCharacters.contains(filtered.charAt(i))
+          && i + 1 < filtered.length()
+          && !coopCharacters.contains(filtered.charAt(i + 1))) {
         fullStrategy.add(CoralPriority.valueOf("_" + filtered.substring(i, i + 2)));
         i++;
-      } else if (filtered.charAt(i) != '7') {
+      } else if (!coopCharacters.contains(filtered.charAt(i))) {
         fullStrategy.add(CoralPriority.valueOf("_" + filtered.charAt(i)));
       }
     }
     // Remove duplicates
     fullStrategy = new ArrayList<>(fullStrategy.stream().distinct().toList());
-    // Add fill priorities
+    // Add fill priorities for L4 to L2
     for (int i = 4; i >= 2; i--) {
       CoralPriority priority = CoralPriority.valueOf("_" + i);
       if (!fullStrategy.contains(priority)) {
@@ -568,21 +574,25 @@ public class ObjectiveTracker extends VirtualSubsystem {
   @RequiredArgsConstructor
   /** All strategies have bias towards higher levels! */
   public enum CoralPriority {
-    _74(ReefLevel.L4, false, "7/4"),
-    _73(ReefLevel.L3, false, "7/3"),
-    _72(ReefLevel.L2, false, "7/2"),
-    _71(ReefLevel.L1, false, "7/1"),
-    _4(ReefLevel.L4, true, "4"),
-    _3(ReefLevel.L3, true, "3"),
-    _2(ReefLevel.L2, true, "2"),
-    _1(ReefLevel.L1, true, "1");
+    _74(ReefLevel.L4, FillType.SEVEN, "7/4"),
+    _73(ReefLevel.L3, FillType.SEVEN, "7/3"),
+    _72(ReefLevel.L2, FillType.SEVEN, "7/2"),
+    _71(ReefLevel.L1, FillType.SEVEN, "7/1"),
+    _54(ReefLevel.L4, FillType.FIVE, "5/4"),
+    _53(ReefLevel.L3, FillType.FIVE, "5/3"),
+    _52(ReefLevel.L2, FillType.FIVE, "5/2"),
+    _51(ReefLevel.L1, FillType.FIVE, "5/1"),
+    _4(ReefLevel.L4, FillType.FILL, "4"),
+    _3(ReefLevel.L3, FillType.FILL, "3"),
+    _2(ReefLevel.L2, FillType.FILL, "2"),
+    _1(ReefLevel.L1, FillType.FILL, "1");
 
     private final ReefLevel level;
-    private final boolean fill;
+    private final FillType fillType;
     private final String name;
 
     public boolean complete(ReefState reefState) {
-      if (fill) {
+      if (fillType == FillType.FILL) {
         if (level == ReefLevel.L1) return false;
         boolean[] levelState = reefState.coral()[level.ordinal() - 1];
         for (boolean b : levelState) {
@@ -590,14 +600,29 @@ public class ObjectiveTracker extends VirtualSubsystem {
         }
         return true;
       }
-      if (level == ReefLevel.L1) return reefState.troughCount() >= 7;
+      // Count coral on level
       int count = 0;
-      boolean[] levelState = reefState.coral()[level.ordinal() - 1];
-      for (boolean b : levelState) {
-        if (b) count++;
+      if (level == ReefLevel.L1) {
+        count = reefState.troughCount();
+      } else {
+        boolean[] levelState = reefState.coral()[level.ordinal() - 1];
+        for (boolean b : levelState) {
+          if (b) count++;
+        }
       }
-      return count >= 7;
+      return count
+          >= switch (fillType) {
+            case FIVE -> 5;
+            case SEVEN -> 7;
+            default -> 12;
+          };
     }
+  }
+
+  private enum FillType {
+    FIVE,
+    SEVEN,
+    FILL
   }
 
   private static void logAvailableBranches(Set<CoralObjective> availableBranches, String key) {
