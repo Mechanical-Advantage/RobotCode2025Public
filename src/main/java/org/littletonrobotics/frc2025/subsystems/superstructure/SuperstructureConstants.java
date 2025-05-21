@@ -17,10 +17,10 @@ public class SuperstructureConstants {
   public static final double pivotToTunnelFront = Units.inchesToMeters(7.2);
   public static final double G = 9.807;
   // From inside face to inside face, measured from CAD
-  public static final double firstStageHeight = Units.inchesToMeters(34.0);
+  public static final double firstStageHeight = Units.inchesToMeters(34.968750);
   public static final double stageHeight = Units.inchesToMeters(34.0);
   public static final double stageThickness = Units.inchesToMeters(1.0);
-  public static final double dispenserToTop = Units.inchesToMeters(4.75);
+  public static final double dispenserToTop = Units.inchesToMeters(5.512529);
   public static final double dispenserToBottom = Units.inchesToMeters(7.25);
   public static final double stageToStage = Units.inchesToMeters(8.0);
 

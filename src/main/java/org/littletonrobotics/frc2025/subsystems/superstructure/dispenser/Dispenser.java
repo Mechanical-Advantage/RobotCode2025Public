@@ -428,6 +428,7 @@ public class Dispenser {
       tunnelIO.runVolts(tunnelDispenseVolts[3].get());
       appliedGripperVolts = gripperEjectVolts.get();
       gripperIO.runVolts(appliedGripperVolts);
+      hasCoral = false;
     } else if (!isEStopped) {
       double intakeVolts = tunnelVolts;
       if (hasCoral) {

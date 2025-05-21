@@ -74,8 +74,7 @@ public class SuperstructureVisualizer {
         Math.max(
             heightFromBottom - SuperstructureConstants.firstStageHeight - stageThickness,
             stageThickness);
-    final double secondStageHeight =
-        Math.max(firstStageHeight - stageHeight + stageToStage - stageThickness, 0.0);
+    final double secondStageHeight = Math.max(firstStageHeight - stageHeight + stageToStage, 0.0);
 
     Pose3d pivotPose3d =
         new Pose3d(
