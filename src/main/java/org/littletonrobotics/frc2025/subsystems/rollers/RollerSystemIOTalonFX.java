@@ -19,7 +19,6 @@ import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
-import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
@@ -48,8 +47,6 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
   private final TalonFXConfiguration config = new TalonFXConfiguration();
 
   private final double reduction;
-
-  private final Debouncer connectedDebouncer = new Debouncer(0.5);
 
   public RollerSystemIOTalonFX(
       int id, String bus, int currentLimitAmps, boolean invert, boolean brake, double reduction) {
@@ -110,15 +107,14 @@ public class RollerSystemIOTalonFX implements RollerSystemIO {
             torqueCurrent.getValueAsDouble(),
             tempCelsius.getValueAsDouble(),
             tempFault.getValue(),
-            connectedDebouncer.calculate(
-                BaseStatusSignal.isAllGood(
-                    position,
-                    velocity,
-                    appliedVoltage,
-                    supplyCurrent,
-                    torqueCurrent,
-                    tempCelsius,
-                    tempFault)));
+            BaseStatusSignal.isAllGood(
+                position,
+                velocity,
+                appliedVoltage,
+                supplyCurrent,
+                torqueCurrent,
+                tempCelsius,
+                tempFault));
   }
 
   @Override

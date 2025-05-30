@@ -9,6 +9,7 @@ package org.littletonrobotics.frc2025.subsystems.drive;
 
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.Vector;
+import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Twist3d;
@@ -44,6 +45,8 @@ public class Drive extends SubsystemBase {
   private final GyroIO gyroIO;
   private final GyroIOInputsAutoLogged gyroInputs = new GyroIOInputsAutoLogged();
   private final Module[] modules = new Module[4]; // FL, FR, BL, BR
+  private final Debouncer gyroConnectedDebouncer =
+      new Debouncer(0.5, Debouncer.DebounceType.kFalling);
   private final Alert gyroDisconnectedAlert =
       new Alert("Disconnected gyro, using kinematics as fallback.", AlertType.kError);
 
@@ -214,7 +217,9 @@ public class Drive extends SubsystemBase {
 
     // Update gyro alert
     gyroDisconnectedAlert.set(
-        !gyroInputs.data.connected() && Constants.getMode() != Mode.SIM && !Robot.isJITing());
+        !gyroConnectedDebouncer.calculate(gyroInputs.data.connected())
+            && Constants.getMode() != Mode.SIM
+            && !Robot.isJITing());
 
     // Record cycle time
     LoggedTracer.record("Drive/Periodic");

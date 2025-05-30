@@ -20,7 +20,6 @@ import com.ctre.phoenix6.hardware.ParentDevice;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
-import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
@@ -75,10 +74,6 @@ public class ModuleIODev implements ModuleIO {
   private final StatusSignal<Voltage> turnAppliedVolts;
   private final StatusSignal<Current> turnSupplyCurrentAmps;
   private final StatusSignal<Current> turnTorqueCurrentAmps;
-
-  // Connection debouncers
-  private final Debouncer driveConnectedDebounce = new Debouncer(0.5);
-  private final Debouncer turnConnectedDebounce = new Debouncer(0.5);
 
   public ModuleIODev(DriveConstants.ModuleConfig config) {
     driveTalon = new TalonFX(config.driveMotorId(), "*");
@@ -173,25 +168,23 @@ public class ModuleIODev implements ModuleIO {
     // Update drive inputs
     inputs.data =
         new ModuleIOData(
-            driveConnectedDebounce.calculate(
-                BaseStatusSignal.isAllGood(
-                    drivePosition,
-                    driveVelocity,
-                    driveAppliedVolts,
-                    driveSupplyCurrentAmps,
-                    driveTorqueCurrentAmps)),
+            BaseStatusSignal.isAllGood(
+                drivePosition,
+                driveVelocity,
+                driveAppliedVolts,
+                driveSupplyCurrentAmps,
+                driveTorqueCurrentAmps),
             Units.rotationsToRadians(drivePosition.getValueAsDouble()),
             Units.rotationsToRadians(driveVelocity.getValueAsDouble()),
             driveAppliedVolts.getValueAsDouble(),
             driveSupplyCurrentAmps.getValueAsDouble(),
             driveTorqueCurrentAmps.getValueAsDouble(),
-            turnConnectedDebounce.calculate(
-                BaseStatusSignal.isAllGood(
-                    turnPosition,
-                    turnVelocity,
-                    turnAppliedVolts,
-                    turnSupplyCurrentAmps,
-                    turnTorqueCurrentAmps)),
+            BaseStatusSignal.isAllGood(
+                turnPosition,
+                turnVelocity,
+                turnAppliedVolts,
+                turnSupplyCurrentAmps,
+                turnTorqueCurrentAmps),
             true,
             turnAbsolutePosition.get().minus(encoderOffset),
             Rotation2d.fromRotations(turnPosition.getValueAsDouble()),

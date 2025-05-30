@@ -9,7 +9,6 @@ package org.littletonrobotics.frc2025.subsystems.drive;
 
 import com.reduxrobotics.sensors.canandgyro.Canandgyro;
 import com.reduxrobotics.sensors.canandgyro.CanandgyroSettings;
-import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
 import java.util.Queue;
@@ -19,8 +18,6 @@ public class GyroIORedux implements GyroIO {
 
   private final Queue<Double> yawTimestampQueue;
   private final Queue<Double> yawPositionQueue;
-
-  private final Debouncer connectedDebouncer = new Debouncer(0.5);
 
   public GyroIORedux() {
     // Configure the gyro
@@ -42,7 +39,7 @@ public class GyroIORedux implements GyroIO {
   public void updateInputs(GyroIOInputs inputs) {
     inputs.data =
         new GyroIOData(
-            connectedDebouncer.calculate(gyro.isConnected()),
+            gyro.isConnected(),
             Rotation2d.fromRotations(gyro.getYaw()),
             Units.rotationsToRadians(gyro.getAngularVelocityYaw()),
             Rotation2d.fromRotations(gyro.getPitch()),

@@ -25,7 +25,6 @@ import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.signals.SensorDirectionValue;
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.*;
 import org.littletonrobotics.frc2025.util.PhoenixUtil;
@@ -57,10 +56,6 @@ public class PivotIOTalonFX implements PivotIO {
   private final PositionTorqueCurrentFOC positionTorqueCurrentFOC =
       new PositionTorqueCurrentFOC(0.0).withUpdateFreqHz(0.0);
   private final VoltageOut voltageRequest = new VoltageOut(0.0).withUpdateFreqHz(0.0);
-
-  // Connected debouncers
-  private final Debouncer motorConnectedDebouncer = new Debouncer(0.5);
-  private final Debouncer encoderConnectedDebouncer = new Debouncer(0.5);
 
   public PivotIOTalonFX() {
     talon = new TalonFX(5);
@@ -123,16 +118,14 @@ public class PivotIOTalonFX implements PivotIO {
   public void updateInputs(PivotIOInputs inputs) {
     inputs.data =
         new PivotIOData(
-            motorConnectedDebouncer.calculate(
-                BaseStatusSignal.isAllGood(
-                    internalPosition,
-                    internalVelocity,
-                    appliedVolts,
-                    supplyCurrentAmps,
-                    torqueCurrentAmps,
-                    temp)),
-            encoderConnectedDebouncer.calculate(
-                BaseStatusSignal.isAllGood(encoderAbsolutePosition, encoderAbsolutePosition)),
+            BaseStatusSignal.isAllGood(
+                internalPosition,
+                internalVelocity,
+                appliedVolts,
+                supplyCurrentAmps,
+                torqueCurrentAmps,
+                temp),
+            BaseStatusSignal.isAllGood(encoderAbsolutePosition, encoderAbsolutePosition),
             Rotation2d.fromRotations(internalPosition.getValueAsDouble()),
             Rotation2d.fromRotations(encoderAbsolutePosition.getValueAsDouble())
                 .minus(encoderOffset),

@@ -77,17 +77,15 @@ public class Leds extends VirtualSubsystem {
   private static final boolean prideLeds = false;
   private static final int minLoopCycleCount = 10;
   private static final int fullLength = 42;
-  private static final int length = (int) Math.ceil(fullLength / 2.0);
-  private static final int sideSectionLength = 6;
-  private static final int virtualSectionLength = 7;
+  private static final int length = 32;
+  private static final int sideSectionLength = 21;
+  private static final int virtualSectionLength = 8;
   private static final int virtualLength = length + virtualSectionLength;
   private static final Section virtualSection =
       new Section(sideSectionLength, sideSectionLength + virtualSectionLength);
-  private static final Section fullSectionRaw = new Section(0, fullLength);
   private static final Section fullSection = new Section(0, virtualLength);
-  private static final Section firstPrioritySection = new Section(0, 4 * virtualLength / 5);
-  private static final Section secondPrioritySection =
-      new Section(4 * virtualLength / 5, virtualLength);
+  private static final Section firstPrioritySection = new Section(virtualLength / 5, virtualLength);
+  private static final Section secondPrioritySection = new Section(0, virtualLength / 5);
   private static final Section straightSection = new Section(sideSectionLength, virtualLength);
   private static final Section sideSection = new Section(0, sideSectionLength);
   private static final double strobeDuration = 0.1;
@@ -102,7 +100,6 @@ public class Leds extends VirtualSubsystem {
   private static final double waveFastDuration = 0.25;
   private static final double waveDisabledCycleLength = 15.0;
   private static final double waveDisabledDuration = 2.0;
-  private static final double autoFadeTime = 2.5; // 3s nominal
   private static final double autoFadeMaxTime = 5.0; // Return to normal
   private static final Color l1PriorityColor = Color.kOrangeRed;
   private static final Color l2PriorityColor = Color.kCyan;
@@ -180,8 +177,19 @@ public class Leds extends VirtualSubsystem {
       } else if (lastEnabledAuto && Timer.getTimestamp() - lastEnabledTime < autoFadeMaxTime) {
         // Auto fade
         wave(
+            // new Section(
+            //     (int) (virtualLength * ((Timer.getTimestamp() - lastEnabledTime) /
+            // autoFadeTime)),
+            //     virtualLength),
             new Section(
-                (int) (length * ((Timer.getTimestamp() - lastEnabledTime) / autoFadeTime)), length),
+                0,
+                Math.max(
+                    0,
+                    virtualLength
+                        - (int)
+                            ((Timer.getTimestamp() - lastEnabledTime)
+                                / waveFastDuration
+                                * waveFastCycleLength))),
             Color.kGold,
             Color.kDarkBlue,
             waveFastCycleLength,
@@ -192,7 +200,7 @@ public class Leds extends VirtualSubsystem {
       } else if (prideLeds) {
         // Pride stripes
         stripes(
-            fullSectionRaw,
+            fullSection,
             List.of(
                 Color.kBlack,
                 Color.kRed,
@@ -346,6 +354,7 @@ public class Leds extends VirtualSubsystem {
   private void wave(Section section, Color c1, Color c2, double cycleLength, double duration) {
     double x = (1 - ((Timer.getTimestamp() % duration) / duration)) * 2.0 * Math.PI;
     double xDiffPerLed = (2.0 * Math.PI) / cycleLength;
+    x += xDiffPerLed * (virtualLength - section.end());
     for (int i = section.end() - 1; i >= section.start(); i--) {
       x += xDiffPerLed;
       double ratio = (Math.pow(Math.sin(x), waveExponent) + 1.0) / 2.0;
@@ -364,7 +373,7 @@ public class Leds extends VirtualSubsystem {
 
   private void stripes(Section section, List<Color> colors, int stripeLength, double duration) {
     int offset = (int) (Timer.getTimestamp() % duration / duration * stripeLength * colors.size());
-    for (int i = section.start(); i < section.end(); i++) {
+    for (int i = section.end() - 1; i >= section.start(); i--) {
       int colorIndex =
           (int) (Math.floor((double) (i - offset) / stripeLength) + colors.size()) % colors.size();
       colorIndex = colors.size() - 1 - colorIndex;
@@ -372,7 +381,7 @@ public class Leds extends VirtualSubsystem {
           shouldDimSupplier.getAsBoolean()
               ? Color.lerpRGB(Color.kBlack, colors.get(colorIndex), dimMultiplier)
               : colors.get(colorIndex);
-      buffer.setLED(i, dimmedColor);
+      setLED(i, dimmedColor);
     }
   }
 
@@ -404,13 +413,12 @@ public class Leds extends VirtualSubsystem {
 
   private void setLED(int index, Color color) {
     var indices = getIndices(index);
-    if (indices.getFirst() < 0) return;
     var dimmedColor =
         shouldDimSupplier.getAsBoolean()
             ? Color.lerpRGB(Color.kBlack, color, dimMultiplier)
             : color;
-    buffer.setLED(indices.getFirst(), dimmedColor);
-    buffer.setLED(indices.getSecond(), dimmedColor);
+    if (indices.getFirst() >= 0) buffer.setLED(indices.getFirst(), dimmedColor);
+    if (indices.getSecond() >= 0) buffer.setLED(indices.getSecond(), dimmedColor);
   }
 
   private static Pair<Integer, Integer> getIndices(int index) {
@@ -420,7 +428,8 @@ public class Leds extends VirtualSubsystem {
       index -= virtualSectionLength;
     }
     int a = MathUtil.clamp(index, 0, fullLength - 1);
-    int b = MathUtil.clamp(fullLength - index - 1, 0, fullLength - 1);
+    int b = MathUtil.clamp(fullLength + sideSectionLength - index - 1, 0, 2 * length - 1);
+    if (b >= fullLength) b = -1;
     return Pair.of(a, b);
   }
 

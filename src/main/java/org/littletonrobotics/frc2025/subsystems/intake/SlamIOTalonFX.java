@@ -19,7 +19,6 @@ import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
-import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
@@ -44,8 +43,6 @@ public class SlamIOTalonFX implements SlamIO {
   private final StatusSignal<Current> torqueCurrent;
   private final StatusSignal<Current> supplyCurrent;
   private final StatusSignal<Temperature> temp;
-
-  private final Debouncer connectedDebouncer = new Debouncer(0.5);
 
   private final TorqueCurrentFOC torqueCurrentRequest =
       new TorqueCurrentFOC(0.0).withUpdateFreqHz(0.0);
@@ -88,8 +85,7 @@ public class SlamIOTalonFX implements SlamIO {
   public void updateInputs(SlamIOInputs inputs) {
     inputs.data =
         new SlamIOData(
-            connectedDebouncer.calculate(
-                BaseStatusSignal.isAllGood(position, velocity, appliedVolts, supplyCurrent, temp)),
+            BaseStatusSignal.isAllGood(position, velocity, appliedVolts, supplyCurrent, temp),
             Units.rotationsToRadians(position.getValueAsDouble()),
             Units.rotationsToRadians(velocity.getValueAsDouble()),
             appliedVolts.getValueAsDouble(),

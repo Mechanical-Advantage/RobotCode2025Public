@@ -21,7 +21,6 @@ import com.ctre.phoenix6.hardware.ParentDevice;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
-import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.units.measure.*;
 import org.littletonrobotics.frc2025.Constants;
@@ -49,9 +48,6 @@ public class ElevatorIOTalonFX implements ElevatorIO {
   private final StatusSignal<Current> followerTorqueCurrent;
   private final StatusSignal<Current> followerSupplyCurrent;
   private final StatusSignal<Temperature> followerTemp;
-
-  private final Debouncer connectedDebouncer = new Debouncer(0.5);
-  private final Debouncer followerConnectedDebouncer = new Debouncer(0.5);
 
   private final TorqueCurrentFOC torqueCurrentRequest =
       new TorqueCurrentFOC(0.0).withUpdateFreqHz(0.0);
@@ -119,15 +115,10 @@ public class ElevatorIOTalonFX implements ElevatorIO {
   public void updateInputs(ElevatorIOInputs inputs) {
     inputs.data =
         new ElevatorIOData(
-            connectedDebouncer.calculate(
-                // Exclude torque-current b/c it's running at a much higher update rate
-                BaseStatusSignal.isAllGood(position, velocity, appliedVolts, supplyCurrent, temp)),
-            followerConnectedDebouncer.calculate(
-                BaseStatusSignal.isAllGood(
-                    followerAppliedVolts,
-                    followerTorqueCurrent,
-                    followerSupplyCurrent,
-                    followerTemp)),
+            // Exclude torque-current b/c it's running at a much higher update rate
+            BaseStatusSignal.isAllGood(position, velocity, appliedVolts, supplyCurrent, temp),
+            BaseStatusSignal.isAllGood(
+                followerAppliedVolts, followerTorqueCurrent, followerSupplyCurrent, followerTemp),
             Units.rotationsToRadians(position.getValueAsDouble()),
             Units.rotationsToRadians(velocity.getValueAsDouble()),
             appliedVolts.getValueAsDouble(),

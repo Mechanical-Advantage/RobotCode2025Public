@@ -89,6 +89,9 @@ public class Slam {
   private final SlamIO io;
   private final SlamIOInputsAutoLogged inputs = new SlamIOInputsAutoLogged();
 
+  // Connected debouncer
+  private final Debouncer motorConnectedDebouncer =
+      new Debouncer(0.5, Debouncer.DebounceType.kFalling);
   private final Alert motorDisconnectedAlert =
       new Alert("Slam motor disconnected!", Alert.AlertType.kWarning);
 
@@ -134,7 +137,8 @@ public class Slam {
     io.updateInputs(inputs);
     Logger.processInputs("Intake/Slam", inputs);
 
-    motorDisconnectedAlert.set(!inputs.data.motorConnected() && !Robot.isJITing());
+    motorDisconnectedAlert.set(
+        !motorConnectedDebouncer.calculate(inputs.data.motorConnected()) && !Robot.isJITing());
 
     // Update tunable numbers
     if (kP.hasChanged(hashCode()) || kD.hasChanged(hashCode())) {

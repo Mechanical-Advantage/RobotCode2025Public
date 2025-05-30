@@ -8,6 +8,7 @@
 package org.littletonrobotics.frc2025.subsystems.drive;
 
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
@@ -65,6 +66,15 @@ public class Module {
 
   private SimpleMotorFeedforward ffModel;
 
+  // Connected debouncers
+  private final Debouncer driveMotorConnectedDebouncer =
+      new Debouncer(0.5, Debouncer.DebounceType.kFalling);
+  private final Debouncer turnMotorConnectedDebouncer =
+      new Debouncer(0.5, Debouncer.DebounceType.kFalling);
+  private final Debouncer turnEncoderConnectedDebouncer =
+      new Debouncer(0.5, Debouncer.DebounceType.kFalling);
+
+  // Connection alerts
   private final Alert driveDisconnectedAlert;
   private final Alert turnDisconnectedAlert;
   private final Alert turnEncoderDisconnectedAlert;
@@ -111,9 +121,13 @@ public class Module {
     }
 
     // Update alerts
-    driveDisconnectedAlert.set(!inputs.data.driveConnected() && !Robot.isJITing());
-    turnDisconnectedAlert.set(!inputs.data.turnConnected() && !Robot.isJITing());
-    turnEncoderDisconnectedAlert.set(!inputs.data.turnEncoderConnected() && !Robot.isJITing());
+    driveDisconnectedAlert.set(
+        !driveMotorConnectedDebouncer.calculate(inputs.data.driveConnected()) && !Robot.isJITing());
+    turnDisconnectedAlert.set(
+        !turnMotorConnectedDebouncer.calculate(inputs.data.turnConnected()) && !Robot.isJITing());
+    turnEncoderDisconnectedAlert.set(
+        !turnEncoderConnectedDebouncer.calculate(inputs.data.turnEncoderConnected())
+            && !Robot.isJITing());
 
     // Record cycle time
     LoggedTracer.record("Drive/Module" + index);

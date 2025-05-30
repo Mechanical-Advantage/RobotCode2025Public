@@ -183,6 +183,7 @@ public class Dispenser {
   @Getter private boolean shouldEStop = false;
   @Setter private boolean isEStopped = false;
   @Setter private boolean isIntaking = false;
+  @Setter private boolean stowed = false;
   @Setter private boolean forceFastConstraints = false;
   @Setter private boolean forceEjectForward = false;
   @Setter private boolean coralIndexed = false;
@@ -225,6 +226,10 @@ public class Dispenser {
   private Debouncer toleranceDebouncer = new Debouncer(0.25, DebounceType.kRising);
 
   @Setter @Getter @AutoLogOutput private double coralThresholdOffset = 0.0;
+
+  // Connected debouncers
+  private final Debouncer motorConnectedDebouncer = new Debouncer(0.5, DebounceType.kFalling);
+  private final Debouncer encoderConnectedDebouncer = new Debouncer(0.5, DebounceType.kFalling);
 
   // Disconnected alerts
   private final Alert pivotMotorDisconnectedAlert =
@@ -269,11 +274,11 @@ public class Dispenser {
     Logger.processInputs("Dispenser/CoralSensor", coralSensorInputs);
 
     pivotMotorDisconnectedAlert.set(
-        !pivotInputs.data.motorConnected()
+        !motorConnectedDebouncer.calculate(pivotInputs.data.motorConnected())
             && Constants.getRobot() == RobotType.COMPBOT
             && !Robot.isJITing());
     pivotEncoderDisconnectedAlert.set(
-        !pivotInputs.data.encoderConnected()
+        !encoderConnectedDebouncer.calculate(pivotInputs.data.encoderConnected())
             && Constants.getRobot() == RobotType.COMPBOT
             && !Robot.isJITing());
     tunnelDisconnectedAlert.set(!tunnelInputs.data.connected() && !Robot.isJITing());
@@ -404,6 +409,11 @@ public class Dispenser {
         }
         coralEjectedDebouncer.calculate(false);
       } else if (coralEjectedDebouncer.calculate(Math.abs(tunnelVolts) >= 0.5)) {
+        hasCoral = false;
+      } else if (stowed
+          && hasCoral
+          && !(coralSensorInputs.data.valid()
+              && coralSensorInputs.data.distanceMeters() < coralProxThreshold.get())) {
         hasCoral = false;
       }
     } else if (DriverStation.isAutonomous()) {

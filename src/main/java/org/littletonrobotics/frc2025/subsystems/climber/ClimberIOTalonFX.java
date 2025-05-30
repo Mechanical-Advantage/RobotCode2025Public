@@ -13,11 +13,12 @@ import static org.littletonrobotics.frc2025.util.PhoenixUtil.tryUntilOk;
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.controls.CoastOut;
 import com.ctre.phoenix6.controls.TorqueCurrentFOC;
+import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
-import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.units.measure.Current;
@@ -40,11 +41,10 @@ public class ClimberIOTalonFX implements ClimberIO {
   private final StatusSignal<Temperature> temp;
 
   // Control Requests
+  private final VoltageOut voltsRequest = new VoltageOut(0.0).withUpdateFreqHz(0.0);
   private final TorqueCurrentFOC torqueCurrentRequest =
       new TorqueCurrentFOC(0.0).withUpdateFreqHz(0.0);
-
-  // Connected debouncers
-  private final Debouncer motorConnectedDebouncer = new Debouncer(0.5);
+  private final CoastOut coastRequest = new CoastOut();
 
   public ClimberIOTalonFX() {
     talon = new TalonFX(1);
@@ -80,15 +80,18 @@ public class ClimberIOTalonFX implements ClimberIO {
   public void updateInputs(ClimberIOInputs inputs) {
     inputs.data =
         new ClimberIOData(
-            motorConnectedDebouncer.calculate(
-                BaseStatusSignal.isAllGood(
-                    position, velocity, appliedVolts, supplyCurrentAmps, temp)),
+            BaseStatusSignal.isAllGood(position, velocity, appliedVolts, supplyCurrentAmps, temp),
             position.getValue().in(Radians),
             velocity.getValue().in(RadiansPerSecond),
             appliedVolts.getValueAsDouble(),
             torqueCurrentAmps.getValueAsDouble(),
             supplyCurrentAmps.getValueAsDouble(),
             temp.getValueAsDouble());
+  }
+
+  @Override
+  public void runVolts(double volts) {
+    talon.setControl(voltsRequest.withOutput(volts));
   }
 
   @Override
@@ -99,5 +102,10 @@ public class ClimberIOTalonFX implements ClimberIO {
   @Override
   public void stop() {
     talon.stopMotor();
+  }
+
+  @Override
+  public void coast() {
+    talon.setControl(coastRequest);
   }
 }

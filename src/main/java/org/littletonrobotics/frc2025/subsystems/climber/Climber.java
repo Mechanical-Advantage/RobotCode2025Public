@@ -18,7 +18,9 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import java.util.function.BooleanSupplier;
 import lombok.Getter;
+import lombok.Setter;
 import org.littletonrobotics.frc2025.Robot;
 import org.littletonrobotics.frc2025.subsystems.leds.Leds;
 import org.littletonrobotics.frc2025.subsystems.rollers.RollerSystemIO;
@@ -29,8 +31,8 @@ import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
 public class Climber extends SubsystemBase {
-  private static final LoggedTunableNumber deployCurrent =
-      new LoggedTunableNumber("Climber/DeployCurrent", -3);
+  private static final LoggedTunableNumber deployVolts =
+      new LoggedTunableNumber("Climber/DeployVolts", -8);
   private static final LoggedTunableNumber deployAngle =
       new LoggedTunableNumber("Climber/DeployAngle", -77);
   private static final LoggedTunableNumber climbCurrent =
@@ -39,6 +41,8 @@ public class Climber extends SubsystemBase {
       new LoggedTunableNumber("Climber/ClimbCurrentRampRate", 120);
   private static final LoggedTunableNumber climbStopAngle =
       new LoggedTunableNumber("Climber/ClimbStopAngle", 35);
+  private static final LoggedTunableNumber autoClimbCurrent =
+      new LoggedTunableNumber("Climber/AutoClimbCurrent", 33);
   private static final LoggedTunableNumber gripVolts =
       new LoggedTunableNumber("Climber/GripVolts", 12.0);
 
@@ -55,7 +59,10 @@ public class Climber extends SubsystemBase {
 
   private final Timer climbTimer = new Timer();
   private boolean stopPull = false;
-  private final Debouncer climbFailedDebouncer = new Debouncer(0.1, DebounceType.kRising);
+  private final Debouncer autoClimbDebouncer = new Debouncer(0.25, DebounceType.kRising);
+  private final Debouncer motorConnectedDebouncer = new Debouncer(0.5, DebounceType.kFalling);
+
+  @Setter private BooleanSupplier coastOverride = () -> false;
 
   private final Alert climberDisconnected =
       new Alert("Climber motor disconnected!", Alert.AlertType.kWarning);
@@ -75,14 +82,20 @@ public class Climber extends SubsystemBase {
     gripperIO.updateInputs(gripperInputs);
     Logger.processInputs("Climber/Gripper", gripperInputs);
 
-    climberDisconnected.set(!climberInputs.data.motorConnected() && !Robot.isJITing());
+    climberDisconnected.set(
+        !motorConnectedDebouncer.calculate(climberInputs.data.motorConnected())
+            && !Robot.isJITing());
     climberGripperDisconnected.set(!gripperInputs.data.connected() && !Robot.isJITing());
     climberGripperTempFault.set(gripperInputs.data.tempFault());
 
     // Stop when disabled
     if (DriverStation.isDisabled()) {
-      climberIO.runTorqueCurrent(0.0);
+      climberIO.runVolts(0.0);
       climbState = ClimbState.START;
+
+      if (coastOverride.getAsBoolean()) {
+        climberIO.coast();
+      }
     }
 
     Logger.recordOutput("Climber/GripperReady", false);
@@ -92,7 +105,9 @@ public class Climber extends SubsystemBase {
       stopPull = false;
       Leds.getInstance().superClimbed = false;
       climbTimer.restart();
-      climbFailedDebouncer.calculate(false);
+    }
+    if (climbState != ClimbState.READY) {
+      autoClimbDebouncer.calculate(false);
     }
     switch (climbState) {
       case START -> {
@@ -106,7 +121,7 @@ public class Climber extends SubsystemBase {
         double position = climberInputs.data.positionRads();
         boolean gripperReady = false;
         if (position >= Units.degreesToRadians(deployAngle.get())) {
-          climberIO.runTorqueCurrent(deployCurrent.get());
+          climberIO.runVolts(deployVolts.get());
         } else {
           gripperReady = true;
           climberIO.stop();
@@ -115,6 +130,10 @@ public class Climber extends SubsystemBase {
         if (gripperReady) {
           gripperIO.runVolts(gripVolts.get());
           Leds.getInstance().ready = true;
+          if (autoClimbDebouncer.calculate(
+              gripperInputs.data.supplyCurrentAmps() > autoClimbCurrent.get())) {
+            climbState = ClimbState.PULL;
+          }
         } else {
           Leds.getInstance().ready = false;
           gripperIO.stop();

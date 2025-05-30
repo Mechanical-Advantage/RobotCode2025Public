@@ -7,6 +7,7 @@
 
 package org.littletonrobotics.frc2025.util.gslam;
 
+import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.wpilibj.Alert;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
@@ -49,6 +50,9 @@ public abstract class GenericSlam<G extends GenericSlam.SlamGoal> {
   private boolean brakeModeEnabled = false;
   private BooleanSupplier coastModeSupplier = () -> false;
 
+  // Connected debouncer
+  private final Debouncer motorConnectedDebouncer =
+      new Debouncer(0.5, Debouncer.DebounceType.kFalling);
   private final Alert disconnected;
 
   /**
@@ -101,7 +105,8 @@ public abstract class GenericSlam<G extends GenericSlam.SlamGoal> {
     lastGoal = getGoal();
 
     // Set alert
-    disconnected.set(!inputs.data.motorConnected() && !Robot.isJITing());
+    disconnected.set(
+        !motorConnectedDebouncer.calculate(inputs.data.motorConnected()) && !Robot.isJITing());
 
     // Check if at goal.
     if (!slammed) {

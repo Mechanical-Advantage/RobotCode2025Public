@@ -282,6 +282,7 @@ public class RobotContainer {
     elevator.setOverrides(() -> coastOverride, superstructureDisable);
     dispenser.setOverrides(() -> coastOverride, superstructureDisable);
     intake.setCoastOverride(() -> coastOverride);
+    climber.setCoastOverride(() -> coastOverride);
     objectiveTracker.setOverrides(forceSimpleCoralStrategy);
     Leds.getInstance().setShouldDimSupplier(dimLeds);
 

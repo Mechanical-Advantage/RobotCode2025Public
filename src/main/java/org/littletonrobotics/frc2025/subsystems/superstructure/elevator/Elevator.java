@@ -107,6 +107,11 @@ public class Elevator {
   private final ElevatorIO io;
   private final ElevatorIOInputsAutoLogged inputs = new ElevatorIOInputsAutoLogged();
 
+  // Connected debouncers
+  private final Debouncer motorConnectedDebouncer = new Debouncer(0.5, DebounceType.kFalling);
+  private final Debouncer followerMotorConnectedDebouncer =
+      new Debouncer(0.5, DebounceType.kFalling);
+
   private final Alert motorDisconnectedAlert =
       new Alert("Elevator leader motor disconnected!", Alert.AlertType.kWarning);
   private final Alert followerDisconnectedAlert =
@@ -154,8 +159,11 @@ public class Elevator {
     io.updateInputs(inputs);
     Logger.processInputs("Elevator", inputs);
 
-    motorDisconnectedAlert.set(!inputs.data.motorConnected() && !Robot.isJITing());
-    followerDisconnectedAlert.set(!inputs.data.followerConnected() && !Robot.isJITing());
+    motorDisconnectedAlert.set(
+        !motorConnectedDebouncer.calculate(inputs.data.motorConnected()) && !Robot.isJITing());
+    followerDisconnectedAlert.set(
+        !followerMotorConnectedDebouncer.calculate(inputs.data.followerConnected())
+            && !Robot.isJITing());
 
     // Update tunable numbers
     if (kP.hasChanged(hashCode()) || kD.hasChanged(hashCode())) {

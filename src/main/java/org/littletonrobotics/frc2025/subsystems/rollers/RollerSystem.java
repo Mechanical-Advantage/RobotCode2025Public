@@ -7,6 +7,7 @@
 
 package org.littletonrobotics.frc2025.subsystems.rollers;
 
+import edu.wpi.first.math.filter.Debouncer;
 import edu.wpi.first.wpilibj.Alert;
 import lombok.Setter;
 import org.littletonrobotics.frc2025.Robot;
@@ -18,6 +19,8 @@ public class RollerSystem {
   private final String inputsName;
   private final RollerSystemIO io;
   protected final RollerSystemIOInputsAutoLogged inputs = new RollerSystemIOInputsAutoLogged();
+  private final Debouncer motorConnectedDebouncer =
+      new Debouncer(0.5, Debouncer.DebounceType.kFalling);
   private final Alert disconnected;
   private final Alert tempFault;
 
@@ -36,7 +39,8 @@ public class RollerSystem {
   public void periodic() {
     io.updateInputs(inputs);
     Logger.processInputs(inputsName, inputs);
-    disconnected.set(!inputs.data.connected() && !Robot.isJITing());
+    disconnected.set(
+        !motorConnectedDebouncer.calculate(inputs.data.connected()) && !Robot.isJITing());
     tempFault.set(inputs.data.tempFault());
 
     // Run roller

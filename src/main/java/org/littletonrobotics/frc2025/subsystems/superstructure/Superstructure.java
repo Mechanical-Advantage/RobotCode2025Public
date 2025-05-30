@@ -411,6 +411,11 @@ public class Superstructure extends SubsystemBase {
         (state == SuperstructureState.STOW && goal == SuperstructureState.STOW)
             || (state == SuperstructureState.ALGAE_STOW && goal == SuperstructureState.ALGAE_STOW));
 
+    // Tell dispenser we are stowed
+    dispenser.setStowed(
+        (state == SuperstructureState.STOW && goal == SuperstructureState.STOW)
+            || (state == SuperstructureState.ALGAE_STOW && goal == SuperstructureState.ALGAE_STOW));
+
     // Tell elevator if we have algae
     elevator.setHasAlgae(dispenser.hasAlgae());
 

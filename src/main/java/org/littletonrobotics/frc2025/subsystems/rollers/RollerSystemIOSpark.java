@@ -17,7 +17,6 @@ import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig;
 import com.revrobotics.spark.config.SparkFlexConfig;
 import com.revrobotics.spark.config.SparkMaxConfig;
-import edu.wpi.first.math.filter.Debouncer;
 import java.util.function.DoubleSupplier;
 
 public class RollerSystemIOSpark implements RollerSystemIO {
@@ -25,7 +24,6 @@ public class RollerSystemIOSpark implements RollerSystemIO {
   private final RelativeEncoder encoder;
   private final SparkBaseConfig config;
 
-  private final Debouncer connectedDebouncer = new Debouncer(.5);
   private int currentLimit = 60;
   private boolean brakeModeEnabled = true;
 
@@ -79,7 +77,7 @@ public class RollerSystemIOSpark implements RollerSystemIO {
             ifOkOrDefault(spark, spark::getOutputCurrent, inputs.data.torqueCurrentAmps()),
             ifOkOrDefault(spark, spark::getMotorTemperature, inputs.data.tempCelsius()),
             false,
-            connectedDebouncer.calculate(!sparkStickyFault));
+            !sparkStickyFault);
   }
 
   @Override
