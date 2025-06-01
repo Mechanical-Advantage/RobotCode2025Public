@@ -27,6 +27,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.ExtensionMethod;
 import org.littletonrobotics.frc2025.subsystems.drive.DriveConstants;
+import org.littletonrobotics.frc2025.subsystems.leds.Leds;
 import org.littletonrobotics.frc2025.subsystems.vision.VisionConstants;
 import org.littletonrobotics.frc2025.util.*;
 import org.littletonrobotics.junction.AutoLogOutput;
@@ -47,6 +48,10 @@ public class RobotState {
       new LoggedTunableNumber("RobotState/CoralPersistanceTime", 0.75);
   private static final LoggedTunableNumber algaePersistanceTime =
       new LoggedTunableNumber("RobotState/AlgaePersistanceTime", 0.1);
+  private static final LoggedTunableNumber ledsCloseToReefDistance =
+      new LoggedTunableNumber("RobotState/LEDsCloseToReefDistance", 2.0);
+  private static final LoggedTunableNumber ledsCloseToReefAngleDeg =
+      new LoggedTunableNumber("RobotState/LEDsCloseToReefAngleDeg", 45.0);
 
   private static final double poseBufferSizeSec = 2.0;
   private static final Matrix<N3, N1> odometryStateStdDevs =
@@ -401,7 +406,7 @@ public class RobotState {
     }
   }
 
-  public void periodicLog() {
+  public void periodic() {
     // Log tx/ty poses
     Pose2d[] tagPoses = new Pose2d[FieldConstants.aprilTagCount + 1];
     for (int i = 0; i < FieldConstants.aprilTagCount + 1; i++) {
@@ -422,6 +427,21 @@ public class RobotState {
                             FieldConstants.coralDiameter / 2.0),
                         new Rotation3d(new Rotation2d(Timer.getTimestamp() * 5.0))))
             .toArray(Pose3d[]::new));
+
+    // Update LED state
+    var poseFlipped = AllianceFlipUtil.apply(getEstimatedPose());
+    Leds.getInstance().closeToReef =
+        poseFlipped.getTranslation().getDistance(FieldConstants.Reef.center)
+                <= ledsCloseToReefDistance.get()
+            && Math.abs(
+                    poseFlipped
+                        .getRotation()
+                        .minus(
+                            FieldConstants.Reef.center
+                                .minus(poseFlipped.getTranslation())
+                                .getAngle())
+                        .getDegrees())
+                <= ledsCloseToReefAngleDeg.get();
   }
 
   public record OdometryObservation(

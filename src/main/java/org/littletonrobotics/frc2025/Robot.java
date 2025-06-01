@@ -296,7 +296,7 @@ public class Robot extends LoggedRobot {
     jitAlert.set(isJITing());
 
     // Log robot state values
-    RobotState.getInstance().periodicLog();
+    RobotState.getInstance().periodic();
 
     // Record cycle time
     LoggedTracer.record("RobotPeriodic");

@@ -41,6 +41,7 @@ public class Leds extends VirtualSubsystem {
   public boolean endgameAlert = false;
   public boolean autoScoringReef = false;
   public boolean autoScoring = false;
+  public boolean closeToReef = false;
   public boolean superAutoScoring = false;
   public boolean coralIntaking = false;
   public boolean superstructureCoast = false;
@@ -86,8 +87,8 @@ public class Leds extends VirtualSubsystem {
   private static final Section fullSection = new Section(0, virtualLength);
   private static final Section firstPrioritySection = new Section(virtualLength / 5, virtualLength);
   private static final Section secondPrioritySection = new Section(0, virtualLength / 5);
-  private static final Section straightSection = new Section(sideSectionLength, virtualLength);
   private static final Section sideSection = new Section(0, sideSectionLength);
+  private static final Section backSection = new Section(sideSectionLength, virtualLength);
   private static final double strobeDuration = 0.1;
   private static final double strobeSlowDuration = 0.2;
   private static final double breathFastDuration = 0.5;
@@ -231,7 +232,7 @@ public class Leds extends VirtualSubsystem {
 
       // Vision disconnected alert
       if (visionDisconnected) {
-        strobe(sideSection, Color.kRed, Color.kBlack, strobeDuration);
+        strobe(backSection, Color.kRed, Color.kBlack, strobeDuration);
       }
 
     } else if (DriverStation.isAutonomous()) {
@@ -240,36 +241,42 @@ public class Leds extends VirtualSubsystem {
       } else {
         wave(fullSection, Color.kGold, Color.kDarkBlue, waveFastCycleLength, waveFastDuration);
       }
+
+      if (closeToReef) {
+        solid(sideSection, Color.kWhite);
+      }
     } else {
       solid(firstPrioritySection, firstPriorityColor);
       solid(secondPrioritySection, secondPriorityColor);
 
       // Auto scoring reef
       if (autoScoringReef) {
-        rainbow(straightSection, rainbowCycleLength, rainbowDuration);
+        rainbow(backSection, rainbowCycleLength, rainbowDuration);
         solid(
             sideSection,
-            switch (autoScoringLevel) {
-              case L1 -> l1PriorityColor;
-              case L2 -> l2PriorityColor;
-              case L3 -> l3PriorityColor;
-              case L4 -> l4PriorityColor;
-            });
+            closeToReef
+                ? Color.kWhite
+                : switch (autoScoringLevel) {
+                  case L1 -> l1PriorityColor;
+                  case L2 -> l2PriorityColor;
+                  case L3 -> l3PriorityColor;
+                  case L4 -> l4PriorityColor;
+                });
 
         // Super auto scoring
         if (superAutoScoring) {
-          strobe(straightSection, Color.kBlack, null, rainbowStrobeDuration);
+          strobe(backSection, Color.kBlack, null, rainbowStrobeDuration);
         }
       }
 
       // Auto scoring
       if (autoScoring) {
-        rainbow(straightSection, rainbowCycleLength, rainbowDuration);
+        rainbow(backSection, rainbowCycleLength, rainbowDuration);
       }
 
       // Ready alert
       if (ready) {
-        strobe(straightSection, Color.kWhite, Color.kBlue, strobeDuration);
+        strobe(backSection, Color.kWhite, Color.kBlue, strobeDuration);
       }
 
       // Intaking
@@ -279,17 +286,17 @@ public class Leds extends VirtualSubsystem {
 
       // Coral grab alert
       if (coralGrabbed || algaeGrabbed) {
-        solid(straightSection, Color.kLime);
+        solid(backSection, Color.kLime);
       }
 
       // Human player alert
       if (hpAttentionAlert) {
-        strobe(straightSection, Color.kWhite, Color.kBlack, strobeDuration);
+        strobe(backSection, Color.kWhite, Color.kBlack, strobeDuration);
       }
 
       // Endgame alert
       if (endgameAlert) {
-        strobe(straightSection, Color.kRed, Color.kGold, strobeDuration);
+        strobe(backSection, Color.kRed, Color.kGold, strobeDuration);
       }
     }
 

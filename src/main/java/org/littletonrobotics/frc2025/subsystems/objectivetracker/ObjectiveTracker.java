@@ -59,7 +59,7 @@ public class ObjectiveTracker extends VirtualSubsystem {
           .collect(Collectors.toSet());
 
   private static final LoggedTunableNumber lookaheadS =
-      new LoggedTunableNumber("ObjectiveTracker/LookaheadS", 0.35);
+      new LoggedTunableNumber("ObjectiveTracker/LookaheadS", 0.1);
 
   private final ReefControlsIO io;
   private final ReefControlsIOInputsAutoLogged inputs = new ReefControlsIOInputsAutoLogged();
@@ -74,12 +74,16 @@ public class ObjectiveTracker extends VirtualSubsystem {
   private final Set<CoralObjective> availableUnblockedBranches = new HashSet<>();
   private final Set<CoralObjective> nearbyBranches = new HashSet<>();
   private final Set<CoralObjective> nearbyUnblockedBranches = new HashSet<>();
+  private final Set<CoralObjective> faceBranches = new HashSet<>();
+  private final Set<CoralObjective> faceUnblockedBranches = new HashSet<>();
 
   private final Set<AlgaeObjective> presentAlgae = new HashSet<>();
 
   private List<CoralPriority> fullStrategy = new ArrayList<>();
   private final List<CoralPriority> uncompletedPriorities = new ArrayList<>();
-  private List<CoralPriority> openPriorities = new ArrayList<>();
+
+  private Optional<CoralPriority> firstPriority = Optional.empty();
+  private Optional<CoralPriority> secondPriority = Optional.empty();
 
   @Getter private Optional<ReefLevel> firstLevel = Optional.empty();
   @Getter private Optional<ReefLevel> secondLevel = Optional.empty();
@@ -393,31 +397,74 @@ public class ObjectiveTracker extends VirtualSubsystem {
                     <= 100.0)
         .forEach(nearbyBranches::add);
 
-    // Calculate current open priorities in order
-    openPriorities.clear();
-    int count = 0;
-    for (var priority : uncompletedPriorities) {
-      if (openPriorities.stream()
-              .noneMatch(objective -> priority.getLevel() == objective.getLevel())
-          && nearbyBranches.stream()
-              .anyMatch(objective -> priority.getLevel() == objective.reefLevel())) {
-        openPriorities.add(priority);
-        count++;
+    // Find and add available branches from nearest face
+    int nearestFace = 0;
+    double smallestDistance = Double.MAX_VALUE;
+    for (int i = 0; i < 6; i++) {
+      double distance =
+          predictedRobot
+              .getTranslation()
+              .getDistance(FieldConstants.Reef.centerFaces[i].getTranslation());
+      if (distance < smallestDistance) {
+        smallestDistance = distance;
+        nearestFace = i;
       }
-      if (count == 2) break;
     }
-    Logger.recordOutput(
-        "ObjectiveTracker/Strategy/OpenPriorities", openPriorities.toArray(CoralPriority[]::new));
+    faceBranches.clear();
+    int finalNearestFace = nearestFace;
+    faceBranches.addAll(
+        nearbyBranches.stream()
+            .filter(objective -> objective.branchId() / 2 == finalNearestFace)
+            .collect(Collectors.toSet()));
 
-    // Get first and second level priorities
-    firstLevel = getLevel(false);
-    secondLevel = getLevel(true);
+    // Calculate current priorities
+    if (dashboardLevelChooser.get().equals("Auto")) {
+      firstPriority = Optional.empty();
+      for (var priority : uncompletedPriorities) {
+        if (faceBranches.stream()
+            .anyMatch(objective -> objective.reefLevel() == priority.getLevel())) {
+          firstPriority = Optional.of(priority);
+          break;
+        }
+      }
+      secondPriority = Optional.empty();
+      for (var priority : uncompletedPriorities) {
+        if (!(firstPriority.isPresent() && priority.getLevel() == firstPriority.get().getLevel())
+            && nearbyBranches.stream()
+                .anyMatch(objective -> objective.reefLevel() == priority.getLevel())) {
+          secondPriority = Optional.of(priority);
+          break;
+        }
+      }
+    } else {
+      // Use selector from dashboard
+      firstPriority =
+          Optional.of(
+              CoralPriority.valueOf(
+                  "_" + (ReefLevel.valueOf(dashboardLevelChooser.get()).levelNumber + 1)));
+      secondPriority = firstPriority;
+    }
+    // Log priorities
+    Logger.recordOutput(
+        "ObjectiveTracker/Strategy/FirstPriority",
+        firstPriority.map(CoralPriority::toString).orElse(""));
+    Logger.recordOutput(
+        "ObjectiveTracker/Strategy/SecondPriority",
+        secondPriority.map(CoralPriority::toString).orElse(""));
 
     // Calculate the unblocked nearby branches
     nearbyUnblockedBranches.clear();
     nearbyBranches.stream()
         .filter(availableUnblockedBranches::contains)
         .forEach(nearbyUnblockedBranches::add);
+    faceUnblockedBranches.clear();
+    faceBranches.stream()
+        .filter(availableUnblockedBranches::contains)
+        .forEach(faceUnblockedBranches::add);
+
+    // Update levels
+    firstLevel = firstPriority.map(CoralPriority::getLevel);
+    secondLevel = secondPriority.map(CoralPriority::getLevel);
 
     // Show strategy on LEDs
     Leds.getInstance().firstPriorityLevel = firstLevel;
@@ -473,24 +520,11 @@ public class ObjectiveTracker extends VirtualSubsystem {
     }
   }
 
-  private Optional<ReefLevel> getLevel(boolean secondPriority) {
-    if (!dashboardLevelChooser.get().equals("Auto")) {
-      return Optional.of(ReefLevel.valueOf(dashboardLevelChooser.get()));
-    }
-    if (!secondPriority) {
-      return !openPriorities.isEmpty()
-          ? Optional.of(openPriorities.get(0).getLevel())
-          : Optional.empty();
-    } else {
-      if (openPriorities.size() < 2) return Optional.empty();
-      return Optional.of(openPriorities.get(1).getLevel());
-    }
-  }
-
-  public Optional<CoralObjective> getCoralObjective(ReefLevel level) {
-    return nearbyUnblockedBranches.stream()
-        .filter(objective -> objective.reefLevel() == level)
-        .min(nearestCoralObjectiveComparator(predictedRobot));
+  public Optional<CoralObjective> getCoralObjective(ReefLevel level, boolean firstPriority) {
+    return (firstPriority ? faceUnblockedBranches : nearbyUnblockedBranches)
+        .stream()
+            .filter(objective -> objective.reefLevel() == level)
+            .min(nearestCoralObjectiveComparator(predictedRobot));
   }
 
   public Optional<CoralObjective> getSuperCoralObjective(

@@ -299,7 +299,7 @@ public class RobotContainer {
       objectiveTracker.getFirstLevel();
       objectiveTracker.getSecondLevel();
       for (var level : ReefLevel.values()) {
-        objectiveTracker.getCoralObjective(level);
+        objectiveTracker.getCoralObjective(level, true);
         objectiveTracker.getSuperCoralObjective(new AlgaeObjective(0), level);
       }
     }
@@ -343,7 +343,9 @@ public class RobotContainer {
                           .get()
                           .filter(
                               reefLevel ->
-                                  objectiveTracker.getCoralObjective(reefLevel).isPresent())
+                                  objectiveTracker
+                                      .getCoralObjective(reefLevel, firstPriority)
+                                      .isPresent())
                           .isPresent());
           trigger
               .and(trigger.doublePress().negate())
@@ -354,7 +356,9 @@ public class RobotContainer {
                           drive,
                           superstructure,
                           () -> lockedReefLevel.value,
-                          () -> objectiveTracker.getCoralObjective(lockedReefLevel.value),
+                          () ->
+                              objectiveTracker.getCoralObjective(
+                                  lockedReefLevel.value, firstPriority),
                           driverX,
                           driverY,
                           driverOmega,
