@@ -573,6 +573,20 @@ public class Superstructure extends SubsystemBase {
     return run(() -> setGoal(goal.get()));
   }
 
+  public Command runTunnelEject() {
+    return runOnce(
+            () -> {
+              if (coralEjectPairs.containsValue(state)) {
+                setGoal(state);
+              } else if (coralEjectPairs.containsKey(goal)) {
+                setGoal(coralEjectPairs.get(goal));
+              } else {
+                setGoal(SuperstructureState.GOODBYE_CORAL_EJECT);
+              }
+            })
+        .andThen(Commands.idle(this));
+  }
+
   public Command forceEjectDispenser() {
     return startEnd(
         () -> dispenser.setForceEjectForward(true), () -> dispenser.setForceEjectForward(false));

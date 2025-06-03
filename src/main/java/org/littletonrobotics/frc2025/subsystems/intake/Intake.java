@@ -193,7 +193,6 @@ public class Intake extends SubsystemBase {
         rollerVolts = 0.0;
       }
     }
-
     // Handle indexing to superstructure
     if (coralIndexed && !hasCoral && superstructureReady && shouldIndex && goal != Goal.OUTTAKE) {
       indexerVolts = indexerIndexVolts.get();
@@ -208,6 +207,12 @@ public class Intake extends SubsystemBase {
     if (DriverStation.isDisabled()) {
       goal = slam.wantsToDeploy() ? Goal.DEPLOY : Goal.RETRACT;
     }
+
+    // Set deploy percent in RobotState
+    RobotState.getInstance()
+        .setIntakeDeployPercent(
+            (Slam.Goal.RETRACT.getAngleRad() - slam.getMeasuredAngleRad())
+                / (Slam.Goal.RETRACT.getAngleRad() - Slam.Goal.DEPLOY.getAngleRad()));
 
     // Visualize coral indexed
     Logger.recordOutput(
@@ -225,10 +230,6 @@ public class Intake extends SubsystemBase {
 
   public Command intake() {
     return startEnd(() -> setGoal(Goal.INTAKE), () -> setGoal(Goal.DEPLOY));
-  }
-
-  public Command intakeTeleop() {
-    return startEnd(() -> setGoal(Goal.INTAKE), () -> setGoal(Goal.RETRACT));
   }
 
   public Command outtake() {

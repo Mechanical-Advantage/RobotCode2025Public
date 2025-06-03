@@ -139,7 +139,7 @@ public class RobotContainer {
           intake =
               new Intake(
                   new SlamIOTalonFX(),
-                  new RollerSystemIOTalonFX(4, "", 60, false, false, 1.0),
+                  new RollerSystemIOTalonFX(4, "", 60, true, false, 1.0),
                   new RollerSystemIOTalonFX(8, "", 40, true, false, 1.0),
                   new CoralSensorIOLaserCan(56));
           climber =
@@ -363,8 +363,8 @@ public class RobotContainer {
                           driverY,
                           driverOmega,
                           joystickDriveCommandFactory.get(),
-                          Commands.none(),
-                          () -> false,
+                          this::controllerRumbleCommand,
+                          trigger,
                           disableReefAutoAlign,
                           driver.b().doublePress())
                       .deadlineFor(
@@ -416,7 +416,7 @@ public class RobotContainer {
                           driverOmega,
                           joystickDriveCommandFactory,
                           this::controllerRumbleCommand,
-                          robotRelative,
+                          trigger.doublePress(),
                           disableReefAutoAlign,
                           driver.b().doublePress())
                       .deadlineFor(
@@ -451,10 +451,19 @@ public class RobotContainer {
         .and(() -> !hasCoral.value)
         .and(scoringTriggers.negate())
         .whileTrue(
-            intake
-                .intakeTeleop()
+            IntakeCommands.simpleLittleAutomation(
+                    drive,
+                    intake,
+                    hasCoralTrigger,
+                    driverX,
+                    driverY,
+                    driverOmega,
+                    joystickDriveCommandFactory.get(),
+                    robotRelative,
+                    disableIntakeAutoAlign)
                 .alongWith(superstructure.runGoal(SuperstructureState.CORAL_INTAKE))
-                .withName("Coral Intake"));
+                .withName("Coral Intake (SLA)"))
+        .onFalse(intake.retract());
     coralIntakingTrigger
         .doublePress()
         .and(() -> !hasCoral.value)
@@ -471,11 +480,8 @@ public class RobotContainer {
                     robotRelative,
                     disableIntakeAutoAlign)
                 .alongWith(superstructure.runGoal(SuperstructureState.CORAL_INTAKE))
-                .withName("Coral Auto Intake"));
-    coralIntakingTrigger
-        .and(() -> !hasCoral.value)
-        .and(scoringTriggers)
-        .whileTrueContinuous(intake.intakeTeleop().withName("Coral Intake"));
+                .withName("Coral Auto Intake"))
+        .onFalse(intake.retract());
     coralIntakingTrigger.whileTrue(
         Commands.waitUntil(hasCoralTrigger).andThen(controllerRumbleCommand().withTimeout(0.3)));
     coralIntakingTrigger
@@ -543,7 +549,6 @@ public class RobotContainer {
                     driverY,
                     driverOmega,
                     joystickDriveCommandFactory.get(),
-                    () -> false,
                     disableReefAutoAlign)
                 .deadlineFor(
                     Commands.startEnd(
@@ -636,12 +641,9 @@ public class RobotContainer {
     // Coral eject
     driver
         .b()
-        .and(driver.rightBumper().negate())
-        .and(driver.rightTrigger().negate())
-        .whileTrue(
-            superstructure
-                .runGoal(SuperstructureState.GOODBYE_CORAL_EJECT)
-                .withName("Coral Eject"));
+        .and(firstPriorityTrigger.negate())
+        .and(secondPriorityTrigger.negate())
+        .whileTrue(superstructure.runTunnelEject().withName("Coral Eject"));
 
     // Nudge climber up and down
     driver

@@ -113,6 +113,11 @@ public class RobotState {
   @AutoLogOutput(key = "RobotState/ElevatorExtensionPercent")
   private double elevatorExtensionPercent;
 
+  @Getter
+  @Setter
+  @AutoLogOutput(key = "RobotState/IntakeDeployPercent")
+  private double intakeDeployPercent;
+
   @Getter @Setter private OptionalDouble distanceToBranch = OptionalDouble.empty();
   @Getter @Setter private OptionalDouble distanceToReefAlgae = OptionalDouble.empty();
   @Getter @Setter private Rotation2d pitch = Rotation2d.kZero;
@@ -367,8 +372,12 @@ public class RobotState {
   }
 
   public Set<Translation2d> getCoralTranslations() {
-    if (Constants.getRobot() == Constants.RobotType.SIMBOT && DriverStation.isAutonomousEnabled()) {
-      return AutoCoralSim.getCorals();
+    if (Constants.getRobot() == Constants.RobotType.SIMBOT) {
+      if (DriverStation.isAutonomousEnabled()) {
+        return AutoCoralSim.getCorals();
+      } else {
+        return Set.of(AllianceFlipUtil.apply(new Translation2d(3.0, 2.0)));
+      }
     }
     return coralPoses.stream()
         .filter((x) -> Timer.getTimestamp() - x.timestamp() < coralPersistanceTime.get())

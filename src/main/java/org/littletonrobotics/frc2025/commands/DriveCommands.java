@@ -29,6 +29,7 @@ import java.util.function.DoubleSupplier;
 import org.littletonrobotics.frc2025.RobotState;
 import org.littletonrobotics.frc2025.subsystems.drive.Drive;
 import org.littletonrobotics.frc2025.subsystems.drive.DriveConstants;
+import org.littletonrobotics.frc2025.util.LoggedTunableNumber;
 import org.littletonrobotics.junction.Logger;
 
 public class DriveCommands {
@@ -37,8 +38,14 @@ public class DriveCommands {
   private static final double ffRampRate = 0.1; // Volts/Sec
   private static final double wheelRadiusMaxVelocity = 0.25; // Rad/Sec
   private static final double wheelRadiusRampRate = 0.05; // Rad/Sec^2
-  private static final double elevatorMinExtension = 0.4;
-  private static final double maxExtensionAngularVelocityScalar = 0.2;
+  private static final LoggedTunableNumber elevatorMinExtension =
+      new LoggedTunableNumber("DriveCommands/ElevatorMinExtension", 0.4);
+  private static final LoggedTunableNumber maxExtensionAngularVelocityScalar =
+      new LoggedTunableNumber("DriveCommands/MaxExtensionAngularVelocityScalar", 0.2);
+  private static final LoggedTunableNumber maxIntakeLinearVelocityScalar =
+      new LoggedTunableNumber("DriveCommands/MaxIntakeLinearVelocityScalar", 0.5);
+  private static final LoggedTunableNumber maxIntakeAngularVelocity =
+      new LoggedTunableNumber("DriveCommands/MaxIntakeAngularVelocity", 0.6);
 
   private DriveCommands() {}
 
@@ -61,6 +68,42 @@ public class DriveCommands {
     return omega * omega * Math.signum(omega);
   }
 
+  public static ChassisSpeeds getSpeedsFromJoysticks(
+      double driverX, double driverY, double driverOmega) {
+    // Get linear velocity
+    Translation2d linearVelocity =
+        getLinearVelocityFromJoysticks(driverX, driverY)
+            .times(DriveConstants.maxLinearSpeed)
+            .times(
+                MathUtil.interpolate(
+                    1,
+                    maxIntakeLinearVelocityScalar.get(),
+                    MathUtil.clamp(RobotState.getInstance().getIntakeDeployPercent(), 0.0, 1.0)));
+
+    // Calculate angular velocity
+    double omega = getOmegaFromJoysticks(driverOmega);
+
+    return new ChassisSpeeds(
+        linearVelocity.getX(),
+        linearVelocity.getY(),
+        omega
+            * DriveConstants.maxAngularSpeed
+            * Math.min(
+                MathUtil.interpolate(
+                    1.0,
+                    maxExtensionAngularVelocityScalar.get(),
+                    MathUtil.clamp(
+                        (RobotState.getInstance().getElevatorExtensionPercent()
+                                - elevatorMinExtension.get())
+                            / (1.0 - elevatorMinExtension.get()),
+                        0.0,
+                        1.0)),
+                MathUtil.interpolate(
+                    1,
+                    maxIntakeAngularVelocity.get(),
+                    MathUtil.clamp(RobotState.getInstance().getIntakeDeployPercent(), 0.0, 1.0))));
+  }
+
   /**
    * Field or robot relative drive command using two joysticks (controlling linear and angular
    * velocities).
@@ -73,30 +116,9 @@ public class DriveCommands {
       BooleanSupplier robotRelative) {
     return Commands.run(
         () -> {
-          // Get linear velocity
-          Translation2d linearVelocity =
-              getLinearVelocityFromJoysticks(xSupplier.getAsDouble(), ySupplier.getAsDouble())
-                  .times(DriveConstants.maxLinearSpeed);
-
-          // Calculate angular velocity
-          double omega = getOmegaFromJoysticks(omegaSupplier.getAsDouble());
-
           ChassisSpeeds speeds =
-              new ChassisSpeeds(
-                  linearVelocity.getX(),
-                  linearVelocity.getY(),
-                  omega
-                      * DriveConstants.maxAngularSpeed
-                      * MathUtil.interpolate(
-                          1.0,
-                          maxExtensionAngularVelocityScalar,
-                          MathUtil.clamp(
-                              (RobotState.getInstance().getElevatorExtensionPercent()
-                                      - elevatorMinExtension)
-                                  / (1.0 - elevatorMinExtension),
-                              0.0,
-                              1.0)));
-
+              getSpeedsFromJoysticks(
+                  xSupplier.getAsDouble(), ySupplier.getAsDouble(), omegaSupplier.getAsDouble());
           drive.runVelocity(
               robotRelative.getAsBoolean()
                   ? speeds

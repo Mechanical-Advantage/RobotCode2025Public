@@ -137,8 +137,8 @@ public class AutoScoreCommands {
       DoubleSupplier driverY,
       DoubleSupplier driverOmega,
       Command joystickDrive,
-      Command controllerRumble,
-      BooleanSupplier robotRelative,
+      Supplier<Command> controllerRumble,
+      BooleanSupplier trigger,
       BooleanSupplier disableReefAutoAlign,
       BooleanSupplier manualEject) {
     Supplier<ReefPoseEstimate> robot =
@@ -318,9 +318,11 @@ public class AutoScoreCommands {
                       return ready;
                     },
                     manualEject,
-                    disableReefAutoAlign)
+                    disableReefAutoAlign,
+                    trigger,
+                    controllerRumble.get())
                 .andThen(
-                    new ScheduleCommand(controllerRumble.withTimeout(controllerRumbleSecs)),
+                    new ScheduleCommand(controllerRumble.get().withTimeout(controllerRumbleSecs)),
                     superstructure
                         .runGoal(
                             () ->
@@ -361,7 +363,7 @@ public class AutoScoreCommands {
         () -> 0,
         () -> 0,
         Commands.none(),
-        Commands.none(),
+        Commands::none,
         () -> false,
         () -> false,
         () -> false);
@@ -375,7 +377,6 @@ public class AutoScoreCommands {
       DoubleSupplier driverY,
       DoubleSupplier driverOmega,
       Command joystickDrive,
-      BooleanSupplier robotRelative,
       BooleanSupplier disableReefAutoAlign,
       boolean isSuper) {
     Supplier<Pose2d> robot =
@@ -549,7 +550,6 @@ public class AutoScoreCommands {
       DoubleSupplier driverY,
       DoubleSupplier driverOmega,
       Command joystickDrive,
-      BooleanSupplier robotRelative,
       BooleanSupplier disableReefAutoAlign) {
     return reefIntake(
         drive,
@@ -559,7 +559,6 @@ public class AutoScoreCommands {
         driverY,
         driverOmega,
         joystickDrive,
-        robotRelative,
         disableReefAutoAlign,
         false);
   }
@@ -574,7 +573,7 @@ public class AutoScoreCommands {
       DoubleSupplier driverOmega,
       Supplier<Command> joystickDriveCommandFactory,
       Supplier<Command> controllerRumbleCommandFactory,
-      BooleanSupplier robotRelative,
+      BooleanSupplier trigger,
       BooleanSupplier disableReefAutoAlign,
       BooleanSupplier manualEject) {
 
@@ -587,7 +586,6 @@ public class AutoScoreCommands {
             driverY,
             driverOmega,
             joystickDriveCommandFactory.get(),
-            robotRelative,
             disableReefAutoAlign,
             true)
         .andThen(
@@ -600,8 +598,8 @@ public class AutoScoreCommands {
                 driverY,
                 driverOmega,
                 joystickDriveCommandFactory.get(),
-                controllerRumbleCommandFactory.get(),
-                robotRelative,
+                controllerRumbleCommandFactory,
+                trigger,
                 disableReefAutoAlign,
                 manualEject))
         .beforeStarting(
@@ -623,12 +621,14 @@ public class AutoScoreCommands {
       Supplier<Optional<CoralObjective>> coralObjective,
       BooleanSupplier eject,
       BooleanSupplier forceEject,
-      BooleanSupplier disableReefAutoAlign) {
+      BooleanSupplier disableReefAutoAlign,
+      BooleanSupplier trigger,
+      Command controllerRumble) {
     final Timer ejectTimer = new Timer();
     return superstructure
         .runGoal(
             () -> Superstructure.getScoringState(reefLevel.get(), superstructure.hasAlgae(), false))
-        .until(eject)
+        .until(() -> eject.getAsBoolean() || forceEject.getAsBoolean())
         .andThen(
             Commands.runOnce(ejectTimer::restart),
             superstructure
@@ -639,51 +639,61 @@ public class AutoScoreCommands {
                 .until(
                     () ->
                         ejectTimer.hasElapsed(ejectTimeSeconds[reefLevel.get().levelNumber].get())
-                            && !forceEject.getAsBoolean()))
+                            && !trigger.getAsBoolean())
+                // Sequence controller rumble separately
+                .deadlineFor(
+                    controllerRumble
+                        .withTimeout(controllerRumbleSecs)
+                        .onlyIf(
+                            () ->
+                                ejectTimer.hasElapsed(
+                                    ejectTimeSeconds[reefLevel.get().levelNumber].get()))))
         .deadlineFor(
             // Measure distance to branch
             Commands.run(
-                () -> {
-                  coralObjective
-                      .get()
-                      .ifPresentOrElse(
-                          objective -> {
-                            if (disableReefAutoAlign.getAsBoolean()) {
-                              RobotState.getInstance().setDistanceToBranch(OptionalDouble.empty());
-                              return;
-                            }
+                () ->
+                    coralObjective
+                        .get()
+                        .ifPresentOrElse(
+                            objective -> {
+                              if (disableReefAutoAlign.getAsBoolean()) {
+                                RobotState.getInstance()
+                                    .setDistanceToBranch(OptionalDouble.empty());
+                                return;
+                              }
 
-                            if (objective.reefLevel() == ReefLevel.L1) {
-                              RobotState.getInstance().setDistanceToBranch(OptionalDouble.empty());
-                              return;
-                            }
+                              if (objective.reefLevel() == ReefLevel.L1) {
+                                RobotState.getInstance()
+                                    .setDistanceToBranch(OptionalDouble.empty());
+                                return;
+                              }
 
-                            var dispenserPose =
-                                AllianceFlipUtil.apply(
-                                    getRobotPose(objective, superstructure.hasAlgae())
-                                        .pose()
-                                        .transformBy(
-                                            getCoralDispenserPose(
-                                                    objective.reefLevel(),
-                                                    superstructure.hasAlgae())
-                                                .robotToDispenser()));
-                            var offsetTranslation =
-                                dispenserPose
-                                    .relativeTo(
-                                        getBranchPose(objective)
-                                            .transformBy(GeomUtil.toTransform2d(Rotation2d.kPi)))
-                                    .getTranslation();
-                            double distanceToBranch = offsetTranslation.getNorm();
-                            Logger.recordOutput("AutoScore/DistanceToBranch", distanceToBranch);
-                            RobotState.getInstance()
-                                .setDistanceToBranch(
-                                    distanceToBranch <= minDistanceAim.get()
-                                        ? OptionalDouble.empty()
-                                        : OptionalDouble.of(distanceToBranch));
-                          },
-                          () ->
-                              RobotState.getInstance().setDistanceToBranch(OptionalDouble.empty()));
-                }));
+                              var dispenserPose =
+                                  AllianceFlipUtil.apply(
+                                      getRobotPose(objective, superstructure.hasAlgae())
+                                          .pose()
+                                          .transformBy(
+                                              getCoralDispenserPose(
+                                                      objective.reefLevel(),
+                                                      superstructure.hasAlgae())
+                                                  .robotToDispenser()));
+                              var offsetTranslation =
+                                  dispenserPose
+                                      .relativeTo(
+                                          getBranchPose(objective)
+                                              .transformBy(GeomUtil.toTransform2d(Rotation2d.kPi)))
+                                      .getTranslation();
+                              double distanceToBranch = offsetTranslation.getNorm();
+                              Logger.recordOutput("AutoScore/DistanceToBranch", distanceToBranch);
+                              RobotState.getInstance()
+                                  .setDistanceToBranch(
+                                      distanceToBranch <= minDistanceAim.get()
+                                          ? OptionalDouble.empty()
+                                          : OptionalDouble.of(distanceToBranch));
+                            },
+                            () ->
+                                RobotState.getInstance()
+                                    .setDistanceToBranch(OptionalDouble.empty()))));
   }
 
   public static Command superstructureAimAndEject(
@@ -692,7 +702,14 @@ public class AutoScoreCommands {
       Supplier<Optional<CoralObjective>> coralObjective,
       BooleanSupplier eject) {
     return superstructureAimAndEject(
-        superstructure, reefLevel, coralObjective, eject, () -> false, () -> false);
+        superstructure,
+        reefLevel,
+        coralObjective,
+        eject,
+        () -> false,
+        () -> false,
+        () -> false,
+        Commands.none());
   }
 
   /** Get drive target. */

@@ -48,14 +48,14 @@ public class IntakeCommands {
       new LoggedTunableNumber("IntakeCommands/SLA/CoralMinXDistance", 0.1);
   private static final LoggedTunableNumber coralMaxYDistance =
       new LoggedTunableNumber("IntakeCommands/SLA/CoralMaxYDistance", 1.0);
+  private static final LoggedTunableNumber coralSLAMaxDistance =
+      new LoggedTunableNumber("IntakeCommands/SLA/CoralMaxDistance", 0.6);
   private static final LoggedTunableNumber drivekP =
       new LoggedTunableNumber("IntakeCommands/SLA/DrivekP", 1.0);
   private static final LoggedTunableNumber drivekD =
       new LoggedTunableNumber("IntakeCommands/SLA/DrivekD", 0.0);
   private static final LoggedTunableNumber driveMinOutput =
       new LoggedTunableNumber("IntakeCommands/SLA/MinOutput", 0.1);
-  private static final LoggedTunableNumber thetaTolerance =
-      new LoggedTunableNumber("IntakeCommands/SLA/ThetaTolerance", 45.0);
   private static final LoggedTunableNumber intakingOffset =
       new LoggedTunableNumber("IntakeCommands/IntakingOffset", Units.inchesToMeters(4.0));
   private static final LoggedTunableNumber algaeSearchSpeed =
@@ -75,156 +75,110 @@ public class IntakeCommands {
       DoubleSupplier driverY,
       DoubleSupplier driverOmega,
       Command joystickDrive,
-      Command controllerRumble,
       BooleanSupplier robotRelative,
       BooleanSupplier disableIntakeAutoAlign) {
 
     @SuppressWarnings("resource")
     var driveController = new PIDController(0.0, 0.0, 0.0);
     Object tunableId = new Object();
-    Container<Double> robotToCoralError = new Container<>(-1.0);
 
     return Commands.either(
             joystickDrive,
-            drive
-                .run(
-                    () -> {
-                      if (drivekP.hasChanged(tunableId.hashCode())
-                          || drivekD.hasChanged(tunableId.hashCode())) {
-                        driveController.setPID(drivekP.get(), 0.0, drivekD.get());
-                      }
+            drive.run(
+                () -> {
+                  if (drivekP.hasChanged(tunableId.hashCode())
+                      || drivekD.hasChanged(tunableId.hashCode())) {
+                    driveController.setPID(drivekP.get(), 0.0, drivekD.get());
+                  }
 
-                      Translation2d linearVelocity =
-                          DriveCommands.getLinearVelocityFromJoysticks(
-                              driverX.getAsDouble(), driverY.getAsDouble());
-                      double omega = DriveCommands.getOmegaFromJoysticks(driverOmega.getAsDouble());
-                      ChassisSpeeds wantedSpeeds =
-                          new ChassisSpeeds(
-                              linearVelocity.getX() * DriveConstants.maxLinearSpeed,
-                              linearVelocity.getY() * DriveConstants.maxLinearSpeed,
-                              omega * DriveConstants.maxAngularSpeed);
-                      wantedSpeeds =
-                          robotRelative.getAsBoolean()
-                              ? wantedSpeeds
-                              : ChassisSpeeds.fromFieldRelativeSpeeds(
-                                  wantedSpeeds,
-                                  AllianceFlipUtil.shouldFlip()
-                                      ? RobotState.getInstance().getRotation().plus(Rotation2d.kPi)
-                                      : RobotState.getInstance().getRotation());
+                  Translation2d linearVelocity =
+                      DriveCommands.getLinearVelocityFromJoysticks(
+                          driverX.getAsDouble(), driverY.getAsDouble());
+                  double omega = DriveCommands.getOmegaFromJoysticks(driverOmega.getAsDouble());
+                  ChassisSpeeds wantedSpeeds =
+                      DriveCommands.getSpeedsFromJoysticks(
+                          driverX.getAsDouble(), driverY.getAsDouble(), omega);
+                  wantedSpeeds =
+                      robotRelative.getAsBoolean()
+                          ? wantedSpeeds
+                          : ChassisSpeeds.fromFieldRelativeSpeeds(
+                              wantedSpeeds,
+                              AllianceFlipUtil.shouldFlip()
+                                  ? RobotState.getInstance().getRotation().plus(Rotation2d.kPi)
+                                  : RobotState.getInstance().getRotation());
 
-                      // Use joysticks to infer wanted coral
-                      Pose2d robot = RobotState.getInstance().getEstimatedPose();
-                      Pose2d predictedRobot =
-                          robot.exp(wantedSpeeds.toTwist2d(lookAheadSecs.get()));
-                      Transform2d robotToIntake =
-                          new Transform2d(
-                              -(DriveConstants.robotWidth + intakingOffset.get()),
-                              0.0,
-                              Rotation2d.kPi);
+                  // Find nearest coral
+                  var coralTranslation = getNearestCoral();
+                  // Log targeted coral
+                  Logger.recordOutput(
+                      "IntakeCommands/TargetedCoral",
+                      coralTranslation
+                          .map(
+                              coral ->
+                                  new Translation3d[] {
+                                    new Translation3d(
+                                        coral.getX(), coral.getY(), FieldConstants.coralDiameter)
+                                  })
+                          .orElseGet(() -> new Translation3d[] {}));
+                  if (coralTranslation.isEmpty() || hasCoral.getAsBoolean()) {
+                    // Output joystick speeds
+                    Logger.recordOutput("IntakeCommands/SLA/WantedSpeeds", wantedSpeeds);
+                    driveController.reset();
+                    drive.runVelocity(wantedSpeeds);
+                    return;
+                  }
 
-                      Logger.recordOutput(
-                          "IntakeCommands/SLAPredictedRobot", new Pose2d[] {predictedRobot});
+                  // Nudge wanted speeds in direction of coral
+                  Pose2d robot = RobotState.getInstance().getEstimatedPose();
+                  Transform2d robotToIntake =
+                      new Transform2d(
+                          -(DriveConstants.robotWidth + intakingOffset.get()), 0.0, Rotation2d.kPi);
+                  Pose2d intakePose = robot.plus(robotToIntake);
+                  Pose2d predictedIntakePose =
+                      intakePose.exp(wantedSpeeds.toTwist2d(lookAheadSecs.get()));
+                  Logger.recordOutput("PredictedPose", predictedIntakePose);
+                  Translation2d intakeToCoralError =
+                      new Pose2d(coralTranslation.get(), intakePose.getRotation())
+                          .relativeTo(intakePose)
+                          .getTranslation();
+                  final double driveError = intakeToCoralError.getNorm();
+                  boolean shouldDrive = true;
+                  if (Math.abs(intakeToCoralError.getY()) >= coralMaxYDistance.get()
+                      || Math.abs(intakeToCoralError.getX()) >= coralMaxXDistance.get()
+                      || predictedIntakePose.getTranslation().getDistance(coralTranslation.get())
+                          >= coralSLAMaxDistance.get()) {
+                    driveController.reset();
+                    shouldDrive = false;
+                  }
 
-                      // Find nearest coral
-                      var coralTranslation = getNearestCoral();
-                      // Log targeted coral
-                      Logger.recordOutput(
-                          "IntakeCommands/TargetedCoral",
-                          coralTranslation
-                              .map(
-                                  coral ->
-                                      new Translation3d[] {
-                                        new Translation3d(
-                                            coral.getX(),
-                                            coral.getY(),
-                                            FieldConstants.coralDiameter)
-                                      })
-                              .orElseGet(() -> new Translation3d[] {}));
-                      if (coralTranslation.isEmpty() || hasCoral.getAsBoolean()) {
-                        // Output joystick speeds
-                        Logger.recordOutput("IntakeCommands/SLA/WantedSpeeds", wantedSpeeds);
-                        driveController.reset();
-                        drive.runVelocity(wantedSpeeds);
-                        robotToCoralError.value = -1.0;
-                        return;
-                      }
-
-                      // Nudge wanted speeds in direction of coral
-                      Pose2d intakePose = robot.plus(robotToIntake);
-                      Translation2d intakeToCoralError =
-                          new Pose2d(coralTranslation.get(), intakePose.getRotation())
-                              .relativeTo(intakePose)
-                              .getTranslation();
-                      final double driveError = intakeToCoralError.getNorm();
-                      robotToCoralError.value = driveError;
-                      boolean shouldDrive = true;
-                      if (Math.abs(intakeToCoralError.getY()) >= coralMaxYDistance.get()
-                          || Math.abs(intakeToCoralError.getX()) >= coralMaxXDistance.get()) {
-                        driveController.reset();
-                        shouldDrive = false;
-                      }
-
-                      Translation2d driveVelocity =
-                          new Pose2d(
-                                  new Translation2d(
-                                      shouldDrive
-                                          ? driveController.calculate(driveError, 0.0)
-                                          : 0.0,
-                                      intakeToCoralError.getAngle()),
-                                  intakeToCoralError.getAngle())
-                              .transformBy(robotToIntake.inverse())
-                              .getTranslation();
-                      wantedSpeeds =
-                          new ChassisSpeeds(
-                              wantedSpeeds.vxMetersPerSecond
-                                  + (intakeToCoralError.getX() <= 0.1
-                                          ? 0.0
-                                          : driveVelocity.getX()
-                                              * MathUtil.clamp(
-                                                  (driveError - coralMinXDistance.get())
-                                                      / (coralMinXDistance.get() + 1.0),
-                                                  0.0,
-                                                  1.0))
-                                      * linearVelocity.getNorm(),
-                              wantedSpeeds.vyMetersPerSecond
-                                  + driveVelocity.getY()
-                                      * MathUtil.clamp(
-                                          linearVelocity.getNorm() + driveMinOutput.get(),
-                                          0.0,
-                                          1.0),
-                              wantedSpeeds.omegaRadiansPerSecond
-                                  + (Math.abs(intakeToCoralError.getAngle().getDegrees())
-                                                  <= thetaTolerance.get()
-                                              || Math.abs(intakeToCoralError.getY()) <= 0.1
-                                          ? 0.0
-                                          : Math.signum(intakeToCoralError.getY()))
-                                      * (1.0 - Math.abs(omega)));
-                      Logger.recordOutput("IntakeCommands/SLA/WantedSpeeds", wantedSpeeds);
-                      drive.runVelocity(wantedSpeeds);
-                    })
-                .deadlineFor(
-                    Commands.startEnd(
-                        () -> Leds.getInstance().coralIntaking = true,
-                        () -> Leds.getInstance().coralIntaking = false),
-                    Commands.sequence(
-                        new SuppliedWaitCommand(
-                                () ->
-                                    robotToCoralError.value < 0.0
-                                        ? 9999.0
-                                        : (MathUtil.clamp(
-                                                    (robotToCoralError.value - 0.1) / 1.4, 0.0, 1.0)
-                                                * 0.35)
-                                            + 0.05)
-                            .andThen(
-                                new SuppliedWaitCommand(
-                                        () ->
-                                            (MathUtil.clamp(
-                                                        (robotToCoralError.value - 0.1) / 1.4,
-                                                        0.0,
-                                                        1.0)
-                                                    * 0.35)
-                                                + 0.05)
-                                    .deadlineFor(controllerRumble)))),
+                  Translation2d driveVelocity =
+                      new Pose2d(
+                              new Translation2d(
+                                  shouldDrive ? driveController.calculate(driveError, 0.0) : 0.0,
+                                  intakeToCoralError.getAngle()),
+                              intakeToCoralError.getAngle())
+                          .transformBy(robotToIntake.inverse())
+                          .getTranslation();
+                  wantedSpeeds =
+                      new ChassisSpeeds(
+                          wantedSpeeds.vxMetersPerSecond
+                              + (intakeToCoralError.getX() <= 0.1
+                                      ? 0.0
+                                      : driveVelocity.getX()
+                                          * MathUtil.clamp(
+                                              (driveError - coralMinXDistance.get())
+                                                  / (coralMinXDistance.get() + 1.0),
+                                              0.0,
+                                              1.0))
+                                  * linearVelocity.getNorm(),
+                          wantedSpeeds.vyMetersPerSecond
+                              + driveVelocity.getY()
+                                  * MathUtil.clamp(
+                                      linearVelocity.getNorm() + driveMinOutput.get(), 0.0, 1.0),
+                          wantedSpeeds.omegaRadiansPerSecond);
+                  Logger.recordOutput("IntakeCommands/SLA/WantedSpeeds", wantedSpeeds);
+                  drive.runVelocity(wantedSpeeds);
+                }),
             disableIntakeAutoAlign)
         .alongWith(intake.intake())
         .finallyDo(
