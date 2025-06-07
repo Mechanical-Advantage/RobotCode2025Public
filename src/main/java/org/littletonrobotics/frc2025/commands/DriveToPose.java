@@ -69,7 +69,7 @@ public class DriveToPose extends Command {
   private static final LoggedTunableNumber thetaMaxAccelerationAutoTop =
       new LoggedTunableNumber("DriveToPose/ThetaMaxAccelerationAutoTop");
   private static final LoggedTunableNumber elevatorMinExtension =
-      new LoggedTunableNumber("DriveToPose/ElevatorMinExtension", 0.4);
+      new LoggedTunableNumber("DriveToPose/ElevatorMinExtension", 0.35);
   private static final LoggedTunableNumber driveTolerance =
       new LoggedTunableNumber("DriveToPose/DriveTolerance");
   private static final LoggedTunableNumber thetaTolerance =
@@ -105,17 +105,17 @@ public class DriveToPose extends Command {
     driveMaxVelocityTop.initDefault(4.0);
     driveMaxAcceleration.initDefault(3.5);
     driveMaxAccelerationTop.initDefault(1.5);
-    driveMaxVelocityAuto.initDefault(3.5);
-    driveMaxVelocityAutoTop.initDefault(3.5);
-    driveMaxAccelerationAuto.initDefault(4.0);
-    driveMaxAccelerationAutoTop.initDefault(2.0);
+    driveMaxVelocityAuto.initDefault(4.0);
+    driveMaxVelocityAutoTop.initDefault(2.0);
+    driveMaxAccelerationAuto.initDefault(3.5);
+    driveMaxAccelerationAutoTop.initDefault(1.5);
 
-    thetaMaxVelocity.initDefault(Units.degreesToRadians(360.0));
-    thetaMaxVelocityTop.initDefault(Units.degreesToRadians(200.0));
+    thetaMaxVelocity.initDefault(Units.degreesToRadians(500.0));
+    thetaMaxVelocityTop.initDefault(Units.degreesToRadians(120.0));
     thetaMaxAcceleration.initDefault(8.0);
     thetaMaxAccelerationTop.initDefault(6.0);
-    thetaMaxVelocityAuto.initDefault(Units.degreesToRadians(360.0));
-    thetaMaxVelocityAutoTop.initDefault(Units.degreesToRadians(200.0));
+    thetaMaxVelocityAuto.initDefault(Units.degreesToRadians(500.0));
+    thetaMaxVelocityAutoTop.initDefault(Units.degreesToRadians(120.0));
     thetaMaxAccelerationAuto.initDefault(8.0);
     thetaMaxAccelerationAutoTop.initDefault(6.0);
 
@@ -213,6 +213,7 @@ public class DriveToPose extends Command {
                 / (1.0 - elevatorMinExtension.get()),
             0.0,
             1.0);
+    extensionS = Math.sqrt(extensionS);
     driveProfile =
         new TrapezoidProfile(
             DriverStation.isAutonomous()

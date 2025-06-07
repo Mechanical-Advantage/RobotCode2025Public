@@ -84,6 +84,11 @@ public class Intake extends SubsystemBase {
 
   @Setter private BooleanSupplier coastOverride = () -> false;
 
+  // Sim members
+  private final Timer simCoralIndexTimer = new Timer();
+  private boolean simCoralIntaked = false;
+  private boolean simLastCoralIntaked = false;
+
   public Intake(
       SlamIO slamIO,
       RollerSystemIO rollerIO,
@@ -115,8 +120,8 @@ public class Intake extends SubsystemBase {
               && coralSensorInputs.data.distanceMeters() <= coralProximity.get();
       coralIndexed = coralIndexedDebouncer.calculate(coralIndexedRaw);
     } else if (DriverStation.isAutonomousEnabled()) {
-      if (goal == Goal.INTAKE && !coralIndexed && !hasCoral) {
-        coralIndexed =
+      if (goal == Goal.INTAKE && !coralIndexed && !hasCoral && !simCoralIntaked) {
+        simCoralIntaked =
             AutoCoralSim.intakeCoral(
                 RobotState.getInstance()
                     .getEstimatedPose()
@@ -124,6 +129,17 @@ public class Intake extends SubsystemBase {
                         GeomUtil.toTransform2d(
                             -(DriveConstants.robotWidth / 2.0 + Units.inchesToMeters(5.0)), 0.0))
                     .transformBy(GeomUtil.toTransform2d(Rotation2d.kPi)));
+      }
+      if (simCoralIntaked && !simLastCoralIntaked) {
+        simCoralIndexTimer.restart();
+        simLastCoralIntaked = true;
+      }
+      if (simCoralIndexTimer.hasElapsed(0.2)) {
+        coralIndexed = true;
+        simCoralIntaked = false;
+        simLastCoralIntaked = false;
+        simCoralIndexTimer.stop();
+        simCoralIndexTimer.reset();
       }
       coralIndexed = coralIndexed && !hasCoral;
     }

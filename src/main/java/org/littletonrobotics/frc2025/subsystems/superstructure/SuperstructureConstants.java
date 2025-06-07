@@ -45,7 +45,7 @@ public class SuperstructureConstants {
   public static final LoggedTunableNumber pivotMaxSafeAngleDeg =
       new LoggedTunableNumber("Superstructure/PivotMaxSafeAngleDegrees", -10.0);
   public static final LoggedTunableNumber elevatorCrossMemberDangerHeight =
-      new LoggedTunableNumber("Superstructure/ElevatorCrossMemberDangerHeight", 0.2);
+      new LoggedTunableNumber("Superstructure/ElevatorCrossMemberDangerHeight", 0.28);
   public static final LoggedTunableNumber elevatorL4ClearHeight =
-      new LoggedTunableNumber("Superstructure/ElevatorL4ClearHeight", 1.65);
+      new LoggedTunableNumber("Superstructure/ElevatorL4ClearHeight", 0.85);
 }

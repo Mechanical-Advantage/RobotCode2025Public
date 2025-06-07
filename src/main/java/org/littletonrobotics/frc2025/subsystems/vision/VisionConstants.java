@@ -147,7 +147,7 @@ public class VisionConstants {
                               new Rotation3d(
                                   0.0,
                                   Units.degreesToRadians(25.0 + pitchAdjustments[2].get()),
-                                  Units.degreesToRadians(170.0))))
+                                  Units.degreesToRadians(163.5))))
                   .id("24737133")
                   .width(1280)
                   .height(960)

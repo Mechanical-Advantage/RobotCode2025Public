@@ -72,7 +72,7 @@ public class Slam {
 
   @RequiredArgsConstructor
   public enum Goal {
-    DEPLOY(new LoggedTunableNumber("Slam/DeployedDegrees", 8.0)),
+    DEPLOY(new LoggedTunableNumber("Slam/DeployedDegrees", 5.0)),
     RETRACT(new LoggedTunableNumber("Slam/RetractedDegrees", 100.0)),
     REVERSE(new LoggedTunableNumber("Slam/ReverseDegrees", 18)),
     L1(new LoggedTunableNumber("Slam/L1Degrees", 90)),

@@ -97,11 +97,11 @@ public class Drive extends SubsystemBase {
 
   public enum CoastRequest {
     AUTOMATIC,
-    ALWAYS_BREAK,
+    ALWAYS_BRAKE,
     ALWAYS_COAST
   }
 
-  @Setter @AutoLogOutput private CoastRequest coastRequest = CoastRequest.AUTOMATIC;
+  @Setter @AutoLogOutput private CoastRequest coastRequest = CoastRequest.ALWAYS_BRAKE;
 
   @Override
   public void periodic() {
@@ -191,7 +191,7 @@ public class Drive extends SubsystemBase {
     }
 
     if (DriverStation.isEnabled()) {
-      coastRequest = CoastRequest.AUTOMATIC;
+      coastRequest = CoastRequest.ALWAYS_BRAKE;
     }
 
     switch (coastRequest) {
@@ -202,7 +202,7 @@ public class Drive extends SubsystemBase {
           setBrakeMode(false);
         }
       }
-      case ALWAYS_BREAK -> {
+      case ALWAYS_BRAKE -> {
         setBrakeMode(true);
       }
       case ALWAYS_COAST -> {

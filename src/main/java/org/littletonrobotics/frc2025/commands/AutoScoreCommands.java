@@ -47,7 +47,7 @@ public class AutoScoreCommands {
   private static final LoggedTunableNumber maxDistanceReefLineupY =
       new LoggedTunableNumber("AutoScore/MaxDistanceReefLineupY", 1.2);
   public static final LoggedTunableNumber minDistanceReefClearL4 =
-      new LoggedTunableNumber("AutoScore/MinDistanceReefClear", Units.inchesToMeters(6.0));
+      new LoggedTunableNumber("AutoScore/MinDistanceReefClear", Units.inchesToMeters(7.5));
   public static final LoggedTunableNumber minDistanceReefClearAlgaeL4 =
       new LoggedTunableNumber("AutoScore/MinDistanceReefClearAlgae", 0.45);
   public static final LoggedTunableNumber minAngleReefClear =

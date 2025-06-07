@@ -417,7 +417,7 @@ public class Dispenser {
         hasCoral = false;
       }
     } else if (DriverStation.isAutonomous()) {
-      if (!isIntaking && tunnelInputs.data.velocityRadsPerSec() >= 50.0) {
+      if (!isIntaking && tunnelInputs.data.velocityRadsPerSec() >= 20.0) {
         hasCoral = false;
       }
     } else {

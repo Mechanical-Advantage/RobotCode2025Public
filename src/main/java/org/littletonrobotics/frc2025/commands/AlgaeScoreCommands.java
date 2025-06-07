@@ -42,8 +42,10 @@ public class AlgaeScoreCommands {
       new LoggedTunableNumber("AlgaeScoreCommands/ThrowRaiseThetaToleranceDeg", 20.0);
   private static final LoggedTunableNumber throwDriveStart =
       new LoggedTunableNumber("AlgaeScoreCommands/ThrowDriveStart", 2.0);
+  private static final LoggedTunableNumber throwDrivePreEnd =
+      new LoggedTunableNumber("AlgaeScoreCommands/ThrowDrivePreEnd", 1.5);
   private static final LoggedTunableNumber throwDriveEnd =
-      new LoggedTunableNumber("AlgaeScoreCommands/ThrowDriveEnd", 1.2);
+      new LoggedTunableNumber("AlgaeScoreCommands/ThrowDriveEnd", 1.25);
   private static final LoggedTunableNumber throwReadyLinearTolerance =
       new LoggedTunableNumber("AlgaeScoreCommands/ThrowReadyLinearTolerance", 0.5);
   private static final LoggedTunableNumber throwReadyThetaToleranceDeg =
@@ -146,7 +148,12 @@ public class AlgaeScoreCommands {
                     new Pose2d(
                         MathUtil.interpolate(
                             FieldConstants.fieldLength / 2.0 - throwDriveStart.get(),
-                            FieldConstants.fieldLength / 2.0 - throwDriveEnd.get(),
+                            FieldConstants.fieldLength / 2.0
+                                - (superstructure.getState() == SuperstructureState.THROW
+                                        || superstructure.getState()
+                                            == SuperstructureState.PRE_THROW
+                                    ? throwDriveEnd.get()
+                                    : throwDrivePreEnd.get()),
                             RobotState.getInstance().getElevatorExtensionPercent()),
                         MathUtil.clamp(
                             AllianceFlipUtil.applyY(

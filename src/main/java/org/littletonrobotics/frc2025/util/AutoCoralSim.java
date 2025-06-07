@@ -10,6 +10,7 @@ package org.littletonrobotics.frc2025.util;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.Timer;
 import java.util.*;
 import java.util.stream.Collectors;
 import lombok.Getter;
@@ -20,6 +21,12 @@ public class AutoCoralSim {
   private static final LoggedTunableNumber intakeDistance =
       new LoggedTunableNumber("CoralSim/IntakeDistance", 0.15);
   @Getter private static final Set<Translation2d> corals = new HashSet<>();
+  private static final LoggedTunableNumber intakeTimeSeconds =
+      new LoggedTunableNumber("CoralSim/IntakeTime", 0.15);
+
+  private static boolean startedIntake = false;
+  private static final Timer intakeTimer = new Timer();
+  private static Translation2d intakedCoral = null;
 
   public static void resetCorals() {
     corals.clear();
@@ -43,23 +50,37 @@ public class AutoCoralSim {
   }
 
   public static boolean intakeCoral(Pose2d intakePose) {
-    var intakedCoral =
-        corals.stream()
-            .filter(
-                coral -> {
-                  var offset = new Pose2d(coral, intakePose.getRotation()).relativeTo(intakePose);
-                  return offset.getX() <= intakeDistance.get()
-                      && offset.getX() >= -0.05
-                      && Math.abs(offset.getY()) <= intakeWidth / 2.0;
-                })
-            .min(
-                Comparator.comparingDouble(
-                    coral -> intakePose.getTranslation().getDistance(coral)));
-    if (intakedCoral.isPresent()) {
-      corals.remove(intakedCoral.get());
-      return true;
-    } else {
-      return false;
+    if (!startedIntake) {
+      var targetedCoral =
+          corals.stream()
+              .filter(
+                  coral -> {
+                    var offset = new Pose2d(coral, intakePose.getRotation()).relativeTo(intakePose);
+                    return offset.getX() <= intakeDistance.get()
+                        && offset.getX() >= -0.05
+                        && Math.abs(offset.getY()) <= intakeWidth / 2.0;
+                  })
+              .min(
+                  Comparator.comparingDouble(
+                      coral -> intakePose.getTranslation().getDistance(coral)));
+      startedIntake = targetedCoral.isPresent();
+      if (startedIntake) {
+        intakedCoral = targetedCoral.get();
+        intakeTimer.restart();
+      } else {
+        intakedCoral = null;
+        intakeTimer.stop();
+        intakeTimer.reset();
+      }
     }
+    if (intakeTimer.hasElapsed(intakeTimeSeconds.get())) {
+      startedIntake = false;
+      if (intakedCoral != null) {
+        corals.remove(intakedCoral);
+        intakedCoral = null;
+      }
+      return true;
+    }
+    return false;
   }
 }

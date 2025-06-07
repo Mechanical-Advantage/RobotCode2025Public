@@ -43,9 +43,9 @@ public class DriveCommands {
   private static final LoggedTunableNumber maxExtensionAngularVelocityScalar =
       new LoggedTunableNumber("DriveCommands/MaxExtensionAngularVelocityScalar", 0.2);
   private static final LoggedTunableNumber maxIntakeLinearVelocityScalar =
-      new LoggedTunableNumber("DriveCommands/MaxIntakeLinearVelocityScalar", 0.5);
+      new LoggedTunableNumber("DriveCommands/MaxIntakeLinearVelocityScalar", 1.0);
   private static final LoggedTunableNumber maxIntakeAngularVelocity =
-      new LoggedTunableNumber("DriveCommands/MaxIntakeAngularVelocity", 0.6);
+      new LoggedTunableNumber("DriveCommands/MaxIntakeAngularVelocity", 1.0);
 
   private DriveCommands() {}
 

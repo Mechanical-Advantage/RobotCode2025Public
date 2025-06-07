@@ -258,19 +258,23 @@ public class AutoTracker extends VirtualSubsystem {
 
   /** Returns empty optional if no valid objectives left to score on. */
   public Optional<CoralObjective> getCoralObjective(ReefLevel level) {
-    return openAutoObjectives.stream()
-        .filter(objective -> objective.reefLevel() == level)
-        .min(
-            Comparator.comparingDouble(
-                objective ->
-                    predictedRobot
-                        .getTranslation()
-                        .getDistance(
-                            AllianceFlipUtil.apply(
-                                    MirrorUtil.apply(
-                                        AutoScoreCommands.getCoralScorePose(objective, false)))
-                                .getTranslation())))
-        .map(MirrorUtil::apply);
+    Optional<CoralObjective> coralObjective =
+        openAutoObjectives.stream()
+            .filter(objective -> objective.reefLevel() == level)
+            .min(
+                Comparator.comparingDouble(
+                    objective ->
+                        predictedRobot
+                            .getTranslation()
+                            .getDistance(
+                                AllianceFlipUtil.apply(
+                                        MirrorUtil.apply(
+                                            AutoScoreCommands.getCoralScorePose(objective, false)))
+                                    .getTranslation())))
+            .map(MirrorUtil::apply);
+    Logger.recordOutput(
+        "AutoTracker/CoralObjective", coralObjective.map(CoralObjective::toString).orElse(""));
+    return coralObjective;
   }
 
   public Optional<IntakingLocation> getIntakeLocation(IntakingLocation previousLocation) {
@@ -302,7 +306,7 @@ public class AutoTracker extends VirtualSubsystem {
         i <= (endingBranch.branchId < 11 ? endingBranch.branchId + 12 : endingBranch.branchId);
         i++) {
       int branchId = i % 12;
-      objectives.add(new CoralObjective(branchId, ReefLevel.L4));
+      objectives.add(new CoralObjective(branchId, branchId == 9 ? ReefLevel.L3 : ReefLevel.L4));
       if ((branchId / 2) % 2 == 0) {
         objectives.add(new CoralObjective(branchId, ReefLevel.L2));
       }

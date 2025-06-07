@@ -514,7 +514,7 @@ public class Superstructure extends SubsystemBase {
 
   @AutoLogOutput
   public boolean readyForL4() {
-    return elevator.getPositionMeters() >= elevatorL4ClearHeight.get();
+    return RobotState.getInstance().getElevatorExtensionPercent() >= elevatorL4ClearHeight.get();
   }
 
   public void resetHasCoral() {

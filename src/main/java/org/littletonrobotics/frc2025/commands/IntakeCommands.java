@@ -16,6 +16,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.WrapperCommand;
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
@@ -57,7 +58,7 @@ public class IntakeCommands {
   private static final LoggedTunableNumber driveMinOutput =
       new LoggedTunableNumber("IntakeCommands/SLA/MinOutput", 0.1);
   private static final LoggedTunableNumber intakingOffset =
-      new LoggedTunableNumber("IntakeCommands/IntakingOffset", Units.inchesToMeters(4.0));
+      new LoggedTunableNumber("IntakeCommands/IntakingOffset", Units.inchesToMeters(0.0));
   private static final LoggedTunableNumber algaeSearchSpeed =
       new LoggedTunableNumber("IntakeCommands/Algae/SearchSpeed", 2.0);
   private static final LoggedTunableNumber algaeKp =
@@ -94,10 +95,9 @@ public class IntakeCommands {
                   Translation2d linearVelocity =
                       DriveCommands.getLinearVelocityFromJoysticks(
                           driverX.getAsDouble(), driverY.getAsDouble());
-                  double omega = DriveCommands.getOmegaFromJoysticks(driverOmega.getAsDouble());
                   ChassisSpeeds wantedSpeeds =
                       DriveCommands.getSpeedsFromJoysticks(
-                          driverX.getAsDouble(), driverY.getAsDouble(), omega);
+                          driverX.getAsDouble(), driverY.getAsDouble(), driverOmega.getAsDouble());
                   wantedSpeeds =
                       robotRelative.getAsBoolean()
                           ? wantedSpeeds
@@ -211,7 +211,7 @@ public class IntakeCommands {
         disableAutoCoralIntake);
   }
 
-  public static Command autoIntake(
+  public static AutoIntakeCommand autoIntake(
       Drive drive,
       Intake intake,
       Supplier<Optional<Translation2d>> targetedCoral,
@@ -229,7 +229,7 @@ public class IntakeCommands {
         () -> false);
   }
 
-  private static Command autoIntake(
+  private static AutoIntakeCommand autoIntake(
       Drive drive,
       Intake intake,
       Supplier<Optional<Translation2d>> targetedCoral,
@@ -240,62 +240,68 @@ public class IntakeCommands {
       Command joystickDrive,
       BooleanSupplier robotRelative,
       BooleanSupplier disableAutoCoralIntake) {
-    return Commands.either(
-            joystickDrive,
-            new DriveToPose(
-                    drive,
-                    () -> {
-                      Pose2d robot = RobotState.getInstance().getEstimatedPose();
-                      if (hasCoral.getAsBoolean()) {
-                        return robot;
-                      }
 
-                      return targetedCoral
-                          .get()
-                          .map(
-                              coral -> {
-                                Logger.recordOutput(
-                                    "IntakeCommands/TargetedCoral",
-                                    new Translation3d[] {
-                                      new Translation3d(
-                                          coral.getX(), coral.getY(), FieldConstants.coralDiameter)
-                                    });
-                                return new Pose2d(
-                                        coral, robot.getTranslation().minus(coral).getAngle())
-                                    .transformBy(
-                                        new Transform2d(
-                                            DriveConstants.robotWidth / 2.0 + intakingOffset.get(),
-                                            0.0,
-                                            Rotation2d.kZero));
-                              })
-                          .orElseGet(
-                              () -> {
-                                Logger.recordOutput(
-                                    "IntakeCommands/TargetedCoral", new Translation3d[] {});
-                                return RobotState.getInstance().getEstimatedPose();
-                              });
-                    },
-                    RobotState.getInstance()::getEstimatedPose,
-                    () ->
-                        DriveCommands.getLinearVelocityFromJoysticks(
-                                driverX.getAsDouble(), driverY.getAsDouble())
-                            .times(
-                                AllianceFlipUtil.shouldFlip() && !robotRelative.getAsBoolean()
-                                    ? -1.0
-                                    : 1.0)
-                            .rotateBy(
-                                robotRelative.getAsBoolean()
-                                    ? RobotState.getInstance().getRotation()
-                                    : Rotation2d.kZero),
-                    () -> DriveCommands.getOmegaFromJoysticks(driverOmega.getAsDouble()))
-                .deadlineFor(
+    var driveCommand =
+        new DriveToPose(
+            drive,
+            () -> {
+              Pose2d robot = RobotState.getInstance().getEstimatedPose();
+              if (hasCoral.getAsBoolean()) {
+                return robot;
+              }
+
+              return targetedCoral
+                  .get()
+                  .map(
+                      coral -> {
+                        Logger.recordOutput(
+                            "IntakeCommands/TargetedCoral",
+                            new Translation3d[] {
+                              new Translation3d(
+                                  coral.getX(), coral.getY(), FieldConstants.coralDiameter)
+                            });
+                        return new Pose2d(coral, robot.getTranslation().minus(coral).getAngle())
+                            .transformBy(
+                                new Transform2d(
+                                    DriveConstants.robotWidth / 2.0 + intakingOffset.get(),
+                                    0.0,
+                                    Rotation2d.kZero));
+                      })
+                  .orElseGet(
+                      () -> {
+                        Logger.recordOutput("IntakeCommands/TargetedCoral", new Translation3d[] {});
+                        return RobotState.getInstance().getEstimatedPose();
+                      });
+            },
+            RobotState.getInstance()::getEstimatedPose,
+            () ->
+                DriveCommands.getLinearVelocityFromJoysticks(
+                        driverX.getAsDouble(), driverY.getAsDouble())
+                    .times(
+                        AllianceFlipUtil.shouldFlip() && !robotRelative.getAsBoolean() ? -1.0 : 1.0)
+                    .rotateBy(
+                        robotRelative.getAsBoolean()
+                            ? RobotState.getInstance().getRotation()
+                            : Rotation2d.kZero),
+            () -> DriveCommands.getOmegaFromJoysticks(driverOmega.getAsDouble()));
+    return new AutoIntakeCommand(
+        Commands.either(
+                joystickDrive,
+                driveCommand.deadlineFor(
                     Commands.startEnd(
                         () -> Leds.getInstance().autoScoring = true,
                         () -> Leds.getInstance().autoScoring = false)),
-            disableAutoCoralIntake)
-        .alongWith(intake.intake())
-        .finallyDo(
-            () -> Logger.recordOutput("IntakeCommands/TargetedCoral", new Translation3d[] {}));
+                disableAutoCoralIntake)
+            .alongWith(intake.intake())
+            .finallyDo(
+                () ->
+                    Logger.recordOutput("IntakeCommands/TargetedCoral", new Translation3d[] {}))) {
+      @Override
+      boolean withinTolerance(double driveTolerance, Rotation2d thetaTolerance) {
+        return driveCommand.withinTolerance(driveTolerance, thetaTolerance)
+            && driveCommand.isRunning();
+      }
+    };
   }
 
   private static Optional<Translation2d> getNearestCoral() {
@@ -441,5 +447,13 @@ public class IntakeCommands {
         .until(superstructure::hasAlgae)
         .finallyDo(
             () -> Logger.recordOutput("IntakeCommands/TargetedAlgae", new Translation3d[] {}));
+  }
+
+  public abstract static class AutoIntakeCommand extends WrapperCommand {
+    protected AutoIntakeCommand(Command command) {
+      super(command);
+    }
+
+    abstract boolean withinTolerance(double driveTolerance, Rotation2d thetaTolerance);
   }
 }
