@@ -331,7 +331,13 @@ public class Drive extends SubsystemBase {
       headings[i] = DriveConstants.moduleTranslations[i].getAngle();
     }
     kinematics.resetHeadings(headings);
-    stop();
+
+    // Bypass swerve setpoint generator
+    SwerveModuleState[] states = kinematics.toSwerveModuleStates(new ChassisSpeeds());
+    for (int i = 0; i < 4; i++) {
+      states[i].optimize(modules[i].getAngle());
+      modules[i].runSetpoint(states[i]);
+    }
   }
 
   /** Returns the module states (turn angles and drive velocities) for all the modules. */

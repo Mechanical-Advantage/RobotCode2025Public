@@ -188,6 +188,7 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
   @Getter
   enum Preset {
     STOW("Stow", 0.025, 12.0),
+    CLIMB("Climb", 0.025, -10.0),
     ALGAE_STOW("AlgaeStow", 0.1, -40.0),
     REVERSE_INDEX("ReverseIndex", 0.025, 12.0),
     CORAL_INTAKE(

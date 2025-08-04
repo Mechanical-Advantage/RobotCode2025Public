@@ -80,7 +80,7 @@ public class RobotContainer {
   private final Trigger robotRelative = overrides.driverSwitch(0);
   private final Trigger superstructureDisable = overrides.driverSwitch(1);
   private final Trigger superstructureCoast = overrides.driverSwitch(2);
-  private final Trigger dimLeds = overrides.operatorSwitch(0);
+  private final Trigger autoRaiseIntake = overrides.operatorSwitch(0);
   private final Trigger disableReefAutoAlign = overrides.operatorSwitch(1);
   private final Trigger disableIntakeAutoAlign = overrides.operatorSwitch(2);
   private final Trigger disableAlgaeScoreAutoAlign = overrides.operatorSwitch(3);
@@ -284,7 +284,6 @@ public class RobotContainer {
     intake.setCoastOverride(() -> coastOverride);
     climber.setCoastOverride(() -> coastOverride);
     objectiveTracker.setOverrides(forceSimpleCoralStrategy);
-    Leds.getInstance().setShouldDimSupplier(dimLeds);
 
     // Set up communication for superstructure and intake
     superstructure.setIntakeInterface(intake::setSuperstructureReady, intake::setHasCoral);
@@ -463,7 +462,7 @@ public class RobotContainer {
                     disableIntakeAutoAlign)
                 .alongWith(superstructure.runGoal(SuperstructureState.CORAL_INTAKE))
                 .withName("Coral Intake (SLA)"))
-        .onFalse(intake.retract());
+        .onFalse(intake.retract().onlyIf(() -> autoRaiseIntake.getAsBoolean()));
     coralIntakingTrigger
         .doublePress()
         .and(() -> !hasCoral.value)
@@ -481,7 +480,8 @@ public class RobotContainer {
                     disableIntakeAutoAlign)
                 .alongWith(superstructure.runGoal(SuperstructureState.CORAL_INTAKE))
                 .withName("Coral Auto Intake"))
-        .onFalse(intake.retract());
+        .onFalse(intake.retract().onlyIf(() -> autoRaiseIntake.getAsBoolean()));
+    autoRaiseIntake.onTrue(intake.retract());
     coralIntakingTrigger.whileTrue(
         Commands.waitUntil(hasCoralTrigger).andThen(controllerRumbleCommand().withTimeout(0.3)));
     coralIntakingTrigger
@@ -500,18 +500,16 @@ public class RobotContainer {
                 .runGoal(SuperstructureState.REVERSE_CORAL_EJECT)
                 .until(() -> !superstructure.hasCoral()));
 
-    // Unslam
-    driver.rightStick().onTrue(intake.retract().withName("Undeploy Slam"));
-
     // Climbing controls
     driver
         .y()
         .doublePress()
-        .onTrue(
-            intake
-                .prepareToClimb()
-                .alongWith(climber.readyClimb().withName("Ready Climber & Intake")))
+        .onTrue(intake.prepareToClimb())
+        .onTrue(climber.readyClimb())
+        .onTrue(superstructure.runGoal(SuperstructureState.CLIMB))
         .onTrue(controllerRumbleCommand().withTimeout(0.25));
+    operator.leftStick().onTrue(intake.deploy());
+    operator.rightStick().onTrue(intake.prepareToClimb());
 
     // Algae reef intake & score
     Trigger onOpposingSide =
@@ -686,10 +684,10 @@ public class RobotContainer {
                 .withName("Operator Algae L3 Intake"));
 
     // Coral intake
-    operator.rightBumper().whileTrue(intake.intake());
-
-    // Run intake reverse
-    operator.rightStick().whileTrue(intake.outtake());
+    operator
+        .rightBumper()
+        .whileTrue(
+            intake.intake().alongWith(superstructure.runGoal(SuperstructureState.CORAL_INTAKE)));
 
     // Home elevator & intake
     operator

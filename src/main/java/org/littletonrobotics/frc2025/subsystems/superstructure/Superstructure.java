@@ -185,6 +185,7 @@ public class Superstructure extends SubsystemBase {
     final Set<SuperstructureState> freeNoAlgaeStates =
         Set.of(
             SuperstructureState.STOW,
+            SuperstructureState.CLIMB,
             SuperstructureState.GOODBYE_CORAL,
             SuperstructureState.L1_CORAL,
             SuperstructureState.L2_CORAL,
@@ -725,7 +726,11 @@ public class Superstructure extends SubsystemBase {
     if (to == SuperstructureState.CORAL_INTAKE) {
       return runSuperstructurePose(to.getValue().getPose())
           .andThen(
-              Commands.runOnce(() -> dispenser.setGripperGoal(to.getValue().getGripperGoal())),
+              Commands.runOnce(
+                  () -> {
+                    dispenser.setGripperGoal(to.getValue().getGripperGoal());
+                    dispenser.setTunnelVolts(Dispenser.tunnelHardstopVolts.get());
+                  }),
               Commands.parallel(
                   Commands.waitUntil(this::mechanismsAtGoal),
                   new SuppliedWaitCommand(Dispenser.gripperHardstopTime)),
@@ -748,7 +753,7 @@ public class Superstructure extends SubsystemBase {
           .andThen(
               Commands.waitUntil(dispenser::isAtGoal),
               runElevator(to.getValue().getPose().elevatorHeight()),
-              Commands.waitUntil(elevator::isAtGoal),
+              Commands.waitUntil(() -> elevator.getPositionMeters() > stage1ToStage2Height),
               runSuperstructurePose(to.getValue().getPose()),
               Commands.waitUntil(this::mechanismsAtGoal))
           .alongWith(runSuperstructureExtras(to));

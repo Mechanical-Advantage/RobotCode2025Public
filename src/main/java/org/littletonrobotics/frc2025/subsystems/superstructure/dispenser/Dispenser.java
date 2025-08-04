@@ -85,6 +85,8 @@ public class Dispenser {
       new LoggedTunableNumber("Dispenser/GripperHardstopVolts", -12.0);
   public static final LoggedTunableNumber gripperReverseHardstopVolts =
       new LoggedTunableNumber("Dispenser/GripperReverseHardstopVolts", 12.0);
+  public static final LoggedTunableNumber tunnelHardstopVolts =
+      new LoggedTunableNumber("Dispenser/TunnelHardstopVolts", -8.0);
   public static final LoggedTunableNumber gripperCurrentLimit =
       new LoggedTunableNumber("Dispenser/GripperCurrentLimit", 50.0);
   public static final LoggedTunableNumber[] tunnelDispenseVolts = {
@@ -127,7 +129,7 @@ public class Dispenser {
   private static final LoggedTunableNumber algaeDebounceTime =
       new LoggedTunableNumber("Dispenser/AlgaeDebounceTime", 0.6);
   public static final LoggedTunableNumber gripperHardstopTime =
-      new LoggedTunableNumber("Dispenser/GripperHardstopTime", 0.5);
+      new LoggedTunableNumber("Dispenser/GripperHardstopTime", 0.6);
 
   static {
     switch (Constants.getRobot()) {

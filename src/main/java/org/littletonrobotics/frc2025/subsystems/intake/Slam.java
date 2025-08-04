@@ -77,7 +77,7 @@ public class Slam {
     REVERSE(new LoggedTunableNumber("Slam/ReverseDegrees", 18)),
     L1(new LoggedTunableNumber("Slam/L1Degrees", 90)),
     L1_EJECT(new LoggedTunableNumber("Slam/L1EjectDegrees", 90.0)),
-    CLIMB(new LoggedTunableNumber("Slam/ClimbDegrees", 80.0));
+    CLIMB(new LoggedTunableNumber("Slam/ClimbDegrees", 70.0));
 
     private final DoubleSupplier positionDeg;
 

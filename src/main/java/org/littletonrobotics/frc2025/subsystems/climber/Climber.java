@@ -41,8 +41,6 @@ public class Climber extends SubsystemBase {
       new LoggedTunableNumber("Climber/ClimbCurrentRampRate", 120);
   private static final LoggedTunableNumber climbStopAngle =
       new LoggedTunableNumber("Climber/ClimbStopAngle", 35);
-  private static final LoggedTunableNumber autoClimbCurrent =
-      new LoggedTunableNumber("Climber/AutoClimbCurrent", 33);
   private static final LoggedTunableNumber gripVolts =
       new LoggedTunableNumber("Climber/GripVolts", 12.0);
 
@@ -59,7 +57,6 @@ public class Climber extends SubsystemBase {
 
   private final Timer climbTimer = new Timer();
   private boolean stopPull = false;
-  private final Debouncer autoClimbDebouncer = new Debouncer(0.25, DebounceType.kRising);
   private final Debouncer motorConnectedDebouncer = new Debouncer(0.5, DebounceType.kFalling);
 
   @Setter private BooleanSupplier coastOverride = () -> false;
@@ -106,9 +103,6 @@ public class Climber extends SubsystemBase {
       Leds.getInstance().superClimbed = false;
       climbTimer.restart();
     }
-    if (climbState != ClimbState.READY) {
-      autoClimbDebouncer.calculate(false);
-    }
     switch (climbState) {
       case START -> {
         Leds.getInstance().ready = false;
@@ -130,10 +124,6 @@ public class Climber extends SubsystemBase {
         if (gripperReady) {
           gripperIO.runVolts(gripVolts.get());
           Leds.getInstance().ready = true;
-          if (autoClimbDebouncer.calculate(
-              gripperInputs.data.supplyCurrentAmps() > autoClimbCurrent.get())) {
-            climbState = ClimbState.PULL;
-          }
         } else {
           Leds.getInstance().ready = false;
           gripperIO.stop();

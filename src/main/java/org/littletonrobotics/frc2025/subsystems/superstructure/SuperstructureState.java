@@ -21,6 +21,7 @@ public enum SuperstructureState {
   CHARACTERIZATION(SuperstructureStateData.builder().build()),
   SAFETY(SuperstructureStateData.builder().build()),
   STOW(SuperstructureStateData.builder().pose(Preset.STOW.getPose()).build()),
+  CLIMB(SuperstructureStateData.builder().pose(Preset.CLIMB.getPose()).build()),
   CORAL_INTAKE(
       SuperstructureStateData.builder()
           .pose(Preset.CORAL_INTAKE.getPose())
