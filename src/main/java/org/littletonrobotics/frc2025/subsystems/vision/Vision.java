@@ -77,7 +77,7 @@ public class Vision extends VirtualSubsystem {
   public void periodic() {
     for (int i = 0; i < io.length; i++) {
       io[i].updateInputs(inputs[i], aprilTagInputs[i], objDetectInputs[i]);
-      Logger.processInputs("Vision/Inst" + i, aprilTagInputs[i]);
+      Logger.processInputs("Vision/Inst" + i, inputs[i]);
       Logger.processInputs("AprilTagVision/Inst" + i, aprilTagInputs[i]);
       Logger.processInputs("ObjDetectVision/Inst" + i, objDetectInputs[i]);
     }

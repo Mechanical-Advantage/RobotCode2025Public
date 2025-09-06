@@ -213,8 +213,11 @@ public class RobotContainer {
                     this::getSelectedAprilTagLayout,
                     new VisionIO() {},
                     new VisionIO() {},
+                    new VisionIO() {},
                     new VisionIO() {});
-        case DEVBOT -> vision = new Vision(this::getSelectedAprilTagLayout, new VisionIO() {});
+        case DEVBOT ->
+            vision =
+                new Vision(this::getSelectedAprilTagLayout, new VisionIO() {}, new VisionIO() {});
         default -> vision = new Vision(this::getSelectedAprilTagLayout);
       }
     }
