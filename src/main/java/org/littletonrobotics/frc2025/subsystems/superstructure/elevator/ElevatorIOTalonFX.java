@@ -70,6 +70,7 @@ public class ElevatorIOTalonFX implements ElevatorIO {
     config.CurrentLimits.SupplyCurrentLowerTime = 1.5;
     config.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
     tryUntilOk(5, () -> talon.getConfigurator().apply(config, 0.25));
+    tryUntilOk(5, () -> followerTalon.getConfigurator().apply(new TalonFXConfiguration(), 0.25));
 
     position = talon.getPosition();
     velocity = talon.getVelocity();

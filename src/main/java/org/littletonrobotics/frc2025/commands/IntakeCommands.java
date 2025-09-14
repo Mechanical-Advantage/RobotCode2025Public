@@ -136,7 +136,7 @@ public class IntakeCommands {
                   Pose2d intakePose = robot.plus(robotToIntake);
                   Pose2d predictedIntakePose =
                       intakePose.exp(wantedSpeeds.toTwist2d(lookAheadSecs.get()));
-                  Logger.recordOutput("PredictedPose", predictedIntakePose);
+                  Logger.recordOutput("IntakeCommands/PredictedPose", predictedIntakePose);
                   Translation2d intakeToCoralError =
                       new Pose2d(coralTranslation.get(), intakePose.getRotation())
                           .relativeTo(intakePose)
