@@ -42,13 +42,15 @@ import org.littletonrobotics.junction.Logger;
 
 public class Dispenser {
   public static final Rotation2d minAngle = Rotation2d.fromDegrees(-87.0);
-  public static final Rotation2d maxAngle = Rotation2d.fromDegrees(13.7);
+  public static final Rotation2d maxAngle = Rotation2d.fromDegrees(10.8);
 
   // Tunable numbers
   private static final LoggedTunableNumber kP = new LoggedTunableNumber("Dispenser/kP");
   private static final LoggedTunableNumber kD = new LoggedTunableNumber("Dispenser/kD");
   private static final LoggedTunableNumber kS = new LoggedTunableNumber("Dispenser/kS");
   private static final LoggedTunableNumber kG = new LoggedTunableNumber("Dispenser/kG");
+  private static final LoggedTunableNumber pivotDeadbandDegrees =
+      new LoggedTunableNumber("Dispenser/PivotDeadbandDegrees", 0.5);
   private static final LoggedTunableNumber tunnelkP =
       new LoggedTunableNumber("Dispenser/TunnelPID/kP", 2.5);
   private static final LoggedTunableNumber tunnelkD =
@@ -361,10 +363,17 @@ public class Dispenser {
                   ? slowProfile
                   : hasAlgae && !forceFastConstraints ? algaeProfile : profile)
               .calculate(Constants.loopPeriodSecs, setpoint, goalState);
-      pivotIO.runPosition(
-          Rotation2d.fromRadians(setpoint.position),
-          kS.get() * Math.signum(setpoint.velocity) // Magnitude irrelevant
-              + kG.get() * pivotInputs.data.internalPosition().getCos());
+      if (Math.abs(
+              pivotInputs.data.internalPosition().getDegrees()
+                  - Units.radiansToDegrees(setpoint.position))
+          < pivotDeadbandDegrees.get()) {
+        pivotIO.stop();
+      } else {
+        pivotIO.runPosition(
+            Rotation2d.fromRadians(setpoint.position),
+            kS.get() * Math.signum(setpoint.velocity) // Magnitude irrelevant
+                + kG.get() * pivotInputs.data.internalPosition().getCos());
+      }
       // Check at goal
       atGoal =
           EqualsUtil.epsilonEquals(setpoint.position, goalState.position)

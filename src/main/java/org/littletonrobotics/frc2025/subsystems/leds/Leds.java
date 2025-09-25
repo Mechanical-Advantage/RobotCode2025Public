@@ -286,7 +286,7 @@ public class Leds extends VirtualSubsystem {
 
       // Coral grab alert
       if (coralGrabbed || algaeGrabbed) {
-        solid(backSection, Color.kLime);
+        solid(fullSection, Color.kLime);
       }
 
       // Human player alert

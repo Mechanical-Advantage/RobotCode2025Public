@@ -138,7 +138,11 @@ public class Module {
     // Apply setpoints
     double speedRadPerSec = state.speedMetersPerSecond / DriveConstants.wheelRadius;
     io.runDriveVelocity(speedRadPerSec, ffModel.calculate(speedRadPerSec));
-    io.runTurnPosition(state.angle);
+    if (Math.abs(state.angle.minus(getAngle()).getDegrees()) < DriveConstants.turnDeadbandDegrees) {
+      io.runTurnOpenLoop(0.0);
+    } else {
+      io.runTurnPosition(state.angle);
+    }
   }
 
   /**
@@ -150,7 +154,11 @@ public class Module {
     double speedRadPerSec = state.speedMetersPerSecond / DriveConstants.wheelRadius;
     io.runDriveVelocity(
         speedRadPerSec, ffModel.calculate(speedRadPerSec) + wheelTorqueNm * drivekT.get());
-    io.runTurnPosition(state.angle);
+    if (Math.abs(state.angle.minus(getAngle()).getDegrees()) < DriveConstants.turnDeadbandDegrees) {
+      io.runTurnOpenLoop(0.0);
+    } else {
+      io.runTurnPosition(state.angle);
+    }
   }
 
   /** Runs the module with the specified output while controlling to zero degrees. */

@@ -63,9 +63,9 @@ public class Elevator {
     new LoggedTunableNumber("Elevator/kA/Stage3")
   };
   private static final LoggedTunableNumber maxVelocityMetersPerSec =
-      new LoggedTunableNumber("Elevator/MaxVelocityMetersPerSec", 3.0);
+      new LoggedTunableNumber("Elevator/MaxVelocityMetersPerSec", 2.0);
   private static final LoggedTunableNumber maxAccelerationMetersPerSec2 =
-      new LoggedTunableNumber("Elevator/MaxAccelerationMetersPerSec2", 6.0);
+      new LoggedTunableNumber("Elevator/MaxAccelerationMetersPerSec2", 4.0);
   private static final LoggedTunableNumber algaeMaxVelocityMetersPerSec =
       new LoggedTunableNumber("Elevator/AlgaeMaxVelocityMetersPerSec", 3.0);
   private static final LoggedTunableNumber algaeMaxAccelerationMetersPerSec2 =
@@ -84,7 +84,7 @@ public class Elevator {
   static {
     switch (Constants.getRobot()) {
       case COMPBOT, DEVBOT -> {
-        kP.initDefault(1500);
+        kP.initDefault(2000);
         kD.initDefault(30);
         for (int stage = 0; stage < 3; stage++) {
           kS[stage].initDefault(0);

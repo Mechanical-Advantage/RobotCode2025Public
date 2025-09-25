@@ -37,7 +37,7 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
   private static final LoggedTunableNumber intakeHeightTimeFactor =
       new LoggedTunableNumber("Superstructure/Intake/ElevatorTimeFactor", 25.0);
   private static final LoggedTunableNumber intakePivot =
-      new LoggedTunableNumber("Superstructure/Intake/IntakePivot", 12.0);
+      new LoggedTunableNumber("Superstructure/Intake/IntakePivot", 10.5);
   private static final LoggedTunableNumber l1Height =
       new LoggedTunableNumber("Superstructure/L1/Elevator", 0.48);
   private static final LoggedTunableNumber l1Pivot =
@@ -187,10 +187,10 @@ public record SuperstructurePose(DoubleSupplier elevatorHeight, Supplier<Rotatio
   @RequiredArgsConstructor
   @Getter
   enum Preset {
-    STOW("Stow", 0.025, 12.0),
+    STOW("Stow", 0.025, 10.5),
     CLIMB("Climb", 0.025, -10.0),
     ALGAE_STOW("AlgaeStow", 0.1, -40.0),
-    REVERSE_INDEX("ReverseIndex", 0.025, 12.0),
+    REVERSE_INDEX("ReverseIndex", 0.025, 10.5),
     CORAL_INTAKE(
         () ->
             intakeHeightBaseline.get()

@@ -306,7 +306,7 @@ public class AutoTracker extends VirtualSubsystem {
         i <= (endingBranch.branchId < 11 ? endingBranch.branchId + 12 : endingBranch.branchId);
         i++) {
       int branchId = i % 12;
-      objectives.add(new CoralObjective(branchId, branchId == 9 ? ReefLevel.L3 : ReefLevel.L4));
+      objectives.add(new CoralObjective(branchId, ReefLevel.L4));
       if ((branchId / 2) % 2 == 0) {
         objectives.add(new CoralObjective(branchId, ReefLevel.L2));
       }

@@ -31,7 +31,7 @@ import org.littletonrobotics.frc2025.util.PhoenixUtil;
 
 public class PivotIOTalonFX implements PivotIO {
   private static final double reduction = (80.0 / 10.0) * (82.0 / 20.0);
-  private static final Rotation2d encoderOffset = Rotation2d.fromRadians(2.6860003595877577);
+  private static final Rotation2d encoderOffset = Rotation2d.fromRadians(2.52033);
   private static final int encoderId = 50;
 
   // Hardware

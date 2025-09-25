@@ -493,6 +493,7 @@ public class RobotContainer {
             Commands.startEnd(
                 () -> Leds.getInstance().coralGrabbed = true,
                 () -> Leds.getInstance().coralGrabbed = false));
+    driver.povDown().onTrue(intake.retract());
     // L1 with intake
     coralIntakingTrigger
         .doublePress()

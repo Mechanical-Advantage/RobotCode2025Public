@@ -29,6 +29,7 @@ public class DriveConstants {
   public static final double maxLinearSpeed = 4.69;
   public static final double maxAngularSpeed = 4.69 / driveBaseRadius;
   public static final double maxLinearAcceleration = 22.0;
+  public static final double turnDeadbandDegrees = 0.3;
 
   /** Includes bumpers! */
   public static final double robotWidth =
