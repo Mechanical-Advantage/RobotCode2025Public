@@ -56,7 +56,7 @@ class FFmpegVideoWriter(VideoWriter):
         filename_raw = filename_base + "_raw" + filename_match + ".mkv"
 
         ffmpeg_args_base = [
-            "ffmpeg",
+            "/opt/homebrew/bin/ffmpeg",
             "-y",
             "-s",
             str(config.remote_config.camera_resolution_width)
