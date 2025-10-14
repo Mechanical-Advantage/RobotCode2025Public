@@ -1,0 +1,9 @@
+coremltools==8.1
+numpy==2.2.1
+opencv-contrib-python==4.10.0.84
+opencv-python==4.10.0.84
+pillow==11.1.0
+pyntcore==2025.1.1.0
+pyobjc-framework-AVFoundation==10.3.2
+pypylon==4.1.0
+robotpy-wpimath==2025.1.1.0

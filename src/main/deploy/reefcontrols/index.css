@@ -1,0 +1,315 @@
+/* 
+  Copyright (c) 2025 FRC 6328
+  http://github.com/Mechanical-Advantage
+
+  Use of this source code is governed by an MIT-style
+  license that can be found in the LICENSE file at
+  the root directory of this project.
+*/
+
+body {
+  overscroll-behavior: none;
+  overflow: hidden;
+  font-family: Helvetica, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+  color: #000;
+
+  /* Show disconnected state by default */
+  background-color: red;
+}
+
+div {
+  position: absolute;
+}
+
+div.overview-section {
+  top: 0%;
+  left: 0%;
+  height: 100%;
+  width: 15%;
+}
+
+div.overview-section div.counter-container {
+  left: 0%;
+  width: 100%;
+  height: 25%;
+}
+
+div.overview-section div.counter-container:nth-child(1) {
+  top: 75%;
+}
+
+div.overview-section div.counter-container:nth-child(2) {
+  top: 50%;
+}
+
+div.overview-section div.counter-container:nth-child(3) {
+  top: 25%;
+}
+
+div.overview-section div.counter-container:nth-child(4) {
+  top: 0%;
+}
+
+div.overview-section div.counter-container div.counter-area {
+  top: 10%;
+  height: 80%;
+  left: 10%;
+  width: 80%;
+  border-radius: 5vh;
+  border: 1px solid #333;
+}
+
+div.overview-section div.counter-container div.counter-area.active {
+  background-color: #ffffff;
+}
+
+div.overview-section div.counter-container div.counter-area div {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10vh;
+}
+
+div.reef-section {
+  top: 0%;
+  left: 15%;
+  height: 80%;
+  width: 85%;
+}
+
+div.reef-section canvas {
+  position: absolute;
+  left: 0%;
+  top: 0%;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+div.reef-section div.branch,
+div.reef-section div.algae {
+  border-radius: 100%;
+  transform: translate(-50%, -50%);
+  border: 1px solid #333;
+  z-index: 1;
+}
+
+div.reef-section div.branch {
+  height: 12vh;
+  width: 12vh;
+}
+
+div.reef-section div.algae {
+  height: 14vh;
+  width: 14vh;
+}
+
+div.reef-section div.branch {
+  background-color: #f4c9ff;
+}
+
+div.reef-section div.branch.active {
+  background-color: #cc00ff;
+}
+
+div.reef-section div.branch img {
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 10vh;
+}
+
+div.reef-section div.branch.active img {
+  display: initial;
+}
+
+div.reef-section div.algae {
+  background-color: #c6efff;
+}
+
+div.reef-section div.algae.active {
+  background-color: #00b7ff;
+}
+
+div.reef-section div.algae img {
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 10vh;
+}
+
+div.reef-section div.algae.active img {
+  display: initial;
+}
+
+div.reef-section div.branch:nth-child(1) {
+  left: calc(50% + 10%);
+  top: calc(50% + 40%);
+}
+
+div.reef-section div.branch:nth-child(2) {
+  left: calc(50% - 10%);
+  top: calc(50% + 40%);
+}
+
+div.reef-section div.branch:nth-child(3) {
+  left: calc(50% - 30%);
+  top: calc(50% + 30%);
+}
+
+div.reef-section div.branch:nth-child(4) {
+  left: calc(50% - 40%);
+  top: calc(50% + 12%);
+}
+
+div.reef-section div.branch:nth-child(5) {
+  left: calc(50% - 40%);
+  top: calc(50% - 12%);
+}
+
+div.reef-section div.branch:nth-child(6) {
+  left: calc(50% - 30%);
+  top: calc(50% - 30%);
+}
+
+div.reef-section div.branch:nth-child(7) {
+  left: calc(50% - 10%);
+  top: calc(50% - 40%);
+}
+
+div.reef-section div.branch:nth-child(8) {
+  left: calc(50% + 10%);
+  top: calc(50% - 40%);
+}
+
+div.reef-section div.branch:nth-child(9) {
+  left: calc(50% + 30%);
+  top: calc(50% - 30%);
+}
+
+div.reef-section div.branch:nth-child(10) {
+  left: calc(50% + 40%);
+  top: calc(50% - 12%);
+}
+
+div.reef-section div.branch:nth-child(11) {
+  left: calc(50% + 40%);
+  top: calc(50% + 12%);
+}
+
+div.reef-section div.branch:nth-child(12) {
+  left: calc(50% + 30%);
+  top: calc(50% + 30%);
+}
+
+div.reef-section div.algae:nth-child(13) {
+  left: calc(50% + 0%);
+  top: calc(50% + 20%);
+}
+
+div.reef-section div.algae:nth-child(14) {
+  left: calc(50% - 18%);
+  top: calc(50% + 10%);
+}
+
+div.reef-section div.algae:nth-child(15) {
+  left: calc(50% - 18%);
+  top: calc(50% - 10%);
+}
+
+div.reef-section div.algae:nth-child(16) {
+  left: calc(50% + 0%);
+  top: calc(50% - 20%);
+}
+
+div.reef-section div.algae:nth-child(17) {
+  left: calc(50% + 18%);
+  top: calc(50% - 10%);
+}
+
+div.reef-section div.algae:nth-child(18) {
+  left: calc(50% + 18%);
+  top: calc(50% + 10%);
+}
+
+div.reef-section div.flag {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12vh;
+  z-index: 1;
+}
+
+div.lower-section {
+  top: 80%;
+  left: 15%;
+  height: 20%;
+  width: 85%;
+}
+
+div.lower-section div.subtract,
+div.lower-section div.add,
+div.lower-section div.coop {
+  top: 10%;
+  height: 80%;
+  width: 25%;
+  border-radius: 5vh;
+  border: 1px solid #333;
+}
+
+div.lower-section div.subtract {
+  left: 7%;
+}
+
+div.lower-section div.add {
+  left: 34%;
+}
+
+div.lower-section div.coop {
+  left: 68%;
+}
+
+div.lower-section div.coop.active {
+  background-color: #00b7ff;
+}
+
+div.lower-section div.subtract div,
+div.lower-section div.add div {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10vh;
+  filter: brightness(0);
+}
+
+div.lower-section div.coop div {
+  display: none;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12vh;
+}
+
+div.lower-section div.coop.active div {
+  display: initial;
+}
+
+body.elims div.lower-section div.subtract {
+  left: 24%;
+}
+
+body.elims div.lower-section div.add {
+  left: 51%;
+}
+
+body.elims div.lower-section div.coop {
+  display: none;
+}

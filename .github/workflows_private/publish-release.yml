@@ -1,0 +1,45 @@
+name: Public Release
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "32 6 * * *" # 6:32(:08) AM UTC
+
+jobs:
+  build:
+    name: Public Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout private repository
+        uses: actions/checkout@v4
+        with:
+          repository: Mechanical-Advantage/RobotCode2025
+          path: code-private
+      - name: Checkout public repository
+        uses: actions/checkout@v4
+        with:
+          repository: Mechanical-Advantage/RobotCode2025Public
+          path: code-public
+      - name: Configure user
+        run: |
+          git config --global user.email "github@littletonrobotics.org"
+          git config --global user.name "Mechanical-Advantage-Bot"
+      - name: Copy files to public
+        run: |
+          rm code-private/README.md code-private/.github/CODEOWNERS
+          mv code-private/README-Public.md code-private/README.md
+          mv code-private/.github/workflows code-private/.github/workflows_private
+          mv code-private/.github/workflows_public code-private/.github/workflows
+          rsync -av --delete code-private/ code-public --exclude .git
+      - name: Create public commit
+        working-directory: code-public
+        run: |
+          git add -A
+          git diff-index --quiet HEAD || git commit -m "Publish on `TZ=":US/Eastern" date +"%D at %I:%M%p %Z"`" -m "Check the repository README for details. Contact software@team6328.org with any questions."
+      - name: Push public commit
+        working-directory: code-public
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: |
+          git config --unset-all http.https://github.com/.extraheader
+          git push --set-upstream https://Mechanical-Advantage-Bot:$GITHUB_TOKEN@github.com/Mechanical-Advantage/RobotCode2025Public main

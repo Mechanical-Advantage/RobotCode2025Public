@@ -1,0 +1,171 @@
+{
+  "name": "Manta",
+  "rotations": [
+    {
+      "axis": "x",
+      "degrees": 90
+    },
+    {
+      "axis": "z",
+      "degrees": 270
+    }
+  ],
+  "cameras": [
+    {
+      "name": "Super Camera Left",
+      "rotations": [
+        {
+          "axis": "y",
+          "degrees": -25.0
+        },
+        {
+          "axis": "z",
+          "degrees": -20.0
+        }
+      ],
+      "position": [
+        0.2794,
+        0.2286,
+        0.21113
+      ],
+      "resolution": [
+        1600,
+        1200
+      ],
+      "fov": 66.62
+    },
+    {
+      "name": "Super Camera Right",
+      "rotations": [
+        {
+          "axis": "y",
+          "degrees": -25.0
+        },
+        {
+          "axis": "z",
+          "degrees": 20.0
+        }
+      ],
+      "position": [
+        0.2794,
+        -0.2286,
+        0.21113
+      ],
+      "resolution": [
+        1600,
+        1200
+      ],
+      "fov": 66.62
+    },
+    {
+      "name": "Back Up In The Camera",
+      "rotations": [
+        {
+          "axis": "y",
+          "degrees": -40
+        },
+        {
+          "axis": "z",
+          "degrees": -193.394
+        }
+      ],
+      "position": [
+        0.0762,
+        0.254,
+        0.635
+      ],
+      "resolution": [
+        1600,
+        1200
+      ],
+      "fov": 66.62
+    }
+  ],
+  "components": [
+    {
+      "zeroedRotations": [
+        {
+          "axis": "x",
+          "degrees": 90
+        },
+        {
+          "axis": "z",
+          "degrees": 270
+        }
+      ],
+      "zeroedPosition": [
+        -0.085,
+        0.0,
+        -0.028953
+      ]
+    },
+    {
+      "zeroedRotations": [
+        {
+          "axis": "x",
+          "degrees": 90
+        },
+        {
+          "axis": "z",
+          "degrees": 270
+        }
+      ],
+      "zeroedPosition": [
+        -0.088604,
+        0.0,
+        -0.056446
+      ]
+    },
+    {
+      "zeroedRotations": [
+        {
+          "axis": "x",
+          "degrees": 90
+        },
+        {
+          "axis": "z",
+          "degrees": 270
+        }
+      ],
+      "zeroedPosition": [
+        -0.114798,
+        0.0,
+        -0.242732
+      ]
+    },
+    {
+      "zeroedRotations": [
+        {
+          "axis": "x",
+          "degrees": 90
+        },
+        {
+          "axis": "z",
+          "degrees": 270
+        }
+      ],
+      "zeroedPosition": [
+        -0.114786,
+        0.0,
+        -0.243
+      ]
+    },
+    {
+      "zeroedRotations": [
+        {
+          "axis": "x",
+          "degrees": 90
+        },
+        {
+          "axis": "z",
+          "degrees": 270
+        }
+      ],
+      "zeroedPosition": [
+        -0.015875,
+        0.0,
+        -0.119405
+      ]
+    }
+  ]
+}
