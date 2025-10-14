@@ -6,20 +6,26 @@ on:
     - cron: "32 6 * * *" # 6:32(:08) AM UTC
 
 jobs:
-  build:
-    name: Public Release
+  publish:
+    name: Publish Branch (${{ matrix.branch }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: [main, hopper]
     steps:
       - name: Checkout private repository
         uses: actions/checkout@v4
         with:
           repository: Mechanical-Advantage/RobotCode2025
           path: code-private
+          ref: ${{ matrix.branch }}
       - name: Checkout public repository
         uses: actions/checkout@v4
         with:
           repository: Mechanical-Advantage/RobotCode2025Public
           path: code-public
+          ref: ${{ matrix.branch }}
       - name: Configure user
         run: |
           git config --global user.email "github@littletonrobotics.org"
@@ -30,7 +36,7 @@ jobs:
           mv code-private/README-Public.md code-private/README.md
           mv code-private/.github/workflows code-private/.github/workflows_private
           mv code-private/.github/workflows_public code-private/.github/workflows
-          rsync -av --delete code-private/ code-public --exclude .git
+          rsync -av --delete --checksum code-private/ code-public --exclude .git
       - name: Create public commit
         working-directory: code-public
         run: |
@@ -42,4 +48,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: |
           git config --unset-all http.https://github.com/.extraheader
-          git push --set-upstream https://Mechanical-Advantage-Bot:$GITHUB_TOKEN@github.com/Mechanical-Advantage/RobotCode2025Public main
+          git push --set-upstream https://Mechanical-Advantage-Bot:$GITHUB_TOKEN@github.com/Mechanical-Advantage/RobotCode2025Public "${{ matrix.branch }}"
