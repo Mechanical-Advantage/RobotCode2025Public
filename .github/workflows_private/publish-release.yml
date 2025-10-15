@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        branch: [main, hopper]
+        branch: [main, hopper, offseason-rebuild]
     steps:
       - name: Checkout private repository
         uses: actions/checkout@v4
