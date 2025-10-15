@@ -1,0 +1,20 @@
+name: Close Pull Requests
+
+on:
+  pull_request_target:
+
+jobs:
+  build:
+    name: Close Pull Requests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure user
+        run: |
+          git config --global user.email "github@littletonrobotics.org"
+          git config --global user.name "Mechanical-Advantage-Bot"
+      - name: Close pull request
+        uses: superbrothers/close-pull-request@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+        with:
+          comment: "Thanks for your contribution. Our robot code repositories are intended only for internal development by 6328 students and mentors. If you have any questions or suggestions please reach out to software@team6328.org."

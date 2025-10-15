@@ -1,0 +1,642 @@
+{
+  "version": 1.0,
+  "grid_size": 128,
+  "tabs": [
+    {
+      "name": "Pre-Match",
+      "grid_layout": {
+        "layouts": [],
+        "containers": [
+          {
+            "title": "Auto Choices",
+            "x": 0.0,
+            "y": 0.0,
+            "width": 384.0,
+            "height": 128.0,
+            "type": "ComboBox Chooser",
+            "properties": {
+              "topic": "/SmartDashboard/Auto Choices",
+              "period": 0.06,
+              "sort_options": false
+            }
+          },
+          {
+            "title": "Processor Side?",
+            "x": 0.0,
+            "y": 128.0,
+            "width": 384.0,
+            "height": 128.0,
+            "type": "Split Button Chooser",
+            "properties": {
+              "topic": "/SmartDashboard/Processor Side?",
+              "period": 0.06
+            }
+          },
+          {
+            "title": "Strategy",
+            "x": 384.0,
+            "y": 128.0,
+            "width": 384.0,
+            "height": 128.0,
+            "type": "Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Strategy",
+              "period": 0.06,
+              "data_type": "string",
+              "show_submit_button": true
+            }
+          },
+          {
+            "title": "FMSInfo",
+            "x": 384.0,
+            "y": 0.0,
+            "width": 384.0,
+            "height": 128.0,
+            "type": "FMSInfo",
+            "properties": {
+              "topic": "/FMSInfo",
+              "period": 0.06
+            }
+          },
+          {
+            "title": "Priority #1",
+            "x": 0.0,
+            "y": 256.0,
+            "width": 128.0,
+            "height": 128.0,
+            "type": "Large Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #1",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #2",
+            "x": 128.0,
+            "y": 256.0,
+            "width": 128.0,
+            "height": 128.0,
+            "type": "Large Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #2",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #3",
+            "x": 256.0,
+            "y": 256.0,
+            "width": 128.0,
+            "height": 128.0,
+            "type": "Large Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #3",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #4",
+            "x": 384.0,
+            "y": 256.0,
+            "width": 128.0,
+            "height": 128.0,
+            "type": "Large Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #4",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #5",
+            "x": 512.0,
+            "y": 256.0,
+            "width": 128.0,
+            "height": 128.0,
+            "type": "Large Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #5",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #6",
+            "x": 640.0,
+            "y": 256.0,
+            "width": 128.0,
+            "height": 128.0,
+            "type": "Large Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #6",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #7",
+            "x": 768.0,
+            "y": 256.0,
+            "width": 128.0,
+            "height": 128.0,
+            "type": "Large Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #7",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #8",
+            "x": 896.0,
+            "y": 256.0,
+            "width": 128.0,
+            "height": 128.0,
+            "type": "Large Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #8",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Alerts",
+            "x": 1024.0,
+            "y": 0.0,
+            "width": 512.0,
+            "height": 512.0,
+            "type": "Alerts",
+            "properties": {
+              "topic": "/SmartDashboard/Alerts",
+              "period": 0.06
+            }
+          },
+          {
+            "title": "Endgame Alert #1",
+            "x": 768.0,
+            "y": 0.0,
+            "width": 256.0,
+            "height": 128.0,
+            "type": "Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Endgame Alert #1",
+              "period": 0.06,
+              "data_type": "double",
+              "show_submit_button": true
+            }
+          },
+          {
+            "title": "Endgame Alert #2",
+            "x": 768.0,
+            "y": 128.0,
+            "width": 256.0,
+            "height": 128.0,
+            "type": "Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Endgame Alert #2",
+              "period": 0.06,
+              "data_type": "double",
+              "show_submit_button": true
+            }
+          },
+          {
+            "title": "Priority #1 Completed",
+            "x": 0.0,
+            "y": 384.0,
+            "width": 128.0,
+            "height": 256.0,
+            "type": "Single Color View",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #1 Completed",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #2 Completed",
+            "x": 128.0,
+            "y": 384.0,
+            "width": 128.0,
+            "height": 256.0,
+            "type": "Single Color View",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #2 Completed",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #3 Completed",
+            "x": 256.0,
+            "y": 384.0,
+            "width": 128.0,
+            "height": 256.0,
+            "type": "Single Color View",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #3 Completed",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #4 Completed",
+            "x": 384.0,
+            "y": 384.0,
+            "width": 128.0,
+            "height": 256.0,
+            "type": "Single Color View",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #4 Completed",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #5 Completed",
+            "x": 512.0,
+            "y": 384.0,
+            "width": 128.0,
+            "height": 256.0,
+            "type": "Single Color View",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #5 Completed",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #6 Completed",
+            "x": 640.0,
+            "y": 384.0,
+            "width": 128.0,
+            "height": 256.0,
+            "type": "Single Color View",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #6 Completed",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #7 Completed",
+            "x": 768.0,
+            "y": 384.0,
+            "width": 128.0,
+            "height": 256.0,
+            "type": "Single Color View",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #7 Completed",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #8 Completed",
+            "x": 896.0,
+            "y": 384.0,
+            "width": 128.0,
+            "height": 256.0,
+            "type": "Single Color View",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #8 Completed",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Enable Recording",
+            "x": 1024.0,
+            "y": 512.0,
+            "width": 512.0,
+            "height": 128.0,
+            "type": "Toggle Switch",
+            "properties": {
+              "topic": "/SmartDashboard/Enable Recording",
+              "period": 0.06,
+              "data_type": "boolean"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Teleoperated",
+      "grid_layout": {
+        "layouts": [],
+        "containers": [
+          {
+            "title": "Reef Level",
+            "x": 1024.0,
+            "y": 0.0,
+            "width": 512.0,
+            "height": 128.0,
+            "type": "Split Button Chooser",
+            "properties": {
+              "topic": "/SmartDashboard/Reef Level",
+              "period": 0.06
+            }
+          },
+          {
+            "title": "Priority #1",
+            "x": 0.0,
+            "y": 256.0,
+            "width": 128.0,
+            "height": 128.0,
+            "type": "Large Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #1",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #2",
+            "x": 128.0,
+            "y": 256.0,
+            "width": 128.0,
+            "height": 128.0,
+            "type": "Large Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #2",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #3",
+            "x": 256.0,
+            "y": 256.0,
+            "width": 128.0,
+            "height": 128.0,
+            "type": "Large Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #3",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #1 Completed",
+            "x": 0.0,
+            "y": 384.0,
+            "width": 128.0,
+            "height": 256.0,
+            "type": "Single Color View",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #1 Completed",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #2 Completed",
+            "x": 128.0,
+            "y": 384.0,
+            "width": 128.0,
+            "height": 256.0,
+            "type": "Single Color View",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #2 Completed",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #3 Completed",
+            "x": 256.0,
+            "y": 384.0,
+            "width": 128.0,
+            "height": 256.0,
+            "type": "Single Color View",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #3 Completed",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #4",
+            "x": 384.0,
+            "y": 256.0,
+            "width": 128.0,
+            "height": 128.0,
+            "type": "Large Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #4",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #4 Completed",
+            "x": 384.0,
+            "y": 384.0,
+            "width": 128.0,
+            "height": 256.0,
+            "type": "Single Color View",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #4 Completed",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #5",
+            "x": 512.0,
+            "y": 256.0,
+            "width": 128.0,
+            "height": 128.0,
+            "type": "Large Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #5",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #5 Completed",
+            "x": 512.0,
+            "y": 384.0,
+            "width": 128.0,
+            "height": 256.0,
+            "type": "Single Color View",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #5 Completed",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #6",
+            "x": 640.0,
+            "y": 256.0,
+            "width": 128.0,
+            "height": 128.0,
+            "type": "Large Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #6",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #6 Completed",
+            "x": 640.0,
+            "y": 384.0,
+            "width": 128.0,
+            "height": 256.0,
+            "type": "Single Color View",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #6 Completed",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #7",
+            "x": 768.0,
+            "y": 256.0,
+            "width": 128.0,
+            "height": 128.0,
+            "type": "Large Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #7",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #8",
+            "x": 896.0,
+            "y": 256.0,
+            "width": 128.0,
+            "height": 128.0,
+            "type": "Large Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #8",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #7 Completed",
+            "x": 768.0,
+            "y": 384.0,
+            "width": 128.0,
+            "height": 256.0,
+            "type": "Single Color View",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #7 Completed",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Priority #8 Completed",
+            "x": 896.0,
+            "y": 384.0,
+            "width": 128.0,
+            "height": 256.0,
+            "type": "Single Color View",
+            "properties": {
+              "topic": "/SmartDashboard/Objective Tracker/Priority #8 Completed",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "First Priority",
+            "x": 0.0,
+            "y": 0.0,
+            "width": 256.0,
+            "height": 128.0,
+            "type": "Single Color View",
+            "properties": {
+              "topic": "/SmartDashboard/LEDs/First Priority",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Second Priority",
+            "x": 256.0,
+            "y": 0.0,
+            "width": 256.0,
+            "height": 128.0,
+            "type": "Single Color View",
+            "properties": {
+              "topic": "/SmartDashboard/LEDs/Second Priority",
+              "period": 0.06,
+              "data_type": "string"
+            }
+          },
+          {
+            "title": "Match Time",
+            "x": 512.0,
+            "y": 0.0,
+            "width": 512.0,
+            "height": 256.0,
+            "type": "Match Time",
+            "properties": {
+              "topic": "/SmartDashboard/Match Time",
+              "period": 0.06,
+              "data_type": "double",
+              "time_display_mode": "Minutes and Seconds",
+              "red_start_time": 15,
+              "yellow_start_time": 30
+            }
+          },
+          {
+            "title": "Alerts",
+            "x": 1024.0,
+            "y": 128.0,
+            "width": 512.0,
+            "height": 512.0,
+            "type": "Alerts",
+            "properties": {
+              "topic": "/SmartDashboard/Alerts",
+              "period": 0.06
+            }
+          },
+          {
+            "title": "Has Coral?",
+            "x": 0.0,
+            "y": 128.0,
+            "width": 256.0,
+            "height": 128.0,
+            "type": "Boolean Box",
+            "properties": {
+              "topic": "/SmartDashboard/Has Coral?",
+              "period": 0.06,
+              "data_type": "boolean",
+              "true_color": 4283215696,
+              "false_color": 4294198070,
+              "true_icon": "None",
+              "false_icon": "None"
+            }
+          },
+          {
+            "title": "Has Algae?",
+            "x": 256.0,
+            "y": 128.0,
+            "width": 256.0,
+            "height": 128.0,
+            "type": "Boolean Box",
+            "properties": {
+              "topic": "/SmartDashboard/Has Algae?",
+              "period": 0.06,
+              "data_type": "boolean",
+              "true_color": 4283215696,
+              "false_color": 4294198070,
+              "true_icon": "None",
+              "false_icon": "None"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

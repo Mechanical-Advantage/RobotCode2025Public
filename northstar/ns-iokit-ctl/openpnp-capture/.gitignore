@@ -1,0 +1,17 @@
+java/.classpath
+java/.project
+java/.settings
+java/target
+mac/openpnp-capture.xcodeproj/xcuserdata
+mac/openpnp-capture.xcodeproj/project.xcworkspace/xcuserdata
+common/version.h
+/build*
+*.pro.user
+QtCaptureTest/build
+.DS_Store
+.vscode
+.idea/
+openpnp-capture.iml
+out
+cmake-build-*/
+actions-runner

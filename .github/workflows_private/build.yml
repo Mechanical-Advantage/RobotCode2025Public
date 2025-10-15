@@ -1,0 +1,31 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: "temurin"
+          java-version: "17"
+      - name: Grant execute permission
+        run: chmod +x gradlew
+      - name: Check formatting
+        run: ./gradlew spotlessCheck
+      - name: Build robot code
+        run: ./gradlew build
+        env:
+          GENERATE_EMPTY_DRIVE_TRAJECTORIES: true
+      - name: Check constants (PR)
+        if: github.event_name == 'pull_request'
+        run: ./gradlew checkConstantsPullRequest
+        env:
+          GENERATE_EMPTY_DRIVE_TRAJECTORIES: true

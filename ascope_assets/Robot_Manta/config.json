@@ -1,0 +1,189 @@
+{
+  "name": "Manta",
+  "isFTC": false,
+  "rotations": [
+    {
+      "axis": "x",
+      "degrees": 90
+    },
+    {
+      "axis": "z",
+      "degrees": 270
+    }
+  ],
+  "cameras": [
+    {
+      "name": "Northstar 0",
+      "rotations": [
+        {
+          "axis": "y",
+          "degrees": -25.0
+        },
+        {
+          "axis": "z",
+          "degrees": -20.0
+        }
+      ],
+      "position": [
+        0.2794,
+        0.2286,
+        0.21113
+      ],
+      "resolution": [
+        1600,
+        1200
+      ],
+      "fov": 66.62
+    },
+    {
+      "name": "Northstar 1",
+      "rotations": [
+        {
+          "axis": "y",
+          "degrees": -25.0
+        },
+        {
+          "axis": "z",
+          "degrees": 20.0
+        }
+      ],
+      "position": [
+        0.2794,
+        -0.2286,
+        0.21113
+      ],
+      "resolution": [
+        1600,
+        1200
+      ],
+      "fov": 66.62
+    },
+    {
+      "name": "Northstar 2",
+      "rotations": [
+        {
+          "axis": "y",
+          "degrees": 25.0
+        },
+        {
+          "axis": "z",
+          "degrees": 170
+        }
+      ],
+      "position": [
+        0.082,
+        -0.254,
+        0.673
+      ],
+      "resolution": [
+        1280,
+        960
+      ],
+      "fov": 59.42
+    }
+  ],
+  "components": [
+    {
+      "zeroedRotations": [
+        {
+          "axis": "x",
+          "degrees": 90
+        },
+        {
+          "axis": "z",
+          "degrees": 270
+        }
+      ],
+      "zeroedPosition": [
+        -0.085,
+        0.0,
+        -0.028953
+      ]
+    },
+    {
+      "zeroedRotations": [
+        {
+          "axis": "x",
+          "degrees": 90
+        },
+        {
+          "axis": "z",
+          "degrees": 270
+        }
+      ],
+      "zeroedPosition": [
+        -0.088604,
+        0.0,
+        -0.056446
+      ]
+    },
+    {
+      "zeroedRotations": [
+        {
+          "axis": "x",
+          "degrees": 90
+        },
+        {
+          "axis": "z",
+          "degrees": 270
+        }
+      ],
+      "zeroedPosition": [
+        -0.114798,
+        0.0,
+        -0.242732
+      ]
+    },
+    {
+      "zeroedRotations": [
+        {
+          "axis": "x",
+          "degrees": 90
+        },
+        {
+          "axis": "z",
+          "degrees": 270
+        }
+      ],
+      "zeroedPosition": [
+        -0.114786,
+        0.0,
+        -0.243
+      ]
+    },
+    {
+      "zeroedRotations": [
+        {
+          "axis": "y",
+          "degrees": -90
+        },
+        {
+          "axis": "x",
+          "degrees": 92
+        }
+      ],
+      "zeroedPosition": [
+        0.051,
+        -0.3315,
+        -0.326
+      ]
+    },
+    {
+      "zeroedRotations": [
+        {
+          "axis": "x",
+          "degrees": 90
+        },
+        {
+          "axis": "z",
+          "degrees": 270
+        }
+      ],
+      "zeroedPosition": [
+        0.285750,
+        0.0,
+        -0.285750
+      ]
+    }
+  ]
+}
